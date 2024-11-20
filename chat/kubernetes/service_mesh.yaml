@@ -1,0 +1,41 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: arenas-analysis-routes
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - arenas-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /analyze
+    route:
+    - destination:
+        host: arenas-analysis
+        port:
+          number: 8000
+  - match:
+    - uri:
+        prefix: /visualize
+    route:
+    - destination:
+        host: arenas-visualization
+        port:
+          number: 8001
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: arenas-analysis
+spec:
+  host: arenas-analysis
+  trafficPolicy:
+    loadBalancer:
+      simple: ROUND_ROBIN
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 1024

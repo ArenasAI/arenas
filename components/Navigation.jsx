@@ -1,10 +1,24 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+
 
 export default function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const handleSignIn = () => {
+    if (isMounted) {
+      router.push('/signin');
+    }
+  };
 
   return (
     <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-sm border-b border-gray-200 z-50">
@@ -49,12 +63,11 @@ export default function Navigation() {
 
             {/* Auth Buttons */}
             <div className="flex items-center space-x-4">
-              <Link 
-                href="/signin"
-                className="text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Sign in
-              </Link>
+              <button onClick={handleSignIn}
+                  className="text-gray-600 hover:text-gray-900 transition-colors"
+                  disabled={!isMounted}>
+                  Sign in
+              </button>
               <Link 
                 href="/signup"
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
