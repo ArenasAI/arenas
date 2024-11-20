@@ -1,19 +1,10 @@
-<a name="readme-top"></a>
-<div align="center">
-    <div align="center">
-        <img src="public/assets/arenaslogo.png" alt="ArenasAI" width=200px>
-    </div>
-
-    <h3 align="center">arenas</h3>
+<h3 align="center">arenas</h3>
     <p align="center">
         The Open Source AI-powered Data Analyst
     <br />
-    
-    <a href="https://github.com/ArenasAI/arenas/issues">Report Bug</a>·
-    <a href="https://github.com/ArenasAI/arenas/issues">Request Feature</a>
-  </p>
-
-</div>
+        <a href="https://github.com/ArenasAI/arenas/issues">Report Bug</a>·
+        <a href="https://github.com/ArenasAI/arenas/issues">Request Feature</a>
+    </p>
 
 ## About the Project
 
