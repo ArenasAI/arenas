@@ -1,6 +1,6 @@
 <div align="center">
     <div align="center">
-        <img src="https://github.com/ArenasAI/arenasai/blob/main/.github/assets/logo.png" alt="ArenasAI" width=200px>
+        <img src="public/assets/arenas logo.png" alt="ArenasAI" width=200px>
     </div>
 
     <h3 align="center"> ArenasAI </h3>
@@ -13,7 +13,7 @@
 
 ## About the Project
 
-this is arenas' main repository. this product is designed and built by [Osmani](https://github.com/mubashir1osmani)
+this is arenas' main repository. this product is designed and built by [Mubashir Osmani](https://github.com/mubashir1osmani)
 
 ### Built With
 
