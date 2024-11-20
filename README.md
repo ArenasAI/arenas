@@ -3,9 +3,14 @@
         <img src="public/assets/arenas logo.png" alt="ArenasAI" width=200px>
     </div>
 
-    <h3 align="center"> ArenasAI </h3>
-    <p align="center">Open Source AI-powered Data Analysis Platform </p>
-    <br/>
+    <h3 align="center">arenas</h3>
+    <p align="center">
+        The Open Source AI-powered Data Analyst
+    <br />
+    
+    <a href="https://github.com/ArenasAI/arenas/issues">Report Bug</a>·
+    <a href="https://github.com/ArenasAI/arenas/issues">Request Feature</a>
+  </p>
 
 </div>
 
@@ -17,10 +22,10 @@ this is arenas' main repository. this product is designed and built by [Mubashir
 
 ### Built With
 
-- [![nextjs][nextjs]][nextjs-url]
-- [![vercel][vercel]][vercel-url]
-- [![tailwindcss][tailwindcss]][tailwindcss-url]
-- [![typescript][typescript]][typescripturl]
+- Nextjs
+- Vercel
+- TailwindCSS
+- Typescript
 
 ## Contributing
 
