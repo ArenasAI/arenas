@@ -1,6 +1,7 @@
+<a name="readme-top"></a>
 <div align="center">
     <div align="center">
-        <img src="public/assets/arenas logo.png" alt="ArenasAI" width=200px>
+        <img src="public/assets/arenaslogo.png" alt="ArenasAI" width=200px>
     </div>
 
     <h3 align="center">arenas</h3>
