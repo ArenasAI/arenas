@@ -15,8 +15,6 @@
 
 </div>
 
----
-
 ## About the Project
 
 this is arenas' main repository. this product is designed and built by [Mubashir Osmani](https://github.com/mubashir1osmani)
