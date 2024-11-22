@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: arenas-analysis
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: arenas-analysis
+  template:
+    metadata:
+      labels:
+        app: arenas-analysis
+    spec:
+      containers:
+      - name: analyzer
+        image: arenas/analyzer:latest
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: arenas-visualization
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: arenas-visualization
+  template:
+    metadata:
+      labels:
+        app: arenas-visualization
+    spec:
+      containers:
+      - name: visualizer
+        image: arenas/visualizer:latest
+        ports:
+        - containerPort: 8001
