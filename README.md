@@ -8,7 +8,7 @@
 
 ## About the Project
 
-this is arenas' main repository. this product is designed and built by [Mubashir Osmani](https://github.com/mubashir1osmani)
+this is arenas' main repository. this product is designed and built by [Osmani](https://github.com/mubashir1osmani)
 
 ### Built With
 
