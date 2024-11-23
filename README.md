@@ -12,9 +12,9 @@ this is arenas' main repository. this product is designed and built by [Osmani](
 
 ### Built With
 
-- [![nextjs][next-js]][nextjs-url]
+- [![nextjs][nextjs]][nextjs-url]
 - [![vercel][vercel]][vercel-url]
-- [![typescript][typescript]][typescript-url]
+- [![typescript][typescript]][typescripturl]
 - [![tailwindcss][tailwindcss]][tailwindcss-url]
 
 ## Getting Started
