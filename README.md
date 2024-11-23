@@ -12,10 +12,31 @@ this is arenas' main repository. this product is designed and built by [Osmani](
 
 ### Built With
 
-- Nextjs
-- Vercel
-- TailwindCSS
-- Typescript
+- [![nextjs][next-js]][nextjs-url]
+- [![vercel][vercel]][vercel-url]
+- [![typescript][typescript]][typescript-url]
+- [![tailwindcss][tailwindcss]][tailwindcss-url]
+
+## Getting Started
+
+### Prerequisites
+
+- Install Yarn
+    ```sh
+    npm install -global yarn
+    ```
+
+### Installation
+
+1. Clone the repo
+    ```sh
+    git clone https://github.com/ArenasAI/arenas.git
+    ```
+
+2. Install dependencies
+   ```sh
+   yarn install
+   ```
 
 ## Contributing
 
@@ -28,22 +49,38 @@ If you have a suggestion that would make this better, please fork the repo and c
     git clone https://github.com/ArenasAI/arenas.git
     ```
 
-2. Clone the repo
-    ```sh
-    git clone https://github.com/<your_username>/arenas.git
+1. Clone the repo
+   ```sh
+    git clone https://github.com/<USERNAME>/arenas.git
     ```
 
-3. Navigate to the project directory
+2. Navigate to the project directory
    ```sh
    cd arenas
    ```
-4. Create a new branch
+3. Create a new branch
    ```sh
    git checkout -b my-new-branch
    ```
-5. Install dependencies
-   ```sh
-   yarn install
-   ```
+
+4. Install dependencies
+    ```sh
+    yarn install
+    ```
+
+## Contact
+
+[Discord](https://discord.gg/spZ5yucbnn)
+
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+[typescript]: https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white
+[typescripturl]: https://www.typescriptlang.org/
+[vercel]: https://img.shields.io/badge/Vercel-%23000000.svg?style=for-the-badge&logo=vercel&logoColor=white
+[vercel-url]: https://vercel.com/
+[nextjs]: https://img.shields.io/badge/Next.js-%23000000.svg?style=for-the-badge&logo=next.js&logoColor=white
+[nextjs-url]: https://nextjs.org/
+[tailwindcss]: https://img.shields.io/badge/Tailwind_CSS-%231a202c.svg?style=for-the-badge&logo=tailwind-css&logoColor=white
+[tailwindcss-url]: https://tailwindcss.com/
+[discord]: https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=discord&logoColor=white
