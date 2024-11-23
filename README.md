@@ -71,6 +71,7 @@ If you have a suggestion that would make this better, please fork the repo and c
 ## Contact
 
 [Discord](https://discord.gg/spZ5yucbnn)
+deloreann1
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
