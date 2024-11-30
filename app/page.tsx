@@ -1,9 +1,8 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import Navigation from '../components/Navigation';
-import Button from '@/components/ui/button';
-import Footer from '@/components/Footer';
-import Newsletter from '@/components/newsletter';
+import Navigation from '@/components/Navigation';
+import Footer from '@/components/footer';
+import Newsletter from '@/components/Newsletter';
 
 export default function Home() {
   return (
@@ -11,7 +10,7 @@ export default function Home() {
       <Navigation />
       
       {/* Main content */}
-      <main className="flex-grow flex flex-col items-center justify-center px-4 mt-16">
+      <main className="flex-grow flex flex-col items-center justify-center px-4 mt-16 overflow-y-auto">
         <h1 className="text-6xl font-bold mb-4">Arenas</h1>
         <p className="text-xl mb-8 text-gray-600">Open Source AI Data Analyst</p>
         <a 
@@ -20,7 +19,10 @@ export default function Home() {
         >
           Try it now!
         </a>
-        <Newsletter />
+        <div className="">
+          <Newsletter />
+        </div>
+        
       </main>
 
       {/* Footer */}

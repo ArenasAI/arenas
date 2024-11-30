@@ -21,7 +21,7 @@ export default function Newsletter() {
   };
 
   return (
-    <div className="bg-blue-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div>
       <div className="max-w-2xl mx-auto text-center">
         <h2 className="text-3xl font-bold text-gray-900 mb-4">
           Stay Updated with ArenasAI

@@ -1,77 +1,102 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { OLLAMA_BASE_URL, DEFAULT_MODEL } from '@/app/chat/ollama/ollama-config';
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
-async function generateOllamaPrompt(prompt: string, runtime: string) {
-  const systemPrompt = `You are a helpful AI assistant specializing in ${runtime} programming. 
-  Provide clear, concise responses with code examples when appropriate.`;
+export async function POST(req: Request) {
+  const { messages } = await req.json();
 
-  return `${systemPrompt}\n\nUser: ${prompt}`;
+  const result = streamText({
+    model: openai('gpt-4-turbo'),
+    system: 'You are an expert software developer',
+    messages,
+  });
+
+  return result.toDataStreamResponse();
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    const { prompt, runtime } = await req.json();
 
-    if (!prompt) {
-      return NextResponse.json(
-        { error: 'Prompt is required' },
-        { status: 400 }
-      );
-    }
 
-    // For testing without Ollama
-    // Remove this and uncomment the Ollama code when Ollama is set up
-    return NextResponse.json({
-      message: `I received your prompt about "${prompt}" for ${runtime}. This is a temporary response while Ollama integration is being set up.`,
-      code: null,
-      visualization: null,
-    });
 
-    /* Uncomment when Ollama is set up
-    const formattedPrompt = await generateOllamaPrompt(prompt, runtime);
 
-    const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: DEFAULT_MODEL,
-        prompt: formattedPrompt,
-        stream: false,
-      }),
-    });
 
-    if (!response.ok) {
-      throw new Error(`Ollama API error: ${response.statusText}`);
-    }
 
-    const data = await response.json();
 
-    // Extract code blocks from the response if they exist
-    const codeBlockRegex = /```[\s\S]*?```/g;
-    const codeBlocks = data.response.match(codeBlockRegex);
-    const code = codeBlocks ? codeBlocks[0].replace(/```[\w]*\n?/g, '') : null;
+// import { NextRequest, NextResponse } from 'next/server';
+// import { OLLAMA_BASE_URL, DEFAULT_MODEL } from '@/app/chat/ollama/ollama-config';
 
-    // Remove code blocks from the main message
-    const message = data.response.replace(codeBlockRegex, '').trim();
+// export async function POST(req: NextRequest) {
+//   try {
+//     const { prompt, runtime } = await req.json();
 
-    return NextResponse.json({
-      message,
-      code,
-      visualization: null,
-    });
-    */
+//     if (!prompt) {
+//       return NextResponse.json(
+//         { error: 'Prompt is required' },
+//         { status: 400 }
+//       );
+//     }
 
-  } catch (error) {
-    console.error('Chat API error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
-  }
-}
+//     const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
+//       method: 'POST',
+//       headers: {
+//         'Content-Type': 'application/json',
+//       },
+//       body: JSON.stringify({
+//         model: DEFAULT_MODEL,
+//         prompt: generatePrompt(prompt, runtime),
+//         stream: false,
+//       }),
+//     });
 
-export async function GET() {
-  return NextResponse.json({ status: 'Chat API is running' });
-}
+//     if (!response.ok) {
+//       throw new Error(`Ollama API error: ${response.statusText}`);
+//     }
+
+//     const data = await response.json();
+//     const parsedResponse = parseResponse(data.response);
+
+//     return NextResponse.json(parsedResponse);
+//   } catch (error) {
+//     console.error('Chat API error:', error);
+//     return NextResponse.json(
+//       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+//       { status: 500 }
+//     );
+//   }
+// }
+
+// function generatePrompt(prompt: string, runtime: string): string {
+//   const systemPrompt = `You are an AI assistant specialized in ${runtime} programming, data analysis, and visualization. 
+// You provide clear, concise responses and include code examples when relevant.
+// When providing code, wrap it in triple backticks with the language specified.
+// Current runtime: ${runtime}`;
+
+//   return `${systemPrompt}\n\nUser: ${prompt}\nAssistant:`;
+// }
+
+// function parseResponse(response: string) {
+//   const codeBlockRegex = /```[\s\S]*?```/g;
+//   const codeBlocks = response.match(codeBlockRegex);
+//   const code = codeBlocks 
+//     ? codeBlocks[0].replace(/```[\w]*\n?/g, '').trim()
+//     : null;
+
+//   const message = response.replace(codeBlockRegex, '').trim();
+
+//   return {
+//     message,
+//     code,
+//     visualization: null,
+//   };
+// }
+
+// export async function GET() {
+//   try {
+//     const response = await fetch(`${OLLAMA_BASE_URL}/api/version`);
+//     const data = await response.json();
+//     return NextResponse.json({ status: 'online', version: data.version });
+//   } catch (error) {
+//     return NextResponse.json(
+//       { status: 'offline', error: 'Cannot connect to Ollama' },
+//       { status: 503 }
+//     );
+//   }
+// }

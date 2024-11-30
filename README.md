@@ -2,13 +2,14 @@
     <p align="center">
         The Open Source AI-powered Data Analyst
     <br />
-        <a href="https://github.com/ArenasAI/arenas/issues">Report Bug</a>·
         <a href="https://github.com/ArenasAI/arenas/issues">Request Feature</a>
     </p>
 
 ## About the Project
 
 this is arenas' main repository. this product is designed and built by [Osmani](https://github.com/mubashir1osmani)
+
+i started working on this project to make data analysis easier for folks who spend countless hours in R studio. if you have any suggestions or problems you are facing, please contact me on discord or open an issue.
 
 ### Built With
 
@@ -17,14 +18,6 @@ this is arenas' main repository. this product is designed and built by [Osmani](
 - [![typescript][typescript]][typescripturl]
 - [![tailwindcss][tailwindcss]][tailwindcss-url]
 
-## Getting Started
-
-### Prerequisites
-
-- Install Yarn
-    ```sh
-    npm install -global yarn
-    ```
 
 ### Installation
 
@@ -44,12 +37,9 @@ Contributions are what make the open source community such an amazing place to b
 
 If you have a suggestion that would make this better, please fork the repo and create a pull request.
 
-1. Fork the repo
-    ```sh
-    git clone https://github.com/ArenasAI/arenas.git
-    ```
+1. Fork the repo to your account
 
-1. Clone the repo
+1. Clone
    ```sh
     git clone https://github.com/<USERNAME>/arenas.git
     ```
@@ -71,7 +61,7 @@ If you have a suggestion that would make this better, please fork the repo and c
 ## Contact
 
 [Discord](https://discord.gg/spZ5yucbnn)
-deloreann1
+- you can reach me here @discord: deloreann1
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>

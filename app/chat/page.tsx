@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import CodeEditor from './components/CodeEditor';
 import RuntimeSelector from './components/RuntimeSelector';
 import RuntimeStatus from './components/RuntimeStatus';
 import VisualizationPanel from './components/VisualizationPanel';
@@ -14,23 +13,24 @@ interface Message {
   visualization?: string;
 }
 
-export default function ChatPage() {
+export default function Chat() {
+  const [message, setMessage] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
   const [selectedRuntime, setSelectedRuntime] = useState('python');
   const [code, setCode] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleUserPrompt = async () => {
-    if (!input.trim()) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim()) return;
 
     setIsProcessing(true);
     // Add user message
-    setMessages(prev => [...prev, { role: 'user', content: input }]);
+    setMessages(prev => [...prev, { role: 'user', content: message }]);
     
     try {
       // Process the prompt using our AI service
-      const response = await processUserPrompt(input, selectedRuntime);
+      const response = await processUserPrompt(message, selectedRuntime);
       
       // Add AI response
       setMessages(prev => [...prev, {
@@ -53,13 +53,14 @@ export default function ChatPage() {
       }]);
     } finally {
       setIsProcessing(false);
-      setInput('');
+      setMessage('');
     }
   };
 
   return (
-    <div className="flex flex-col h-screen">
-      <div className="flex-none p-4 border-b">
+    <div className="flex flex-col h-screen bg-white">
+      {/* Top bar with runtime controls */}
+      <div className="fixed top-4 left-4 flex items-center space-x-4">
         <RuntimeSelector
           selectedRuntime={selectedRuntime}
           onRuntimeChange={setSelectedRuntime}
@@ -67,20 +68,8 @@ export default function ChatPage() {
         <RuntimeStatus isProcessing={isProcessing} />
       </div>
 
-      <div className="flex-grow flex">
-        {/* Left panel: Code Editor */}
-        <div className="w-1/2 border-r">
-          <CodeEditor
-            value={code}
-            onChange={setCode}
-            language={selectedRuntime}
-          />
-        </div>
-
-        {/* Right panel: Chat and Visualization */}
-        <div className="w-1/2 flex flex-col">
-          <div className="flex-grow p-4 bg-gray-50 overflow-auto">
-            {/* Chat messages */}
+      {/* Chat messages area */}
+      <div className="flex-1 overflow-auto px-4 py-2">
             {messages.map((message, index) => (
               <div 
                 key={index} 
@@ -105,32 +94,39 @@ export default function ChatPage() {
           </div>
 
           {/* Input area */}
-          <div className="p-4 border-t">
-            <div className="flex items-center gap-2">
+      <div className="w-full max-w-4xl mx-auto px-4 pb-6">
+        <form onSubmit={handleSubmit} className="relative">
               <input
                 type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleUserPrompt()}
-                className="flex-grow p-2 border rounded"
-                placeholder="Ask me to analyze data, create visualizations, or answer questions..."
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Ask me anything about your data..."
+            className="w-full p-4 pr-16 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
                 disabled={isProcessing}
               />
               <button
-                className={`px-4 py-2 rounded text-white ${
-                  isProcessing 
-                    ? 'bg-gray-400' 
-                    : 'bg-blue-600 hover:bg-blue-700'
-                }`}
-                onClick={handleUserPrompt}
-                disabled={isProcessing}
-              >
-                {isProcessing ? 'Processing...' : 'Send'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+            type="submit"
+            disabled={isProcessing}
+            className={`absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-md ${
+              isProcessing
+                ? "bg-gray-100 cursor-not-allowed"
+                : "bg-blue-500 hover:bg-blue-600"
+            } transition-colors`}
+          >
+            <svg
+              className={`w-5 h-5 ${isProcessing ? "text-gray-400" : "text-white"}`}
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </button>
+        </form>
+    </div>
     </div>
   );
 }
