@@ -15,11 +15,6 @@ export async function POST(req: Request) {
 
 
 
-
-
-
-
-
 // import { NextRequest, NextResponse } from 'next/server';
 // import { OLLAMA_BASE_URL, DEFAULT_MODEL } from '@/app/chat/ollama/ollama-config';
 

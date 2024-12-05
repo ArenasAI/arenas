@@ -1,14 +1,12 @@
-import '@/styles/globals.css'
+import '@/app/globals.css'
 import { Inter } from 'next/font/google'
 import { Dela_Gothic_One } from 'next/font/google'
-import localFont from "next/font/local";
 import { ReactNode } from 'react';
+import { GeistSans } from 'geist/font/sans';
+import { GeistMono } from 'geist/font/mono';
+
 
 const inter = Inter({ subsets: ['latin'] })
-const delaGothic = Dela_Gothic_One({
-  weight: '400',
-  subsets: ['latin'],
-})
 
 export const metadata = {
   title: "Arenas AI - Your Personal Data Analyst",
@@ -17,8 +15,8 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <body className={`${delaGothic.className} antialiased`}>
+    <html lang="en" className={GeistSans.className}>
+      <body>
         <div className="main">
           <div className="gradient" />
         </div>

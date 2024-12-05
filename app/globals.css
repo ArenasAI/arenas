@@ -16,7 +16,7 @@
     --radius: 0.5rem;
   }
   body {
-  font-family: Dela Gothic One;
+  font-family: 'GeistMono', sans-serif;
   color: var(--foreground);
   background: var(--background);
   }
