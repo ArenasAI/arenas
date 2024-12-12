@@ -6,26 +6,27 @@ import Newsletter from '@/components/Newsletter';
 
 export default function Home() {
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-white">
       <Navigation />
       
-      {/* Main content */}
-      <main className="flex-grow flex flex-col items-center justify-center px-4 mt-16 overflow-y-auto">
-        <h1 className="text-6xl font-bold mb-4">Arenas</h1>
+      <main className="flex-grow pt-16">
+        <div className="min-h-screen flex flex-col items-center justify-center px-4">
+          <h1 className="text-6xl font-bold mb-4 text-gray-900">Arenas</h1>
         <p className="text-xl mb-8 text-gray-600">Open Source AI Data Analyst</p>
         <a 
           href="/chat" 
-          className="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors"
+            className="bg-gradient-to-r from-coral-500 to-orange-500 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:opacity-90 transition-all duration-200 shadow-md hover:shadow-lg"
         >
-          Try it now!
+            Take me there!
         </a>
-        <div className="">
+        </div>
+
+        {/* Newsletter Section */}
+        <div className="py-24 px-4">
           <Newsletter />
         </div>
-        
       </main>
 
-      {/* Footer */}
       <Footer />
     </div>
   );

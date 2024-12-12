@@ -1,159 +1,115 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { signIn, signOut, useSession, getProviders } from 'next-auth/react';
+import { useState } from "react";
+import Link from "next/link";
+import { Menu, X } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 export default function Navigation() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-  const router = useRouter();
-  const isLoggedIn = true;
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const isActive = (path: string) => pathname === path;
 
-  const handleSignIn = () => {
-    if (isMounted) {
-      router.push('/signin');
-    }
-  };
+  const navLinks = [
+    { href: "/", label: "Home" },
+    { href: "/pricing", label: "Pricing" },
+    { href: "/about", label: "About" },
+  ];
 
   return (
-    <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-sm border-b border-gray-200 z-50">
+    <nav className="fixed w-full bg-white/80 backdrop-blur-md z-50 border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="text-xl font-bold">
-            Arenas
-          </Link>
+          <div className="flex-shrink-0">
+            <Link 
+              href="/" 
+              className="text-xl font-bold text-gray-900"
+            >
+              Arenas
+            </Link>
+          </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            {/* Main Links */}
-            <div className="flex space-x-8">
-              <Link 
-                href="/about"
-                className="text-gray-600 hover:text-gray-900 transition-colors"
+          <div className="hidden md:flex md:items-center md:space-x-8">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`${
+                  isActive(link.href)
+                    ? "text-gray-900 font-semibold"
+                    : "text-gray-600 hover:text-gray-900"
+                } transition-colors duration-200`}
               >
-                About
+                {link.label}
               </Link>
-              <Link 
-                href="/pricing"
-                className="text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Pricing
-              </Link>
-              <Link 
-                href="/docs"
-                className="text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Documentation
-              </Link>
-              <a 
-                href="https://github.com/ArenasAI"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                GitHub
-              </a>
-            </div>
-
-            {/* Auth Buttons */}
-            <div className="flex items-center space-x-4">
-              <button onClick={handleSignIn}
-                  className="text-gray-600 hover:text-gray-900 transition-colors"
-                  disabled={!isMounted}>
-                  Sign in
-              </button>
-              <Link 
-                href="/signup"
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Sign up
-              </Link>
-            </div>
+            ))}
+            <Link
+              href="/signin"
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/signup"
+              className="bg-gradient-to-r from-coral-500 to-orange-500 text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-all duration-200 shadow-sm hover:shadow-md"
+            >
+              Get Started
+            </Link>
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:flex hidden">
+          <div className="md:hidden">
             <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="text-gray-600 hover:text-gray-900 focus:outline-none"
+              type="button"
+              className="text-gray-600 hover:text-gray-900"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                {isMobileMenuOpen ? (
-                  <path d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
+              <span className="sr-only">Open main menu</span>
+              {mobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Navigation */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-b border-gray-200">
-            <Link 
-              href="/about"
-              className="block px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md"
-            >
-              About
-            </Link>
-            <Link 
-              href="/pricing"
-              className="block px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md"
-            >
-              Pricing
-            </Link>
-            <Link 
-              href="/docs"
-              className="block px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md"
-            >
-              Documentation
-            </Link>
-            <a 
-              href="https://github.com/ArenasAI"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md"
-            >
-              GitHub
-            </a>
-            <Link 
-              href="/signin"
-              className="block px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md"
-            >
-              Sign in
-            </Link>
-            <Link 
-              href="/signup"
-              className="block px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md"
-            >
-              Sign up
-            </Link>
-            <div className='sm: flex-hidden'>
-              {isLoggedIn ? (
-                <div className='flex gap-3 md:gap-5'>
-                  <Link href='/profile' className='block px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md'>
-                    Profile
-                  </Link>
-                </div>
-              ): <></>}
+      {/* Mobile menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-white border-b">
+          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`${
+                  isActive(link.href)
+                    ? "text-gray-900 font-semibold"
+                    : "text-gray-600"
+                } block px-3 py-2 rounded-md text-base hover:bg-gray-50`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {link.label}
+              </Link>
+            ))}
+            <div className="px-3 py-3 space-y-3">
+              <Link
+                href="/signin"
+                className="block text-gray-600 hover:text-gray-900"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/signup"
+                className="block w-full text-center bg-gradient-to-r from-coral-500 to-orange-500 text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-all duration-200"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Get Started
+              </Link>
             </div>
           </div>
         </div>
