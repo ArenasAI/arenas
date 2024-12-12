@@ -16,7 +16,7 @@
     --radius: 0.5rem;
   }
   body {
-  font-family: 'GeistMono', sans-serif;
+  font-family: 'Host Grotesk', sans-serif;
   color: var(--foreground);
   background: var(--background);
   }
