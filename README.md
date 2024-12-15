@@ -19,18 +19,6 @@ i started working on this project to make data analysis easier for folks who spe
 - [![tailwindcss][tailwindcss]][tailwindcss-url]
 
 
-### Installation
-
-1. Clone the repo
-    ```sh
-    git clone https://github.com/ArenasAI/arenas.git
-    ```
-
-2. Install dependencies
-   ```sh
-   yarn install
-   ```
-
 ## Contributing
 
 Contributions are what make the open source community such an amazing place to be, learn, inspire, and create. Any contributions you make are **greatly appreciated**.
