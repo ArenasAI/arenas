@@ -1,123 +1,84 @@
-'use server'
+'use server';
 
-import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation";
-import { createClient } from "@/utils/supabase/server";
+import { z } from 'zod';
 
-import {
-  SignInWithPasswordCredentials,
-  Provider,
-  User,
-  Session,
-} from "@supabase/supabase-js"
+import { createUser, getUser } from '@/lib/db/queries';
 
-import { UpdatePasswordFormData } from "@/utils/form-schema"; //set this up
+import { signIn } from './auth';
 
-export async function signin (formData: FormData) {
-  const supabase = createClient();
+const authFormSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+});
 
-  const data : SignInWithPasswordCredentials = {
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
-  };
-
-  const { data: res, error } = (await supabase).auth.signInWithPassword(data);
-  if (error) {
-    return { error: error.message};
-  }
-
-  revalidatePath("/", "layout");
+export interface LoginActionState {
+  status: 'idle' | 'in_progress' | 'success' | 'failed' | 'invalid_data';
 }
 
-//how this should work:
-//1. Check if user exists, if it does attempt to sign in with email & pasword
-//- sign in successful? return isSignedIn = true; (redirect to /dashboard)
-//- sign in unsuccessful? return exists: true ({toast 'account exists' on client and redirect to /signin
-//2. if user does not exist, sign up with email and password -> redirect to /signin
-// - if sign up fails, return error message (toast error on client)
+export const login = async (
+  _: LoginActionState,
+  formData: FormData,
+): Promise<LoginActionState> => {
+  try {
+    const validatedData = authFormSchema.parse({
+      email: formData.get('email'),
+      password: formData.get('password'),
+    });
 
+    await signIn('credentials', {
+      email: validatedData.email,
+      password: validatedData.password,
+      redirect: false,
+    });
 
-export async function signInWithOAuth(
-  provider: Provider
-) {
-  const supabase = createClient();
+    return { status: 'success' };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return { status: 'invalid_data' };
+    }
 
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: provider
-  });
-
-  if (error) {
-    redirect("/signin?message=Could not authenticate user");
+    return { status: 'failed' };
   }
+};
 
-  if (data.url) {
-    redirect(data.url);
-  }
-
-  revalidatePath("/", "layout");
+export interface RegisterActionState {
+  status:
+    | 'idle'
+    | 'in_progress'
+    | 'success'
+    | 'failed'
+    | 'user_exists'
+    | 'invalid_data';
 }
 
-// reset passowrd
+export const register = async (
+  _: RegisterActionState,
+  formData: FormData,
+): Promise<RegisterActionState> => {
+  try {
+    const validatedData = authFormSchema.parse({
+      email: formData.get('email'),
+      password: formData.get('password'),
+    });
 
-export async function resetPassword(formData: FormData) {
-  const supabase = createClient();
+    const [user] = await getUser(validatedData.email);
 
-  const email = formData.get("email") as string;
+    if (user) {
+      return { status: 'user_exists' } as RegisterActionState;
+    }
+    await createUser(validatedData.email, validatedData.password);
+    await signIn('credentials', {
+      email: validatedData.email,
+      password: validatedData.password,
+      redirect: false,
+    });
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${getURL()}/update-password`,
-  });
-  if (error) {
-    return { error: error.message };
+    return { status: 'success' };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return { status: 'invalid_data' };
+    }
+
+    return { status: 'failed' };
   }
-
-  revalidatePath("/", "layout");
-
-}
-
-export async function checkEmailExists(data: {
-  user: User | null;
-  session: Session | null;
-}) {
-  return {
-    exists:
-      data.user && data.user?.identities && data.user?.identities?.length === 0,
-  };
-}
-
-
-export async function updateUser(formData: UpdatePasswordFormData) {
-  const supabase = createClient();
-
-  const { error } = await supabase.auth.updateUser({
-    password: formData.password,
-  });
-
-  if (error) {
-    return {error: error.message};
-  }
-
-  revalidatePath("/", "layout");
-  redirect("/dashboard");
-}
-
-
-// resend confrimation email
-
-export async function resendConfirmationEmail(email: string) {
-  const supabase = createClient();
-
-  const { error } = await supabase.auth.resend({
-    type: "signup",
-    email: email,
-    options: {
-      emailRedirectTo: `${getURL()}/dashboard`,
-    },
-  });
-
-  if (error) {
-    return { error: error.message };
-  }
-
-  revalidatePath("/", "layout");
-}
+};
