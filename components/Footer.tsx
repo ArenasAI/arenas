@@ -31,7 +31,7 @@ export default function Footer() {
             <div className="space-y-4 col-span-2">
               <h3 className="font-bold text-lg text-gray-900">Connect</h3>
               <div className="flex space-x-4">
-                <Link href="https://github.com/arenas-ai" className="text-gray-600 hover:text-gray-900">
+                <Link href="https://github.com/ArenasAI" className="text-gray-600 hover:text-gray-900">
                   <Github className="h-6 w-6" />
                 </Link>
                 <Link href="https://linkedin.com/company/arenas-ai" className="text-gray-600 hover:text-gray-900">

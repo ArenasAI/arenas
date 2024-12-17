@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { updateSession } from './utils/supabase/middleware';
 import { createClient } from './utils/supabase/client';
 
-
 export async function middleware(req: NextRequest) {
   //update session
   const response = await updateSession(req);
 
-  const protectedPaths = ["/api"]
+  const protectedPaths = ["/chat"];
   const isProtectedRoute = protectedPaths.some((path) => req.nextUrl.pathname.startsWith(path));
 
   if (isProtectedRoute) {
@@ -27,7 +26,7 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-    "/signin",
-    "/signup",
+    "/login",
+    "/register",
   ]
 };

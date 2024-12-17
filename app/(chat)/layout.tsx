@@ -1,8 +1,7 @@
+// app/(chat)/layout.tsx
 import { cookies } from 'next/headers';
-
 import { AppSidebar } from '@/components/app-sidebar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-
 import { auth } from '../(auth)/auth';
 
 export const experimental_ppr = true;

@@ -4,8 +4,25 @@ import { useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { signIn, signOut, useSession, getProviders } from "next-auth/react";
+import Image from "next/image";
+import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
 
-export default function Navigation() {
+export default async function Navigation() {
+  const supabaseClient = await supabase;
+  const {
+    data: {user},
+    error,
+  } = await supabaseClient.auth.getUser();
+
+  const handleSignOut = async () => {
+    "use server";
+    const supabaseClient = supabase();
+    await supabaseClient.auth.signOut();
+    redirect("/");
+  }
+  
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
@@ -21,13 +38,12 @@ export default function Navigation() {
     <nav className="fixed w-full bg-white/80 backdrop-blur-md z-50 border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
           <div className="flex-shrink-0">
             <Link 
               href="/" 
               className="text-xl font-bold text-gray-900"
             >
-              Arenas
+              <Image src="/assets/arenas-logo.png" alt="arenas logo" width={60} height={50} />
             </Link>
           </div>
 
