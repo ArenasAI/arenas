@@ -4,25 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { signIn, signOut, useSession, getProviders } from "next-auth/react";
 import Image from "next/image";
-import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
 
-export default async function Navigation() {
-  const supabaseClient = await supabase;
-  const {
-    data: {user},
-    error,
-  } = await supabaseClient.auth.getUser();
-
-  const handleSignOut = async () => {
-    "use server";
-    const supabaseClient = supabase();
-    await supabaseClient.auth.signOut();
-    redirect("/");
-  }
-  
+export default function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
@@ -62,16 +46,16 @@ export default async function Navigation() {
               </Link>
             ))}
             <Link
-              href="/signin"
+              href="/login"
               className="text-gray-600 hover:text-gray-900"
             >
-              Sign In
+              Login
             </Link>
             <Link
-              href="/signup"
-              className="bg-gradient-to-r from-coral-500 to-orange-500 text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-all duration-200 shadow-sm hover:shadow-md"
+              href="/register"
+              className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md"
             >
-              Get Started
+              Register
             </Link>
           </div>
 
@@ -113,18 +97,18 @@ export default async function Navigation() {
             ))}
             <div className="px-3 py-3 space-y-3">
               <Link
-                href="/signin"
+                href="/login"
                 className="block text-gray-600 hover:text-gray-900"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Sign In
+                Login
               </Link>
               <Link
-                href="/signup"
-                className="block w-full text-center bg-gradient-to-r from-coral-500 to-orange-500 text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-all duration-200"
+                href="/register"
+                className="block w-full text-center bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Get Started
+                Register
               </Link>
             </div>
           </div>
