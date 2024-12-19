@@ -1,61 +1,64 @@
 'use client';
 
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { showNotification } from '@/components/Notifications';
 
 export default function Newsletter() {
   const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setStatus('loading');
-    
+    setIsLoading(true);
+
     try {
-      // TODO: Implement newsletter subscription API
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulated API call
-      setStatus('success');
-      setEmail('');
+      const response = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        showNotification('Successfully subscribed!', 'success');
+        setEmail('');
+      } else {
+        showNotification(data.message || 'Subscription failed', 'error');
+      }
     } catch (error) {
-      setStatus('error');
+      showNotification('An error occurred', 'error');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div>
-      <div className="max-w-2xl mx-auto text-center">
-        <h2 className="text-3xl font-bold text-gray-900 mb-4">
-          Stay Updated with ArenasAI
-        </h2>
-        <p className="text-lg text-gray-600 mb-8">
-          Subscribe to our newsletter for the latest updates, features, and AI insights.
-        </p>
-        <form onSubmit={handleSubmit} className="max-w-md mx-auto">
-          <div className="flex gap-2">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              required
-            />
-            <button
-              type="submit"
-              disabled={status === 'loading'}
-              className={`px-6 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors
-                ${status === 'loading' ? 'opacity-75 cursor-not-allowed' : ''}`}
-            >
-              {status === 'loading' ? 'Subscribing...' : 'Subscribe'}
-            </button>
-          </div>
-          {status === 'success' && (
-            <p className="mt-2 text-green-600">Thank you for subscribing!</p>
-          )}
-          {status === 'error' && (
-            <p className="mt-2 text-red-600">Something went wrong. Please try again.</p>
-          )}
-        </form>
-      </div>
+    <div className="max-w-xl mx-auto text-center">
+      <h2 className="text-2xl font-bold mb-4">
+        Stay Updated with Arenas AI
+      </h2>
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <Input 
+          type="email"
+          placeholder="Enter your email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="flex-1"
+        />
+        <Button 
+          type="submit" 
+          disabled={isLoading}
+          className="bg-orange-500 hover:bg-orange-600"
+        >
+          {isLoading ? 'Subscribing...' : 'Subscribe'}
+        </Button>
+      </form>
     </div>
   );
 }
