@@ -1,8 +1,10 @@
+import { auth } from '@/app/(auth)/auth';
 import { cookies } from 'next/headers';
 
 import { Chat } from '@/components/chat';
 import { DEFAULT_MODEL_NAME, models } from '@/lib/ai/models';
-import { generateUUID } from '@/lib/utils';
+import { getChatById, getMessagesByChatId } from '@/lib/db/queries';
+import { convertToUIMessages, generateUUID } from '@/lib/utils';
 
 export default async function Page() {
   const id = generateUUID();

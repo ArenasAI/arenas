@@ -3,6 +3,8 @@ import { Inter } from 'next/font/google'
 import { Dela_Gothic_One } from 'next/font/google'
 import { ReactNode } from 'react';
 import { GeistSans } from 'geist/font/sans';
+import Navigation from '@/components/Navigation';
+import Footer from '@/components/footer';
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -19,7 +21,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <div className="gradient" />
         </div>
         <main className="app">
+        <Navigation />
           {children}
+          
         </main>
       </body>
     </html>
