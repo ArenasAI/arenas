@@ -16,7 +16,7 @@ export async function middleware(req: NextRequest) {
     } = await supabse.auth.refreshSession();
 
     if (!session) {
-      return NextResponse.redirect(new URL("/signin", req.url));
+      return NextResponse.redirect(new URL("/login", req.url));
     }
   }
 

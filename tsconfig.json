@@ -21,10 +21,7 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"],
-      "contentlayer/generated": ["./.contentlayer/generated"],
-      "@chat/*": ["arenas-chat/app/*"],
-      "@components/*" : ["arenas-chat/components/*"]
+      "@/*": ["./*"]
     }
   },
   "include": [
