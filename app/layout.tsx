@@ -5,6 +5,7 @@ import { ReactNode } from 'react';
 import { GeistSans } from 'geist/font/sans';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/footer';
+import ClientWrapper from '@/components/client-wrapper';
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -21,9 +22,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <div className="gradient" />
         </div>
         <main className="app">
-        <Navigation />
+          <ClientWrapper>
+          <Navigation />
           {children}
-          
+          </ClientWrapper>
         </main>
       </body>
     </html>

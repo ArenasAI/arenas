@@ -1,7 +1,7 @@
 // components/Navigation.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Menu, X, Github, BookOpen } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -10,6 +10,17 @@ import Image from "next/image";
 export default function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+
+  // Handle mounting
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Don't render anything until mounted
+  if (!mounted) {
+    return null;
+  }
 
   const isActive = (path: string) => pathname === path;
 
