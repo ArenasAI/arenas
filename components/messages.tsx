@@ -4,14 +4,12 @@ import { useScrollToBottom } from './use-scroll-to-bottom';
 import { Overview } from './overview';
 import { UIBlock } from './block';
 import { Dispatch, memo, SetStateAction } from 'react';
-import { Vote } from '@/lib/db/schema';
 
 interface MessagesProps {
   chatId: string;
   block: UIBlock;
   setBlock: Dispatch<SetStateAction<UIBlock>>;
   isLoading: boolean;
-  votes: Array<Vote> | undefined;
   messages: Array<Message>;
 }
 
@@ -20,7 +18,6 @@ function PureMessages({
   block,
   setBlock,
   isLoading,
-  votes,
   messages,
 }: MessagesProps) {
   const [messagesContainerRef, messagesEndRef] =
@@ -41,11 +38,6 @@ function PureMessages({
           block={block}
           setBlock={setBlock}
           isLoading={isLoading && messages.length - 1 === index}
-          vote={
-            votes
-              ? votes.find((vote) => vote.messageId === message.id)
-              : undefined
-          }
         />
       ))}
 

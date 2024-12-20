@@ -5,7 +5,6 @@ import cx from 'classnames';
 import { motion } from 'framer-motion';
 import { memo, type Dispatch, type SetStateAction } from 'react';
 
-import type { Vote } from '@/lib/db/schema';
 
 import type { UIBlock } from './block';
 import { DocumentToolCall, DocumentToolResult } from './document';
@@ -21,14 +20,12 @@ const PurePreviewMessage = ({
   message,
   block,
   setBlock,
-  vote,
   isLoading,
 }: {
   chatId: string;
   message: Message;
   block: UIBlock;
   setBlock: Dispatch<SetStateAction<UIBlock>>;
-  vote: Vote | undefined;
   isLoading: boolean;
 }) => {
   return (
@@ -144,7 +141,6 @@ const PurePreviewMessage = ({
             key={`action-${message.id}`}
             chatId={chatId}
             message={message}
-            vote={vote}
             isLoading={isLoading}
           />
         </div>
@@ -158,7 +154,6 @@ export const PreviewMessage = memo(
   (prevProps, nextProps) => {
     if (prevProps.isLoading !== nextProps.isLoading) return false;
     if (prevProps.isLoading && nextProps.isLoading) return false;
-    if (!equal(prevProps.vote, nextProps.vote)) return false;
     return true;
   },
 );

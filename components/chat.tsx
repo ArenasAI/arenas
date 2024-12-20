@@ -7,7 +7,6 @@ import { useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useWindowSize } from 'usehooks-ts';
 import { ChatHeader } from '@/components/chat-header';
-import type { Vote } from '@/lib/db/schema';
 import { fetcher } from '@/lib/utils';
 
 import { Block, type UIBlock } from './block';
@@ -61,10 +60,6 @@ export function Chat({
     },
   });
 
-  const { data: votes } = useSWR<Array<Vote>>(
-    `/api/vote?chatId=${id}`,
-    fetcher,
-  );
 
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
 
@@ -78,7 +73,6 @@ export function Chat({
           block={block}
           setBlock={setBlock}
           isLoading={isLoading}
-          votes={votes}
           messages={messages}
         />
 
@@ -115,7 +109,6 @@ export function Chat({
             setBlock={setBlock}
             messages={messages}
             setMessages={setMessages}
-            votes={votes}
           />
         )}
       </AnimatePresence>

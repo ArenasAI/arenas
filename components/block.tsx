@@ -17,7 +17,6 @@ import {
 import useSWR, { useSWRConfig } from 'swr';
 import { useDebounceCallback, useWindowSize } from 'usehooks-ts';
 
-import type { Document, Suggestion, Vote } from '@/lib/db/schema';
 import { fetcher } from '@/lib/utils';
 
 import { DiffView } from './diffview';
@@ -29,6 +28,12 @@ import { VersionFooter } from './version-footer';
 import { BlockActions } from './block-actions';
 import { BlockCloseButton } from './block-close-button';
 import { BlockMessages } from './block-messages';
+
+interface Document {
+  content: string,
+  title: string,
+  createdAt: Date;
+}
 
 export interface UIBlock {
   title: string;
@@ -58,7 +63,6 @@ function PureBlock({
   setBlock,
   messages,
   setMessages,
-  votes,
 }: {
   chatId: string;
   input: string;
@@ -71,7 +75,6 @@ function PureBlock({
   setBlock: Dispatch<SetStateAction<UIBlock>>;
   messages: Array<Message>;
   setMessages: Dispatch<SetStateAction<Array<Message>>>;
-  votes: Array<Vote> | undefined;
   append: (
     message: Message | CreateMessage,
     chatRequestOptions?: ChatRequestOptions,
@@ -94,15 +97,15 @@ function PureBlock({
     fetcher,
   );
 
-  const { data: suggestions } = useSWR<Array<Suggestion>>(
-    documents && block && block.status !== 'streaming'
-      ? `/api/suggestions?documentId=${block.documentId}`
-      : null,
-    fetcher,
-    {
-      dedupingInterval: 5000,
-    },
-  );
+  // const { data: suggestions } = useSWR<Array<Suggestion>>(
+  //   documents && block && block.status !== 'streaming'
+  //     ? `/api/suggestions?documentId=${block.documentId}`
+  //     : null,
+  //   fetcher,
+  //   {
+  //     dedupingInterval: 5000,
+  //   },
+  // );
 
   const [mode, setMode] = useState<'edit' | 'diff'>('edit');
   const [document, setDocument] = useState<Document | null>(null);
@@ -284,7 +287,6 @@ function PureBlock({
               block={block}
               isLoading={isLoading}
               setBlock={setBlock}
-              votes={votes}
               messages={messages}
             />
 
@@ -424,7 +426,7 @@ function PureBlock({
                 currentVersionIndex={currentVersionIndex}
                 status={block.status}
                 saveContent={saveContent}
-                suggestions={isCurrentVersion ? (suggestions ?? []) : []}
+                // suggestions={isCurrentVersion ? (suggestions ?? []) : []}
               />
             ) : (
               <DiffView
@@ -433,9 +435,9 @@ function PureBlock({
               />
             )}
 
-            {suggestions ? (
+            {/* {suggestions ? (
               <div className="md:hidden h-dvh w-12 shrink-0" />
-            ) : null}
+            ) : null} */}
 
             <AnimatePresence>
               {isCurrentVersion && (

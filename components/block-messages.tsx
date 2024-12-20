@@ -2,7 +2,6 @@ import { Dispatch, memo, SetStateAction } from 'react';
 import { UIBlock } from './block';
 import { PreviewMessage } from './message';
 import { useScrollToBottom } from './use-scroll-to-bottom';
-import { Vote } from '@/lib/db/schema';
 import { Message } from 'ai';
 
 interface BlockMessagesProps {
@@ -10,7 +9,6 @@ interface BlockMessagesProps {
   block: UIBlock;
   setBlock: Dispatch<SetStateAction<UIBlock>>;
   isLoading: boolean;
-  votes: Array<Vote> | undefined;
   messages: Array<Message>;
 }
 
@@ -19,7 +17,6 @@ function PureBlockMessages({
   block,
   setBlock,
   isLoading,
-  votes,
   messages,
 }: BlockMessagesProps) {
   const [messagesContainerRef, messagesEndRef] =
@@ -38,11 +35,6 @@ function PureBlockMessages({
           block={block}
           setBlock={setBlock}
           isLoading={isLoading && index === messages.length - 1}
-          vote={
-            votes
-              ? votes.find((vote) => vote.messageId === message.id)
-              : undefined
-          }
         />
       ))}
 
