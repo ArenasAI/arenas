@@ -1,95 +1,71 @@
 'use client';
 
-import { useState } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { toast } from 'sonner';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import Link from 'next/link';
-import { toast } from 'react-toastify';
+import { Label } from '@/components/ui/label';
+import { signIn } from '@/db/auth';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const formData = new FormData(event.currentTarget);
+      const email = formData.get('email') as string;
+      const password = formData.get('password') as string;
 
-      if (error) throw error;
-
-      toast.success('Successfully logged in!');
-      router.push('/chat');
+      await signIn(email, password);
+      router.push('/');
+      router.refresh();
     } catch (error: any) {
-      toast.error(error.message || 'An error occurred during login');
+      toast.error(error.message);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-          Sign in to your account
-        </h2>
-      </div>
-
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <Input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-              disabled={loading}
-            >
-              {loading ? 'Signing in...' : 'Sign in'}
-            </Button>
-
-            <p className="text-center text-sm text-gray-600">
-              Don't have an account?{' '}
-              <Link href="/register" className="text-orange-500 hover:text-orange-600">
-                Sign up
-              </Link>
-            </p>
-          </form>
+    <div className="flex h-[calc(100vh-theme(spacing.16))] items-center justify-center py-10">
+      <div className="w-full max-w-sm space-y-6">
+        <div className="space-y-2 text-center">
+          <h1 className="text-3xl font-bold">Login</h1>
+          <p className="text-gray-500 dark:text-gray-400">
+            Enter your email below to login to your account
+          </p>
+        </div>
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              placeholder="m@example.com"
+              required
+              type="email"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input id="password" name="password" required type="password" />
+          </div>
+          <Button className="w-full" disabled={isLoading}>
+            {isLoading ? 'Loading...' : 'Login'}
+          </Button>
+        </form>
+        <div className="text-center text-sm">
+          Don&apos;t have an account?{' '}
+          <Link className="underline" href="/register">
+            Register
+          </Link>
         </div>
       </div>
     </div>

@@ -1,9 +1,9 @@
 'use server';
 
-import { type CoreUserMessage, generateText } from 'ai';
+import { CoreMessage, CoreUserMessage, generateText } from 'ai';
 import { cookies } from 'next/headers';
 
-import { customModel } from '@/lib/ai';
+import { customModel } from '@/ai';
 
 export async function saveModelId(model: string) {
   const cookieStore = await cookies();

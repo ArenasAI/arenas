@@ -2,9 +2,8 @@
 
 import { z } from 'zod';
 
-import { createUser, getUser } from '@/lib/db/queries';
-
-import { signIn } from './auth';
+import { getUser } from '@/db/cached-queries';
+import { createClient } from '@/lib/supabase/server';
 
 const authFormSchema = z.object({
   email: z.string().email(),
@@ -17,7 +16,7 @@ export interface LoginActionState {
 
 export const login = async (
   _: LoginActionState,
-  formData: FormData,
+  formData: FormData
 ): Promise<LoginActionState> => {
   try {
     const validatedData = authFormSchema.parse({
@@ -25,11 +24,15 @@ export const login = async (
       password: formData.get('password'),
     });
 
-    await signIn('credentials', {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.signInWithPassword({
       email: validatedData.email,
       password: validatedData.password,
-      redirect: false,
     });
+
+    if (error) {
+      return { status: 'failed' };
+    }
 
     return { status: 'success' };
   } catch (error) {
@@ -53,7 +56,7 @@ export interface RegisterActionState {
 
 export const register = async (
   _: RegisterActionState,
-  formData: FormData,
+  formData: FormData
 ): Promise<RegisterActionState> => {
   try {
     const validatedData = authFormSchema.parse({
@@ -61,17 +64,26 @@ export const register = async (
       password: formData.get('password'),
     });
 
-    const [user] = await getUser(validatedData.email);
+    const supabase = await createClient();
 
-    if (user) {
-      return { status: 'user_exists' } as RegisterActionState;
+    // Check if user exists
+    const existingUser = await getUser(validatedData.email);
+    if (existingUser) {
+      return { status: 'user_exists' };
     }
-    await createUser(validatedData.email, validatedData.password);
-    await signIn('credentials', {
+
+    // Sign up new user
+    const { error } = await supabase.auth.signUp({
       email: validatedData.email,
       password: validatedData.password,
-      redirect: false,
+      options: {
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      },
     });
+
+    if (error) {
+      return { status: 'failed' };
+    }
 
     return { status: 'success' };
   } catch (error) {

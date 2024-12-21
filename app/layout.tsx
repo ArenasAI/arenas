@@ -1,32 +1,73 @@
-import '@/app/globals.css'
-import { Inter } from 'next/font/google'
-import { Dela_Gothic_One } from 'next/font/google'
-import { ReactNode } from 'react';
-import { GeistSans } from 'geist/font/sans';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/footer';
-import ClientWrapper from '@/components/client-wrapper';
+import { Metadata } from 'next';
+import { Toaster } from 'sonner';
 
-const inter = Inter({ subsets: ['latin'] })
+import { ThemeProvider } from '@/components/custom/theme-provider';
 
-export const metadata = {
-  title: "Arenas AI - Your Personal Data Analyst",
-  description: "Get rid of Excel forever!"
+import './globals.css';
+
+export const metadata: Metadata = {
+  metadataBase: new URL('https://chat.vercel.ai'),
+  title: 'Next.js Chatbot Template',
+  description: 'Next.js chatbot template using the AI SDK.',
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export const viewport = {
+  maximumScale: 1, // Disable auto-zoom on mobile Safari
+};
+
+const LIGHT_THEME_COLOR = 'hsl(0 0% 100%)';
+const DARK_THEME_COLOR = 'hsl(240deg 10% 3.92%)';
+const THEME_COLOR_SCRIPT = `\
+(function() {
+  var html = document.documentElement;
+  var meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) {
+    meta = document.createElement('meta');
+    meta.setAttribute('name', 'theme-color');
+    document.head.appendChild(meta);
+  }
+  function updateThemeColor() {
+    var isDark = html.classList.contains('dark');
+    meta.setAttribute('content', isDark ? '${DARK_THEME_COLOR}' : '${LIGHT_THEME_COLOR}');
+  }
+  var observer = new MutationObserver(updateThemeColor);
+  observer.observe(html, { attributes: true, attributeFilter: ['class'] });
+  updateThemeColor();
+})();`;
+
+export default async function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html lang="en" className={GeistSans.className}>
-      <body>
-        <div className="main">
-          <div className="gradient" />
-        </div>
-        <main className="app">
-          <ClientWrapper>
-          <Navigation />
+    <html
+      lang="en"
+      // `next-themes` injects an extra classname to the body element to avoid
+      // visual flicker before hydration. Hence the `suppressHydrationWarning`
+      // prop is necessary to avoid the React hydration mismatch warning.
+      // https://github.com/pacocoursey/next-themes?tab=readme-ov-file#with-app
+      suppressHydrationWarning
+    >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: THEME_COLOR_SCRIPT,
+          }}
+        />
+      </head>
+      <body className="antialiased">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {/* <AuthProvider> */}
+          <Toaster position="top-center" />
           {children}
-          </ClientWrapper>
-        </main>
+          {/* </AuthProvider> */}
+        </ThemeProvider>
       </body>
     </html>
   );

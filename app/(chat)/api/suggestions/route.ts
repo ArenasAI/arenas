@@ -1,5 +1,4 @@
-import { auth } from '@/app/(auth)/auth';
-import { getSuggestionsByDocumentId } from '@/lib/db/queries';
+import { getSession, getSuggestionsByDocumentId } from '@/db/cached-queries';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -9,15 +8,13 @@ export async function GET(request: Request) {
     return new Response('Not Found', { status: 404 });
   }
 
-  const session = await auth();
+  const user = await getSession();
 
-  if (!session || !session.user) {
+  if (!user) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  const suggestions = await getSuggestionsByDocumentId({
-    documentId,
-  });
+  const suggestions = await getSuggestionsByDocumentId(documentId);
 
   const [suggestion] = suggestions;
 
@@ -25,7 +22,7 @@ export async function GET(request: Request) {
     return Response.json([], { status: 200 });
   }
 
-  if (suggestion.userId !== session.user.id) {
+  if (suggestion.user_id !== user.id) {
     return new Response('Unauthorized', { status: 401 });
   }
 
