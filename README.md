@@ -5,6 +5,12 @@
         <a href="https://github.com/ArenasAI/arenas/issues">Request Feature</a>
     </p>
 
+<p align="center">
+<a href="https://bun.sh/discord" target="_blank"><img height=20 src="https://img.shields.io/discord/876711213126520882" /></a>
+<img src="https://img.shields.io/github/stars/oven-sh/bun" alt="stars">
+<a href="https://twitter.com/jarredsumner/status/1542824445810642946"><img src="https://img.shields.io/static/v1?label=speed&message=fast&color=success" alt="Bun speed" /></a>
+</p>
+
 ## About the Project
 
 this is arenas' main repository. this product is designed and built by [Osmani](https://github.com/mubashir1osmani)
