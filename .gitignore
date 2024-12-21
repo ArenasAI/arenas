@@ -36,6 +36,8 @@ yarn-error.log*
 .vercel
 .vscode
 .env*.local
-.aider*
+
 
 .env.production
+
+.aider*
