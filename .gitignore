@@ -38,4 +38,4 @@ yarn-error.log*
 .env*.local
 .aider*
 
-.aider.tags.cache.v3
+.env.production

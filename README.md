@@ -12,7 +12,7 @@
 
 ## About the Project
 
-this is arenas' main repository. this product is designed and built by [Osmani](https://github.com/mubashir1osmani)
+this is arenas' main repository. this product is designed and built by [Mubashir Osmani](https://github.com/mubashir1osmani)
 
 i started working on this project to make data analysis easier for folks who spend countless hours in R studio. if you have any suggestions or problems you are facing, please contact me on discord or open an issue.
 
