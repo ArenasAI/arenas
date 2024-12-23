@@ -1,0 +1,12 @@
+{
+    "name": "julia runtime",
+    "image": "julia:latest",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "julialang.language-julia"
+            ]
+        }
+    },
+    "postCreateCommand": "julia -e 'using Pkg; Pkg.add([\"Plotly\"])'"
+}
