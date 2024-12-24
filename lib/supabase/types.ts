@@ -607,5 +607,8 @@ export interface FileUpload {
 
 export interface StorageError {
   message: string;
-  statusCode: string;
+  status: number;
+  statusCode: number;
+  name: string;
+  stack?: string;
 }

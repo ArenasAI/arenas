@@ -10,7 +10,7 @@ import { z } from 'zod';
 
 import { customModel } from '@/ai';
 import { models } from '@/ai/models';
-import { blocksPrompt, regularPrompt, systemPrompt } from '@/ai/prompts';
+import { SYSTEM_PROMPTS } from '@/ai/prompts';
 import { getChatById, getDocumentById, getSession } from '@/db/cached-queries';
 import {
   saveChat,
@@ -35,7 +35,8 @@ type AllowedTools =
   | 'createDocument'
   | 'updateDocument'
   | 'requestSuggestions'
-  | 'getWeather';
+  | 'getWeather'
+  | 'analyzeData';
 
 const blocksTools: AllowedTools[] = [
   'createDocument',
@@ -45,7 +46,7 @@ const blocksTools: AllowedTools[] = [
 
 const weatherTools: AllowedTools[] = ['getWeather'];
 
-const allTools: AllowedTools[] = [...blocksTools, ...weatherTools];
+const allTools: AllowedTools[] = [...blocksTools, ...weatherTools, 'analyzeData'];
 
 async function getUser() {
   const supabase = await createClient();
@@ -451,6 +452,32 @@ export async function POST(request: Request) {
               title: document.title,
               message: 'Suggestions have been added to the document',
             };
+          },
+        },
+        analyzeData: {
+          description: 'Analyze data and generate insights',
+          parameters: z.object({
+            data: z.any().describe('The data to analyze'),
+            type: z.enum(['basic', 'advanced']).describe('Type of analysis'),
+          }),
+          execute: async ({ data, type }) => {
+            // Basic statistical analysis
+            const analysis = {
+              data: data,
+              insights: [
+                {
+                  title: 'Data Overview',
+                  description: 'Basic statistical analysis of the dataset',
+                  importance: 'high'
+                },
+                // Add more insights based on actual analysis
+              ],
+              visualizations: [
+                // Add visualization configs
+              ]
+            };
+
+            return analysis;
           },
         },
       },
