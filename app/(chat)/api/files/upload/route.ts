@@ -91,12 +91,49 @@ export async function POST(req: Request) {
         }
       }
 
-      const publicUrl = await upload(supabase, {
-        file,
-        path: filePath,
-      });
+      const { data, error: uploadError } = await supabase.storage
+        .from('chat_attachments')
+        .upload(filePath.join('/'), file, {
+          upsert: true,
+          contentType: file.type,
+          cacheControl: '3600',
+          duplex: 'half',
+          metadata: {
+            owner: user.id,
+            chatId: chatId,
+          }
+        });
 
-      console.log('Upload successful:', { publicUrl });
+      if (uploadError) {
+        console.error('Upload error details:', {
+          error: uploadError,
+          message: uploadError.message,
+          status: uploadError.status,
+          statusCode: uploadError.statusCode,
+          name: uploadError.name,
+          stack: uploadError.stack,
+        });
+
+        if (uploadError.message?.includes('row-level security')) {
+          // Log RLS details
+          console.error('RLS policy violation. Current user:', user);
+          const { data: policies } = await supabase
+            .from('postgres_policies')
+            .select('*')
+            .eq('table', 'storage.objects');
+          console.log('Current storage policies:', policies);
+        }
+
+        return NextResponse.json(
+          {
+            error: 'File upload failed',
+            details: uploadError.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      console.log('Upload successful:', { publicUrl: data });
 
       // Check if file already exists
       const { data: existingFile } = await supabase
@@ -129,7 +166,7 @@ export async function POST(req: Request) {
         original_name: file.name,
         content_type: file.type,
         size: file.size,
-        url: publicUrl,
+        url: data,
         version: 1, // Will be auto-incremented by trigger if needed
       });
 
@@ -146,7 +183,7 @@ export async function POST(req: Request) {
       console.log('File record created successfully');
 
       return NextResponse.json({
-        url: publicUrl,
+        url: data,
         path: filePath.join('/'),
       });
     } catch (uploadError: any) {
