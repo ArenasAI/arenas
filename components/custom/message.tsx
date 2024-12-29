@@ -8,14 +8,12 @@ import { Dispatch, SetStateAction } from 'react';
 import { Vote } from '@/lib/supabase/types';
 
 import { UIBlock } from './block';
-import { ChatAnalysis } from './chat-analysis';
 import { DocumentToolCall, DocumentToolResult } from './document';
 import { SparklesIcon } from './icons';
 import { Markdown } from './markdown';
 import { MessageActions } from './message-actions';
 import { PreviewAttachment } from './preview-attachment';
 import { Weather } from './weather';
-
 
 export const PreviewMessage = ({
   chatId,
@@ -67,8 +65,6 @@ export const PreviewMessage = ({
                     <div key={toolCallId}>
                       {toolName === 'getWeather' ? (
                         <Weather weatherAtLocation={result} />
-                      ) : toolName === 'analyzeData' ? (
-                        <ChatAnalysis analysis={result} />
                       ) : toolName === 'createDocument' ? (
                         <DocumentToolResult
                           type="create"

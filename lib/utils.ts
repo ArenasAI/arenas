@@ -10,9 +10,58 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 import type { Database } from '@/lib/supabase/types';
+import { StringValidation } from 'zod';
 
 type DBMessage = Database['public']['Tables']['messages']['Row'];
 type Document = Database['public']['Tables']['documents']['Row'];
+
+type MetadataProps = {
+  title?: string;
+  description?: string;
+  canonical: string;
+}
+
+const defaultMetadata = {
+  title: "ArenasAI - Your AI Data Scientist.",
+  description: "ArenasAI is an Open Source AI Data Scientist that streamlines big data operations with ease, and replaces excel forever."
+};
+
+export const constructMetadata = ({
+  title,
+  description= defaultMetadata.description,
+  canonical = "/",
+}: MetadataProps) => {
+  return {
+  metadataBase: new URL('https://arenas.chat/'),
+  title: title ? `${title} - ArenasAI` : defaultMetadata.title,
+  description,
+  keywords: [
+    "ai",
+    "data analysis",
+    "data science",
+    "ai data analysis tool",
+    "ArenasAI",
+  ],
+  alternates: {
+    canonical,
+  },
+  authors: [
+    {
+      name: "Mubashir Osmani",
+      url: "https://github.com/mubashir1osmani",
+    }
+  ],
+  openGraph: {
+    title,
+    description,
+    type: "website",
+    url: "canonical",
+    // images: [ gotta ADD IMAGES!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    // ]
+  }
+  }
+};
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

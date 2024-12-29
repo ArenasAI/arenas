@@ -18,9 +18,9 @@ export const createClient = async () => {
               cookieStore.set(name, value, options);
             });
           } catch (error) {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
+            // Just log the error server-side
+            console.error('Cookie setting error:', error);
+            // You can handle this error in your client components where the supabase client is used
           }
         },
       },

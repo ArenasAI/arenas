@@ -14,7 +14,7 @@ import React, {
 } from 'react';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
-
+import { dela } from '../ui/fonts';
 import { sanitizeUIMessages } from '@/lib/utils';
 
 import { ArrowUpIcon, PaperclipIcon, StopIcon } from './icons';
@@ -262,7 +262,7 @@ export function MultimodalInput({
 
       <Textarea
         ref={textareaRef}
-        placeholder="Send a message..."
+        placeholder="say somethin..."
         value={input}
         onChange={handleInput}
         className={cx(
@@ -309,7 +309,7 @@ export function MultimodalInput({
       )}
 
       <Button
-        className="rounded-full p-1.5 h-fit absolute bottom-2 right-11 m-0.5 dark:border-zinc-700"
+        className={`${dela.className}rounded-full p-1.5 h-fit absolute bottom-2 right-11 m-0.5 dark:border-zinc-700`}
         onClick={(event) => {
           event.preventDefault();
           fileInputRef.current?.click();
@@ -317,7 +317,7 @@ export function MultimodalInput({
         variant="outline"
         disabled={isLoading}
       >
-        <PaperclipIcon size={14} />
+        attach
       </Button>
     </div>
   );
