@@ -1,4 +1,4 @@
-# ArenasAI
+<h1 align="center">ArenasAI</h1>
 
 <a>discord</a>
 
