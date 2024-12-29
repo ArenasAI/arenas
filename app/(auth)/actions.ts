@@ -1,96 +1,85 @@
-'use server';
+'use server'
 
-import { z } from 'zod';
+import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
 
-import { getUser } from '@/db/cached-queries';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from "@/lib/supabase/client"
 
-const authFormSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-});
+import { SignInWithPasswordCredentials, User, Session, Provider } from "@supabase/auth-js"
 
-export interface LoginActionState {
-  status: 'idle' | 'in_progress' | 'success' | 'failed' | 'invalid_data';
+
+//check login using email
+
+export async function login(formData: FormData) {
+  const supabase = await createClient()
+
+  // type-casting here for convenience
+  // in practice, you should validate your inputs
+  const data: SignInWithPasswordCredentials = {
+    email: formData.get('email') as string,
+    password: formData.get('password') as string,
+  };
+
+  const { data: res, error } = await supabase.auth.signInWithPassword(data)
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath('/', 'layout')
+  redirect('/you')
 }
 
-export const login = async (
-  _: LoginActionState,
-  formData: FormData
-): Promise<LoginActionState> => {
-  try {
-    const validatedData = authFormSchema.parse({
-      email: formData.get('email'),
-      password: formData.get('password'),
-    });
+//login using Oauth
+export async function signInWithOAuth(provider: Provider) {
+  const supabase = createClient();
 
-    const supabase = await createClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email: validatedData.email,
-      password: validatedData.password,
-    });
+  const {data, error} = await supabase.auth.signInWithOAuth({
+    provider: provider,
+  });
 
-    if (error) {
-      return { status: 'failed' };
-    }
-
-    return { status: 'success' };
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return { status: 'invalid_data' };
-    }
-
-    return { status: 'failed' };
+  if (error) {
+    redirect("/login?message=Could not authenticate user.");
   }
-};
 
-export interface RegisterActionState {
-  status:
-    | 'idle'
-    | 'in_progress'
-    | 'success'
-    | 'failed'
-    | 'user_exists'
-    | 'invalid_data';
+  revalidatePath("/", "layout");
+
 }
 
-export const register = async (
-  _: RegisterActionState,
-  formData: FormData
-): Promise<RegisterActionState> => {
-  try {
-    const validatedData = authFormSchema.parse({
-      email: formData.get('email'),
-      password: formData.get('password'),
-    });
 
-    const supabase = await createClient();
 
-    // Check if user exists
-    const existingUser = await getUser(validatedData.email);
-    if (existingUser) {
-      return { status: 'user_exists' };
-    }
+//register using email
 
-    // Sign up new user
-    const { error } = await supabase.auth.signUp({
-      email: validatedData.email,
-      password: validatedData.password,
-      options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
-      },
-    });
+export async function register(formData: FormData) {
+  const supabase = await createClient()
 
-    if (error) {
-      return { status: 'failed' };
-    }
-
-    return { status: 'success' };
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return { status: 'invalid_data' };
-    }
-
-    return { status: 'failed' };
+  // type-casting here for convenience
+  // in practice, you should validate your inputs
+  const data = {
+    email: formData.get('email') as string,
+    password: formData.get('password') as string,
   }
-};
+
+  const { error } = await supabase.auth.signUp(data)
+
+  if (error) {
+    redirect('/error')
+  }
+
+  revalidatePath('/', 'layout')
+}
+
+
+
+
+
+
+export async function checkEmailExists(data: {
+  user: User | null;
+  session: Session | null;
+}) {
+  return {
+    exists:
+      data.user && data.user?.identities && data.user?.identities?.length === 0,
+  };
+}
