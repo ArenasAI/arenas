@@ -7,7 +7,3 @@
 <!-- What would you like to see happen? -->
 
 ## 🔍 How to Reproduce (for bugs)
-1. 
-2. 
-3. 
-
