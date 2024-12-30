@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { DEFAULT_MODEL_NAME, models } from '@/ai/models';
 import { Chat } from '@/components/custom/chat';
 import { generateUUID } from '@/lib/utils';
+import { AIAnalysis } from '@/components/AIAnalysis';
 
 export default async function Page() {
   // Check authentication
@@ -27,11 +28,14 @@ export default async function Page() {
     DEFAULT_MODEL_NAME;
 
   return (
-    <Chat
+    <>
+      <Chat
       key={id}
       id={id}
       initialMessages={[]}
       selectedModelId={selectedModelId}
     />
+    </>
+    
   );
 }

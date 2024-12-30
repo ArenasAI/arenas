@@ -20,6 +20,12 @@ export const models: Array<Model> = [
       apiIdentifier: 'gpt-4o',
       description: 'For complex, multi-step tasks',
     },
+    {
+      id: 'xai',
+      label: 'xAI',
+      apiIdentifier: 'xai',
+      description: 'for complex math problems'
+    }
   ] as const;
 
 export const DEFAULT_MODEL_NAME = 'gpt-3.5-turbo';
