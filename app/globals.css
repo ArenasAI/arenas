@@ -10,6 +10,10 @@ body {
   font-family: Geist Mono;
 }
 
+.transition-transform {
+  transition: transform 0.3s ease-in-out;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

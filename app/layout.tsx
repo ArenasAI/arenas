@@ -34,8 +34,9 @@ export default function RootLayout({
             enableColorScheme
           >
             <div className="flex min-h-screen flex-col overflow-auto">
-              <Navbar/>
+              <Navbar />
               {children}
+              <Footer/>
               <Toaster position="bottom-right" richColors />
               <Analytics />
               <SpeedInsights />
