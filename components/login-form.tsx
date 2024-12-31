@@ -15,39 +15,89 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from 'sonner'
+import { z } from 'zod'
 
-
+// Input validation schema
+const loginSchema = z.object({
+  email: z.string().email('Invalid email format'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+})
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
   const [isLoading, setIsLoading] = useState(false)
+  const [attempts, setAttempts] = useState(0)
   const router = useRouter()
   const supabase = createClientComponentClient()
 
+  // Rate limiting check
+  const checkRateLimit = () => {
+    if (attempts >= 5) {
+      toast.error('Too many login attempts. Please try again later.')
+      return true
+    }
+    return false
+  }
+
+  // Password reset handler
+  const handlePasswordReset = async () => {
+    const email = (document.getElementById('email') as HTMLInputElement).value
+    if (!email) {
+      toast.error('Please enter your email first')
+      return
+    }
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      })
+      if (error) throw error
+      toast.success('Password reset email sent')
+    } catch (error) {
+      toast.error('Failed to send reset email')
+      console.error('Password reset error:', error)
+    }
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    
+    if (checkRateLimit()) return
+
     setIsLoading(true)
     const formData = new FormData(event.currentTarget)
-    const email = formData.get('email') as string
-    const password = formData.get('password') as string
-
+    const loginData = {
+      email: formData.get('email') as string,
+      password: formData.get('password') as string,
+    }
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
+      // Validate input
+      const validatedData = loginSchema.parse(loginData)
+      const { error } = await supabase.auth.signInWithPassword(validatedData)
       if (error) {
+        setAttempts(prev => prev + 1)
         throw error
       }
+
+      // Reset attempts on successful login
+      setAttempts(0)
+      
+      // Log successful login
+      console.info('Successful login attempt', {
+        email: loginData.email,
+        timestamp: new Date().toISOString(),
+      })
 
       toast.success('Logged in successfully')
       router.refresh()
       router.push('/chat')
     } catch (error) {
-      toast.error('Failed to login. Please check your credentials.')
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message)
+      } else {
+        toast.error('Failed to login. Please check your credentials.')
+      }
       console.error('Login error:', error)
     } finally {
       setIsLoading(false)
@@ -55,17 +105,30 @@ export function LoginForm({
   }
 
   async function handleOAuthLogin(provider: 'google' | 'github') {
+    if (checkRateLimit()) return
+
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       })
 
       if (error) {
+        setAttempts(prev => prev + 1)
         throw error
       }
+
+      // Log OAuth attempt
+      console.info('OAuth login attempt', {
+        provider,
+        timestamp: new Date().toISOString(),
+      })
     } catch (error) {
       toast.error(`Failed to login with ${provider}`)
       console.error('OAuth login error:', error)
