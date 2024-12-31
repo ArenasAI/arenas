@@ -21,10 +21,32 @@ export function Navbar() {
     const [isOpen, setIsOpen] = useState(false)
     const [isHovered, setIsHovered] = useState(false)
     const [user, setUser] = useState<User | null>(null)
+    const [ visible, setVisible ] = useState(true);
+    const [prevScrollPos, setPrevScrollPos] = useState(0);
+
     const supabase = createClientComponentClient()
     const router = useRouter()
 
     useEffect(() => {
+        const handleScroll = () => {
+            const currentScrollPos = window.scrollY;
+
+            setVisible(
+                (prevScrollPos > currentScrollPos) || 
+                currentScrollPos < 10
+            );
+            setPrevScrollPos(currentScrollPos);
+        };
+
+        const handleMouseMove = (e: MouseEvent) => {
+            if (e.clientY < 100) { // Adjust this value for sensitivity
+              setVisible(true);
+            }
+          };
+      
+          window.addEventListener('scroll', handleScroll);
+          window.addEventListener('mousemove', handleMouseMove);
+
         const getUser = async () => {
             const { data: { user } } = await supabase.auth.getUser()
             setUser(user)
@@ -36,8 +58,12 @@ export function Navbar() {
             setUser(session?.user ?? null)
         })
 
-        return () => subscription.unsubscribe()
-    }, [supabase.auth])
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            window.removeEventListener('mousemove', handleMouseMove);
+            subscription.unsubscribe()
+        } 
+    }, [supabase.auth, prevScrollPos])
 
     const handleSignOut = async () => {
         await supabase.auth.signOut()
@@ -69,6 +95,15 @@ export function Navbar() {
                 onClick={() => setIsOpen(false)}
             >
                 discord
+            </a>
+            <a 
+                target='_blank' 
+                href='https://github.com/ArenasAI/arenas' 
+                rel='noreferrer noopener' 
+                className="text-sm hover:text-gray-300 transition-colors"
+                onClick={() => setIsOpen(false)}
+            >
+                github
             </a>
         </>
     )
@@ -159,8 +194,11 @@ export function Navbar() {
             {/* Desktop Navbar */}
             <div className="hidden md:block">
                 <motion.div
-                    className={`${dela.className} fixed top-8 left-1/2 -translate-x-1/2 flex items-center bg-zinc-700/50 rounded-full h-12 overflow-hidden p-2`}
-                    initial={{ width: "80px" }}
+                    className={`${dela.className} fixed top-8 transform transition-transform duration-100 ease-in-out ${visible ? 'translate-y-0' : '-translate-y-full'} left-1/2 -translate-x-1/2 flex items-center bg-zinc-700/50 rounded-full h-12 overflow-hidden p-2`}
+                    variants={{
+                        visible: {y:0},
+                        hidden: {y: "-100%"},
+                    }}
                     animate={{ width: isHovered ? "auto" : "80px" }}
                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                     onMouseEnter={() => setIsHovered(true)}

@@ -67,8 +67,7 @@ export function Newsletter() {
             Open Source AI Models Meet Data Science
           </h2>
           <p className="mt-4 text-muted-foreground md:text-lg">
-            Join our waitlist for early access to Ollama, Qwen 2.5, and powerful Plotly.jl visualizations.
-            Built for data scientists, by data scientists.
+            Join our waitlist for early access.
           </p>
         </motion.div>
 
