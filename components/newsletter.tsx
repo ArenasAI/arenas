@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { subscribeToNewsletter } from '@/lib/beehiiv'
+// import { subscribeToNewsletter } from '@/lib/beehiiv'
 
 export function Newsletter() {
   const [email, setEmail] = useState('')
@@ -41,18 +41,19 @@ export function Newsletter() {
   return (
     <div className="relative overflow-hidden rounded-xl p-8 md:p-12">
       {/* Animated gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-r from-violet-600/30 via-blue-500/30 to-emerald-500/30">
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-600/50 to-blue-600/10 rounded-lg">
         <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-violet-600/20 via-blue-500/20 to-emerald-500/20"
+          className="absolute inset-0 bg-gradient-to-r from-blue-600/50 to-blue-600/10 rounded-lg"
           animate={{
-            x: ['0%', '100%', '0%'],
+            scale: [1, 1.02, 0.99, 1.01, 1],
+            rotate: [0, 1, -1, 0],
           }}
           transition={{
-            duration: 10,
-            ease: 'linear',
             repeat: Infinity,
+            duration: 4,
+            ease: "easeInOut"
           }}
-        />
+          />
       </div>
 
       {/* Content */}
@@ -88,7 +89,7 @@ export function Newsletter() {
           />
           <Button 
             type="submit" 
-            className="h-12 px-8 bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700"
+            className="h-12 px-8 bg-gray-100"
             disabled={isLoading}
           >
             {isLoading ? 'Subscribing...' : 'Subscribe'}
@@ -103,8 +104,8 @@ export function Newsletter() {
           className="mt-8 grid grid-cols-2 gap-4 text-center text-sm text-muted-foreground md:grid-cols-4"
         >
           <div className="rounded-lg bg-background/80 p-4 backdrop-blur-sm">
-            <div className="text-2xl">🤖</div>
-            <div>Ollama & Qwen 2.5</div>
+            <div className="text-2xl">روبوت</div>
+            <div>Open Source and Pre-trained Models!</div>
           </div>
           <div className="rounded-lg bg-background/80 p-4 backdrop-blur-sm">
             <div className="text-2xl">📊</div>
