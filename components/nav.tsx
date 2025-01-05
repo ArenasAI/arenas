@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
 import type { User as AuthUser } from '@supabase/supabase-js'
+import Image from 'next/image'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,59 +18,74 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-export function Navbar() {
+export function Navbar({ user }: { user: AuthUser | null }) {
     const [isOpen, setIsOpen] = useState(false)
     const [isHovered, setIsHovered] = useState(false)
-    const [user, setUser] = useState<User | null>(null)
-    const [ visible, setVisible ] = useState(true);
-    const [prevScrollPos, setPrevScrollPos] = useState(0);
-
+    const [isLoading, setIsLoading] = useState(false)
+    
     const supabase = createClientComponentClient()
     const router = useRouter()
 
-    useEffect(() => {
-        const handleScroll = () => {
-            const currentScrollPos = window.scrollY;
-
-            setVisible(
-                (prevScrollPos > currentScrollPos) || 
-                currentScrollPos < 10
-            );
-            setPrevScrollPos(currentScrollPos);
-        };
-
-        const handleMouseMove = (e: MouseEvent) => {
-            if (e.clientY < 100) { // Adjust this value for sensitivity
-              setVisible(true);
+    const desktopNavVariants = {
+        collapsed: {
+            width: "80px",
+            transition: { 
+                duration: 0.3,
+                ease: [0.4, 0, 0.2, 1]
             }
-          };
-      
-          window.addEventListener('scroll', handleScroll);
-          window.addEventListener('mousemove', handleMouseMove);
-
-        const getUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser()
-            setUser(user)
+        },
+        expanded: {
+            width: "auto",
+            transition: { 
+                duration: 0.3,
+                ease: [0.4, 0, 0.2, 1]
+            }
         }
-        getUser()
+    }
 
-        // Set up real-time subscription for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null)
-        })
-
-        return () => {
-            window.removeEventListener('scroll', handleScroll);
-            window.removeEventListener('mousemove', handleMouseMove);
-            subscription.unsubscribe()
-        } 
-    }, [supabase.auth, prevScrollPos])
+    const mobileNavVariants = {
+        hidden: {
+            opacity: 0,
+            transition: { 
+                duration: 0.15,
+                ease: [0.4, 0, 0.2, 1]
+            }
+        },
+        visible: {
+            opacity: 1,
+            transition: { 
+                duration: 0.15,
+                ease: [0.4, 0, 0.2, 1]
+            }
+        }
+    }
 
     const handleSignOut = async () => {
-        await supabase.auth.signOut()
-        router.refresh()
-        router.push('/')
+        try {
+            setIsLoading(true)
+            const { error } = await supabase.auth.signOut()
+            if (error) {
+                throw error
+            }
+            router.refresh()
+            router.push('/')
+        } catch (error) {
+            console.error('Error signing out:', error)
+        } finally {
+            setIsLoading(false)
+        }
     }
+
+    useEffect(() => {
+        const checkSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session && user) {
+                router.refresh()
+            }
+        }
+        
+        checkSession()
+    }, [supabase, router, user])
 
     const commonLinks = (
         <>
@@ -111,7 +127,17 @@ export function Navbar() {
     const userMenu = (
         <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-2 text-sm hover:text-gray-300 transition-colors">
-                <User className="w-4 h-4" />
+                {user?.user_metadata?.avatar_url ? (
+                    <Image
+                        src={user.user_metadata.avatar_url}
+                        alt="Profile"
+                        width={32}
+                        height={32}
+                        className="w-8 h-8 rounded-full"
+                    />
+                ) : (
+                    <User className="w-4 h-4" />
+                )}
                 <span>you</span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
@@ -130,9 +156,13 @@ export function Navbar() {
                     </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
+                <DropdownMenuItem 
+                    onClick={handleSignOut} 
+                    className="text-red-600"
+                    disabled={isLoading}
+                >
                     <LogOut className="w-4 h-4 mr-2" />
-                    Sign out
+                    {isLoading ? 'Signing out...' : 'Sign out'}
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
@@ -157,10 +187,10 @@ export function Navbar() {
                 <AnimatePresence>
                     {isOpen && (
                         <motion.div
-                            initial={{ opacity: 0, y: -20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.2 }}
+                            variants={mobileNavVariants}
+                            initial="hidden"
+                            animate="visible"
+                            exit="hidden"
                             className="fixed top-16 left-0 right-0 bg-zinc-900/95 z-40 border-t border-zinc-800"
                         >
                             <div className="flex flex-col p-4 space-y-4">
@@ -194,13 +224,10 @@ export function Navbar() {
             {/* Desktop Navbar */}
             <div className="hidden md:block">
                 <motion.div
-                    className={`${dela.className} fixed top-8 transform transition-transform duration-100 ease-in-out ${visible ? 'translate-y-0' : '-translate-y-full'} left-1/2 -translate-x-1/2 flex items-center bg-zinc-700/50 rounded-full h-12 overflow-hidden p-2`}
-                    variants={{
-                        visible: {y:0},
-                        hidden: {y: "-100%"},
-                    }}
-                    animate={{ width: isHovered ? "auto" : "80px" }}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    className={`${dela.className} fixed top-8 left-1/2 -translate-x-1/2 flex items-center bg-zinc-900/95 rounded-full outline outline-blue-600 shadow-slate-50 h-12 overflow-hidden p-2 z-50`}
+                    variants={desktopNavVariants}
+                    initial={false}
+                    animate={isHovered ? "expanded" : "collapsed"}
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
                 >
@@ -209,16 +236,20 @@ export function Navbar() {
                             <motion.span 
                                 className="text-xl font-semibold min-w-[32px] flex justify-center"
                                 initial={false}
-                                animate={{ width: isHovered ? "auto" : "32px" }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0.2 }}
                             >
                                 {isHovered ? "Arenas" : "A"}
                             </motion.span>
                         </Link>
                         <motion.div 
                             className="flex items-center gap-6 ml-4 overflow-hidden whitespace-nowrap"
-                            initial={{ opacity: 0 }}
+                            initial={false}
                             animate={{ opacity: isHovered ? 1 : 0 }}
-                            transition={{ duration: 0.2, delay: 0.1 }}
+                            transition={{ 
+                                duration: 0.2,
+                                ease: [0.4, 0, 0.2, 1]
+                            }}
                         >
                             {commonLinks}
                             {user ? (

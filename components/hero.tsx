@@ -4,6 +4,8 @@ import { Newsletter } from '@/components/newsletter'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { motion } from 'framer-motion'
+import Footer  from '@/components/footer'
+import Image from 'next/image'
 
 export default function Hero() {
   return (
@@ -15,8 +17,17 @@ export default function Hero() {
           animate={{ opacity: 1, y: 0 }}
           className="container max-w-2xl text-center space-y-8"
         >
+          <div className="relative w-full h-64 flex justify-center items-center">
+            <Image
+              src={"/lol/logo.svg"}
+              alt="Hero Logo"
+              width={500}
+              height={500}
+              className="absolute transform rotate-8 w-64 h-64"
+            />
+          </div>
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-            data science just got easier
+            data science just got easier.
           </h1>
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight">
             Introducing, {" "}
@@ -33,6 +44,7 @@ export default function Hero() {
           </div>
         </motion.div>
       </section>
+
 
       {/* Features Section */}
       {/* <section className="py-20 bg-muted/50">
@@ -103,6 +115,7 @@ export default function Hero() {
           </motion.div>
         </div>
       </section>
+    <Footer />
     </div>
   )
 }

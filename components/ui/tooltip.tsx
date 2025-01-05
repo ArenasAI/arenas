@@ -4,6 +4,7 @@ import * as React from "react"
 import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 
 import { cn } from "@/lib/utils"
+import { JSX } from "react"
 
 const TooltipProvider = TooltipPrimitive.Provider
 
@@ -30,3 +31,22 @@ const TooltipContent = React.forwardRef<
 TooltipContent.displayName = TooltipPrimitive.Content.displayName
 
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
+
+export const BetterTooltip = ({
+  content,
+  children,
+  align = 'center',
+  ...props
+}: React.ComponentPropsWithoutRef<typeof Tooltip> & {
+  content: JSX.Element | string;
+  align?: 'center' | 'end' | 'start';
+}) => {
+  return (
+    <TooltipProvider delayDuration={0}>
+      <Tooltip {...props}>
+        <TooltipTrigger asChild>{children}</TooltipTrigger>
+        <TooltipContent align={align}>{content}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};

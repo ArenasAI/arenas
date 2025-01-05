@@ -33,7 +33,16 @@ const SUPPORTED_FORMATS: ConversionFormat[] = [
   {
     from: 'xlsx',
     to: ['csv', 'json', 'pdf']
+  },
+  {
+    from: 'jpeg',
+    to: ['png', 'svg']
+  },
+  {
+    from: 'heic',
+    to: ['png', 'svg', 'jpeg']
   }
+
 ];
 
 export const FileConverter = () => {

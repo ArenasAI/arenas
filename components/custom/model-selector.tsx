@@ -76,3 +76,35 @@ export function ModelSelector({
     </DropdownMenu>
   );
 }
+
+
+// interface ModelSelectorProps {
+//   value: string
+//   onChange: (value: string) => void
+// }
+
+// export function ModelSelector({ value, onChange }: ModelSelectorProps) {
+//   const models = [
+//     { id: 'arenas', name: 'Arenas' },
+//     { id: 'llama', name: 'Llama 3.3' },
+//     { id: 'vertex', name: 'Google Vertex' },
+//     { id: 'xai', name: 'xAI' },
+//     { id: 'anthropic', name: 'Anthropic' },
+//     { id: 'openai', name: 'OpenAI' },
+//     { id: 'groq', name: 'Groq' },
+//   ]
+
+//   return (
+//     <select
+//       value={value}
+//       onChange={(e) => onChange(e.target.value)}
+//       className="rounded-md border bg-background px-3 py-2 text-sm"
+//     >
+//       {models.map((model) => (
+//         <option key={model.id} value={model.id}>
+//           {model.name}
+//         </option>
+//       ))}
+//     </select>
+//   )
+// }
