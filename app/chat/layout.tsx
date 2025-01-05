@@ -1,6 +1,8 @@
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { AppSidebar } from '@/components/custom/app-sidebar'
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 
 export default async function ChatLayout({
   children,
@@ -8,18 +10,21 @@ export default async function ChatLayout({
   children: React.ReactNode
 }) {
   const supabase = createServerComponentClient({ cookies })
-  
+  const cookieStore = await cookies();
+  const isCollapsed = cookieStore.get('isCollapsed')?.value !== 'true';
+
   const { data: { session } } = await supabase.auth.getSession()
   
   if (!session) {
-    redirect('/login?redirectTo=/chat')
+    redirect('/login')
   }
 
+  const user = session.user;
+
   return (
-    <div className="flex h-screen bg-background">
-      <main className="flex-1 overflow-hidden">
-        {children}
-      </main>
-    </div>
+    <SidebarProvider defaultOpen={!isCollapsed}>
+      <AppSidebar user={user} />
+      <SidebarInset>{children}</SidebarInset>
+    </SidebarProvider>
   )
 }

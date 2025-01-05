@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 
-import { upload } from '@/db/storage';
 import { createClient } from '@/lib/supabase/server';
 
-import type { Database } from '@/lib/supabase/types';
 
 function sanitizeFileName(fileName: string): string {
   return fileName.replace(/[^a-zA-Z0-9.-]/g, '_').toLowerCase();
@@ -108,8 +106,8 @@ export async function POST(req: Request) {
         console.error('Upload error details:', {
           error: uploadError,
           message: uploadError.message,
-          status: uploadError.status,
-          statusCode: uploadError.statusCode,
+          // status: uploadError.status,
+          // statusCode: uploadError.statusCode,
           name: uploadError.name,
           stack: uploadError.stack,
         });
