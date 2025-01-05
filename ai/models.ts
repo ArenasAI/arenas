@@ -25,7 +25,19 @@ export const models: Array<Model> = [
       label: 'xAI',
       apiIdentifier: 'xai',
       description: 'for complex math problems'
+    },
+    {
+      id: 'claude-3.5-sonnet',
+      label: 'claude 3.5 sonnet',
+      apiIdentifier: 'claude-3.5-sonnet',
+      description: 'good for math and reasoning'
+    },
+    {
+      id: 'Default',
+      label: 'Default',
+      apiIdentifier: 'arenas',
+      description: 'Arenas default model suitable for most tasks'
     }
   ] as const;
 
-export const DEFAULT_MODEL_NAME = 'gpt-3.5-turbo';
+export const DEFAULT_MODEL_NAME = 'arenas model';
