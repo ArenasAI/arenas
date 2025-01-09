@@ -20,6 +20,8 @@
 
 This app aims to solve several pain points in the data science industry, to hopefully bring about a significant change 
 
+join us on discord [![discord][discord]][discordurl]
+
 Made by [Mubashir Osmani](https://github.com/mubashir1osmani)
 
 
@@ -28,11 +30,10 @@ Made by [Mubashir Osmani](https://github.com/mubashir1osmani)
 - [![nextjs][nextjs]][nextjs-url]
 - [![tailwindcss][tailwindcss]][tailwindcss-url]
 - [![typescript][typescript]][typescripturl]
-- ![python](https://img.shields.io/pypi/pyversions/python?logo=python&logoColor=white)
-- ![julia](https://img.shields.io/badge/Julia-v1.8-blue?logo=julia&logoColor=white)
-- ![R](https://img.shields.io/badge/R-v4.2.2-blue?logo=r&logoColor=white)
-- ![supabase](https://img.shields.io/badge/Supabase-Open%20Source-brightgreen?logo=supabase&logoColor=white)
-
+- [![python][python]]
+- [![r][r]]
+- [![julia][julia]]
+- [![supabase][supabase]][supabaseurl]
 
 ## Getting Started
 
@@ -53,7 +54,6 @@ To get a local copy up and running follow these simple steps.
 ```
 
 ### Get in touch
-make sure to join our [server](https://discord.gg/spZ5yucbnn)
 you can reach me on discord @deloreann1
 
 
@@ -67,4 +67,10 @@ you can reach me on discord @deloreann1
 [tailwindcss-url]: https://tailwindcss.com/
 [discord]: https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=discord&logoColor=white
 
-
+[python]: https://img.shields.io/badge/python-%233776AB.svg?style=for-the-badge&logo=python&logoColor=white
+[r]: https://img.shields.io/badge/R-%23276DC2.svg?style=for-the-badge&logo=r&logoColor=white
+[julia]: https://img.shields.io/badge/julia-%235A0D8E.svg?style=for-the-badge&logo=julia&logoColor=white
+[supabase]: https://img.shields.io/badge/Supabase-%233ECF8E.svg?style=for-the-badge&logo=supabase&logoColor=white
+[supabaseurl]: https://supabase.com
+[discord]: https://img.shields.io/badge/discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white
+[discordurl]: https://discord.gg/spZ5yucbnn) 
