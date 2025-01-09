@@ -1,6 +1,6 @@
 <div align="center">
     <div align="center">
-    <img src="public/assets/ar-dark.png alt="arenas-logo" />
+    <img src="/arenas/public/assets/ar-dark.png alt="arenas-logo" />
     </div>
     <h1 align="center">ArenasAI</h1>
     <p align="center">Open Source AI-Powered Data Scientist</p>
@@ -28,10 +28,11 @@ Made by [Mubashir Osmani](https://github.com/mubashir1osmani)
 - [![nextjs][nextjs]][nextjs-url]
 - [![tailwindcss][tailwindcss]][tailwindcss-url]
 - [![typescript][typescript]][typescripturl]
-- [![supabase][supabase]]
-- [![python][python]]
-- [![julia][julia]]
-- [![R][R]]
+- ![python](https://img.shields.io/pypi/pyversions/python?logo=python&logoColor=white)
+- ![julia](https://img.shields.io/badge/Julia-v1.8-blue?logo=julia&logoColor=white)
+- ![R](https://img.shields.io/badge/R-v4.2.2-blue?logo=r&logoColor=white)
+- ![supabase](https://img.shields.io/badge/Supabase-Open%20Source-brightgreen?logo=supabase&logoColor=white)
+
 
 ## Getting Started
 
@@ -66,8 +67,4 @@ you can reach me on discord @deloreann1
 [tailwindcss-url]: https://tailwindcss.com/
 [discord]: https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=discord&logoColor=white
 
-[python]:(https://img.shields.io/pypi/pyversions/python?logo=python&logoColor=white)
-[julia]:(https://img.shields.io/badge/Julia-v1.8-blue?logo=julia&logoColor=white)
-[R]:(https://img.shields.io/badge/R-v4.2.2-blue?logo=r&logoColor=white)
-[supabase]:(https://img.shields.io/badge/Supabase-Open%20Source-brightgreen?logo=supabase&logoColor=white)
 
