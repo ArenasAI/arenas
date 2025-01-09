@@ -4,6 +4,7 @@
     </div>
     <h1 align="center">ArenasAI</h1>
     <p align="center">Open Source AI-Powered Data Scientist</p>
+    <div align="center"><p>discord</p></div>
 </div>
 
 ## Table of Contents
@@ -19,8 +20,6 @@
 ### About the Project
 
 This app aims to solve several pain points in the data science industry, to hopefully bring about a significant change 
-
-join us on discord [![discord][discord]][discordurl]
 
 Made by [Mubashir Osmani](https://github.com/mubashir1osmani)
 
@@ -54,7 +53,10 @@ To get a local copy up and running follow these simple steps.
 ```
 
 ### Get in touch
-you can reach me on discord @deloreann1
+you can reach me on:
+email: witharenas@gmail.com
+discord: @deloreann1
+
 
 
 [typescript]: https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white
@@ -65,7 +67,6 @@ you can reach me on discord @deloreann1
 [nextjs-url]: https://nextjs.org/
 [tailwindcss]: https://img.shields.io/badge/Tailwind_CSS-%231a202c.svg?style=for-the-badge&logo=tailwind-css&logoColor=white
 [tailwindcss-url]: https://tailwindcss.com/
-[discord]: https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=discord&logoColor=white
 
 [python]: https://img.shields.io/badge/python-%233776AB.svg?style=for-the-badge&logo=python&logoColor=white
 [r]: https://img.shields.io/badge/R-%23276DC2.svg?style=for-the-badge&logo=r&logoColor=white
@@ -73,4 +74,4 @@ you can reach me on discord @deloreann1
 [supabase]: https://img.shields.io/badge/Supabase-%233ECF8E.svg?style=for-the-badge&logo=supabase&logoColor=white
 [supabaseurl]: https://supabase.com
 [discord]: https://img.shields.io/badge/discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white
-[discordurl]: https://discord.gg/spZ5yucbnn) 
+[discordurl]: https://discord.gg/spZ5yucbnn 
