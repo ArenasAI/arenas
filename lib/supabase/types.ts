@@ -609,3 +609,9 @@ export type CompositeTypes<
       message: string;
       statusCode: string;
     }
+
+    export type User = {
+      id: string;
+      email: string;
+      // other fields...
+    };
