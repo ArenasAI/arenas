@@ -3,9 +3,10 @@
     <img src="public/assets/ar-dark.png" width="200" alt="arenas-logo" />
     </div>
     <h1 align="center">ArenasAI</h1>
-    <p align="center">Open Source AI-Powered Data Scientist</p>
-    <div align="center"><p>discord</p></div>
+    <p align="center">Open Source AI-Powered Data Scientist</p>    
 </div>
+
+[![discord][discord]][discordurl]
 
 ## Table of Contents
 
