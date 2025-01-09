@@ -1,6 +1,6 @@
 <div align="center">
     <div align="center">
-    <img src="public/assets/ar-dark.png" alt="arenas-logo" />
+    <img src="public/assets/ar-dark.png" width="200" alt="arenas-logo" />
     </div>
     <h1 align="center">ArenasAI</h1>
     <p align="center">Open Source AI-Powered Data Scientist</p>
