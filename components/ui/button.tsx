@@ -17,6 +17,8 @@ const buttonVariants = cva(
           "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
         secondary:
           "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
+        authgroup:
+          "rounded-full text-gray-600 hover:text-gray-700 bg-gray-500/10 hover:bg-gray-500/20 hover:shadow-inset-gray-400-20",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
@@ -38,6 +40,7 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
+  isLoading?: boolean
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
