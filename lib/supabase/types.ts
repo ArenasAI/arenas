@@ -605,13 +605,21 @@ export type CompositeTypes<
       public_url: string;
     }
     
-    export interface StorageError {
-      message: string;
-      statusCode: string;
-    }
+    
+export interface ValidationResult {
+  row_count: number;
+  column_count: number;
+  missing_values: Record<string, number>;
+  data_types: Record<string, string>;
+  memory_usage: number;
+  duplicate_rows: number;
+}
 
-    export type User = {
-      id: string;
-      email: string;
-      // other fields...
-    };
+
+export type ChatMessage = {
+  id: string
+  chat_id: string
+  role: 'user' | 'assistant'
+  content: string
+  created_at: string
+}
