@@ -10,7 +10,7 @@ async function ensureBucketExists(client: SupabaseClient) {
     const { error } = await client.storage.createBucket(BUCKET_NAME, {
       public: true,
       fileSizeLimit: 52428800, // 50MB in bytes
-      allowedMimeTypes: ['image/*', 'application/pdf'],
+      allowedMimeTypes: ['image/*', 'application/pdf', 'xlsx', 'csv', 'parquet', 'json', 'docx'],
     });
 
     if (error) {
