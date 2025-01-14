@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
   redirectTo.searchParams.delete("redirectUrl");
 
   if (token_hash && type) {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     const { error } = await supabase.auth.verifyOtp({
       type,
@@ -37,8 +37,6 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // If verification fails or parameters are missing, redirect to an error or sign-in page
-  // Consider handling redirectUrl even in error scenarios if applicable
-  redirectTo.pathname = "/signin?message=cannot-verify-otp";
+  redirectTo.pathname = "/login?message=cannot-verify-otp";
   return NextResponse.redirect(redirectTo);
 }

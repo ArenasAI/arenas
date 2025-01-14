@@ -1,3 +1,4 @@
+// app/chat/[id]/page.tsx
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 
@@ -10,40 +11,37 @@ import {
 } from '@/db/cached-queries';
 import { convertToUIMessages } from '@/lib/utils';
 
-export default async function Page(props: { params: Promise<any> }) {
-  const params = await props.params;
-  const { id } = params;
-  const chat = await getChatById(id);
-
+export default async function ChatPage({ params }: { params: { id: string } }) {
+  try {
+    const chat = await getChatById(params.id);
   if (!chat) {
     notFound();
   }
 
   const user = await getSession();
-
-  if (!user) {
-    return notFound();
+    if (!user || user.id !== chat.user_id) {
+      notFound();
   }
 
-  if (user.id !== chat.user_id) {
-    return notFound();
-  }
+    const messagesFromDb = await getMessagesByChatId(params.id);
 
-  const messagesFromDb = await getMessagesByChatId(id);
-
-  const cookieStore = await cookies();
+    const cookieStore = cookies();
   const modelIdFromCookie = cookieStore.get('model-id')?.value;
   const selectedModelId =
     models.find((model) => model.id === modelIdFromCookie)?.id ||
     DEFAULT_MODEL_NAME;
 
-  console.log(convertToUIMessages(messagesFromDb));
-
   return (
+      <div className="flex-1 overflow-hidden">
     <PreviewChat
       id={chat.id}
       initialMessages={convertToUIMessages(messagesFromDb)}
       selectedModelId={selectedModelId}
     />
+      </div>
   );
+  } catch (error) {
+    console.error(error)
+    notFound();
+}
 }
