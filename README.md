@@ -14,13 +14,14 @@
   - [Built With](#built-with)
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
+- [Contributing](#contributing)
 - [Get in Touch](#get-in-touch)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### About the Project
 
-This app aims to solve several pain points in the data science industry, to hopefully bring about a significant change 
+This app aims to solve several pain points in the data science industry, and hopefully bring about a significant change in how we work with data in the future.
 
 Made by [Mubashir Osmani](https://github.com/mubashir1osmani)
 
@@ -52,6 +53,23 @@ To get a local copy up and running follow these simple steps.
 ```sh
     bun dev
 ```
+
+
+### Contributing
+
+- Everyone is welcome to contribute to this product. yes, everyone. even if you no experience in coding, you can get started with any AI-powered code editor liek aider, Cursor, PearAI and so on. 
+
+- If you have an idea in mind or need to report a bug, feel free to open an [issue](https://github.com/ArenasAI/arenas/issues).
+
+- We actively welcome pull requests
+
+1. Fork the repo and create a new branch 
+  ```sh
+  git checkout -b my-branch
+  ```
+2. If you've added code that should be tested, add tests.
+3. Make sure you include what changes you've made in the PR template
+
 
 ### Get in touch
 you can reach me on:
