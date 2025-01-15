@@ -41,19 +41,19 @@ export function Newsletter() {
   return (
     <div className="relative overflow-hidden rounded-xl p-8 md:p-12">
       {/* Animated gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-600/50 to-blue-600/10 rounded-lg">
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-blue-600/50 to-blue-600/10 rounded-lg"
-          animate={{
-            scale: [1, 1.02, 0.99, 1.01, 1],
-            rotate: [0, 1, -1, 0],
+      <div className="absolute inset-0">
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-r from-background/80 to-muted/50 dark:from-muted/20 dark:to-background/80 backdrop-blur-sm rounded-lg border border-border/50"
+        animate={{
+        scale: [1, 1.02, 0.99, 1.01, 1],
+        rotate: [0, 1, -1, 0],
+      }}
+        transition={{
+          repeat: Infinity,
+          duration: 4,
+          ease: "easeInOut"
           }}
-          transition={{
-            repeat: Infinity,
-            duration: 4,
-            ease: "easeInOut"
-          }}
-          />
+        /> 
       </div>
 
       {/* Content */}
@@ -97,7 +97,7 @@ export function Newsletter() {
         </motion.form>
 
         {/* Features preview */}
-        <motion.div
+        {/* <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
@@ -119,7 +119,7 @@ export function Newsletter() {
             <div className="text-2xl">🌟</div>
             <div>Free Tier Available</div>
           </div>
-        </motion.div>
+        </motion.div> */}
 
         {/* Social proof */}
         <motion.div

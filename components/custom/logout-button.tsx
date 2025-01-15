@@ -4,18 +4,18 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { signOut } from '@/db/auth';
+import { signOut } from '@/app/(auth)/actions';
 
 export function LogoutButton() {
   const router = useRouter();
 
-  async function handleLogout() {
+  const handleLogout = async () => {
     try {
       await signOut();
       router.push('/login');
-      router.refresh();
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to logout');
     }
   }
 

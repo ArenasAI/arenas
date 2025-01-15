@@ -10,7 +10,9 @@ export default function Footer() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                     <div className="justify items-center">
                         <Image src={"/assets/ar-dark.png"} alt="arenas-logo"
-                            width={100} height={50} />
+                            width={100} height={50}
+                            style={{width: '50%', height: 'auto'}}
+                            />
                     </div>
                     <div>
                         <h3 className="font-semibold mb-4">Resources</h3>

@@ -5,34 +5,25 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Footer  from '@/components/footer'
-import Image from 'next/image'
 
 export default function Hero() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
-      <section className="flex flex-col items-center justify-center min-h-screen px-4 py-10">
+      <section className="flex items-center justify-center min-h-lvh px-4">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="container max-w-2xl text-center space-y-8"
         >
-          <div className="relative w-full h-64 flex justify-center items-center">
-            <Image
-              src={"/lol/logo.svg"}
-              alt="Hero Logo"
-              width={500}
-              height={500}
-              className="absolute transform rotate-8 w-64 h-64"
-            />
-          </div>
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
             data science just got easier.
           </h1>
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight">
             Introducing, {" "}
-            <span className="bg-blue-600 inset-x-0 translate-y-10 -rotate-10">ArenasAI</span>
+            <span className="text-blue-600 dark:text-blue-400">ArenasAI</span>
           </h1>
+          <h1 className='text-3xl md:text-5xl font-bold tracking-tight'>AI-Powered Data Scientist</h1>
           <div className="flex justify-center gap-4 p-10">
             <Link
               href="/chat"
@@ -44,37 +35,6 @@ export default function Hero() {
           </div>
         </motion.div>
       </section>
-
-
-      {/* Features Section */}
-      {/* <section className="py-20 bg-muted/50">
-        <div className="container mx-auto px-4">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
-          >
-            <div className="p-6 rounded-xl bg-background/80 backdrop-blur-sm">
-              <h3 className="text-xl font-semibold mb-2">🤖 AI Models</h3>
-              <p className="text-muted-foreground">
-                Integrate with Ollama and Qwen 2.5 for powerful AI capabilities
-              </p>
-            </div>
-            <div className="p-6 rounded-xl bg-background/80 backdrop-blur-sm">
-              <h3 className="text-xl font-semibold mb-2">📊 Data Visualization</h3>
-              <p className="text-muted-foreground">
-                Create interactive charts and graphs with Plotly
-              </p>
-            </div>
-            <div className="p-6 rounded-xl bg-background/80 backdrop-blur-sm">
-              <h3 className="text-xl font-semibold mb-2">⚡ Real-time Analysis</h3>
-              <p className="text-muted-foreground">
-                Process and visualize data in real-time
-              </p>
-            </div>
-          </motion.div>
-        </div>
-      </section> */}
 
       {/* Newsletter Section */}
       <section className="py-20">

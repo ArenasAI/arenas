@@ -2,7 +2,6 @@
 
 import { Attachment, ChatRequestOptions, CreateMessage, Message } from 'ai';
 import cx from 'classnames';
-import { motion } from 'framer-motion';
 import React, {
   useRef,
   useEffect,
@@ -262,7 +261,7 @@ export function MultimodalInput({
       )}
 
       <Button
-        className={`${dela.className} rounded-full p-1.5 h-fit absolute bottom-2 right-11 m-0.5 dark:border-zinc-700`}
+        className={`${dela.className} rounded-sm p-1.5 h-fit absolute bottom-2 right-11 m-0.5 dark:border-zinc-700`}
         onClick={(event) => {
           event.preventDefault();
           fileInputRef.current?.click();
@@ -271,9 +270,6 @@ export function MultimodalInput({
         disabled={isLoading}
       >
         attach
-      </Button>
-      <Button className={`${dela.className} px-4 py-2 bg-gray-300 rounded-md`}>
-        o1-mini
       </Button>
     </div>
   );
