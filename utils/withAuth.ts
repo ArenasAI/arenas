@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import createClient from "@/lib/supabase/server";
 import { User } from "@supabase/auth-helpers-nextjs";
 
 type AuthenticationHandler = (
