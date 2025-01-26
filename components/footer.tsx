@@ -1,8 +1,9 @@
 "use client"
 
 import Image from 'next/image'
+import { getDateRange } from '@/lib/dates'
+const footerCopyright = `© ${getDateRange()} Arenas, All rights reserved.`;
 
-// components/footer.tsx
 export default function Footer() {
     return (
         <footer className="mt-auto bg-background/80 backdrop-blur-sm border-t">
@@ -37,7 +38,7 @@ export default function Footer() {
                     </div>
                 </div>
                 <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
-                    <p>© 2025 Arenas. All rights reserved.</p>
+                    <p>{footerCopyright}</p>
                 </div>
             </div>
         </footer>
