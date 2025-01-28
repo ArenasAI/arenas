@@ -22,7 +22,6 @@ export const models: Array<Model> = [
     contextWindow: 32768,
     maxTokens: 8192,
     streaming: true,
-    tools: ['data_analysis', 'visualization', 'statistical_testing']
   },
   {
       id: 'gpt-4o',
@@ -48,7 +47,7 @@ export const models: Array<Model> = [
     id: 'deepseek',
     label: 'Deepseek',
     apiIdentifier: 'deepseek/deepseek-coder',
-    description: 'Deepseek MoE architecture for versatile feature delivery',
+    description: 'Deepseek MoE architecture for advanced reasoning',
     provider: 'deepseek',
   }
 ] as const;

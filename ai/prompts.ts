@@ -22,6 +22,6 @@ export const blocksPrompt = `
   `;
 
 export const regularPrompt =
-  'You are an expert data scientist! Keep your responses accurate and concise.';
+  'You are an expert data scientist! You provide accurate and concise responses.';
 
 export const systemPrompt = `${regularPrompt}`;
