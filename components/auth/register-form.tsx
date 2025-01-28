@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { login, signInWithOAuth } from '@/app/(auth)/actions'
 import { Button } from "@/components/ui/button"
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Provider } from "@supabase/supabase-js";
+import { AdminUserAttributes, Provider } from "@supabase/supabase-js";
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '../ui/form'
@@ -15,7 +15,7 @@ import { useToggle } from 'usehooks-ts'
 import { toast } from 'sonner';
 import Link from 'next/link'
 import { Checkbox } from '../ui/checkbox'
-
+import { useRouter } from 'next/router'
 
 export function Register() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,16 +35,31 @@ export function Register() {
     setErrorMessage(null);
 
     try {
-      const formData = new FormData();
-      formData.append("email", data.email);
-      formData.append("password", data.password);
 
-      const response = await login(formData);
-      if (response?.error) {
-        setErrorMessage(response.error);
-      } else {
-        form.reset();
+      const formData: AdminUserAttributes = {
+        email: data.email,
+        password: data.password,
       }
+
+      const response = await fetch("/api/register", {
+        method: "POST",
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        toast.error(result.error || "failed to sign up");
+        return;
+      }
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(
+        "Account created successfully. Please check your email.",
+      );
+      form.reset();
+
     } catch (error) {
       console.error(error)
     } finally {
@@ -68,7 +83,7 @@ export function Register() {
       <section className="relative">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="pb-12 pt-32 md:pb-20 md:pt-40">
-            <div className="md: pb-17 mx-auto mx-w-3xl pb-10 text-center">
+            <div className="md: pb-17 mx-auto mx-w-2xl pb-10 text-center">
             <h1>Sign up with us!</h1>
             </div>
 

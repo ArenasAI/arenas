@@ -19,10 +19,12 @@ import { Checkbox } from '../ui/checkbox'
 export function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isOAuthLoading, setIsOAuthLoading] = useState<Provider | null>(null)
+
 
   const form = useForm<loginFormData>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
+      resolver: zodResolver(loginSchema),
+      defaultValues: {
       email: "",
       password: "",
     },
@@ -34,11 +36,12 @@ export function Login() {
     setErrorMessage(null);
 
     try {
-      const formData = new FormData();
-      formData.append("email", data.email);
-      formData.append("password", data.password);
+      const loginData = {
+        email: data.email,
+        password: data.password
+      };
 
-      const response = await login(formData);
+      const response = await login(loginData)
       if (response?.error) {
         setErrorMessage(response.error);
       } else {
@@ -52,19 +55,21 @@ export function Login() {
     };
 
     const handleOAuthSignIn = async (provider: Provider) => {
-      setErrorMessage(null);
+      setErrorMessage(null)
+      
       try {
         await signInWithOAuth(provider);
       } catch (error) {
-        console.error(error)
-        toast.error("An unexpected error occured, please try again")
+        toast.error("Failed to initiate OAuth login")
+      } finally {
+        setIsOAuthLoading(null)
       }
-    };
+    }
 
     const [isPasswordVisible, togglePasswordVisibility] = useToggle(false);    
 
     return (
-      <section className="relative">
+      <section className="relative min-h-screen">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="pb-12 pt-32 md:pb-20 md:pt-40">
             <div className="md: pb-17 mx-auto mx-w-3xl pb-10 text-center">
@@ -204,11 +209,11 @@ export function Login() {
               </form>
             </Form>
 
-            <div className="mt-6 text-center text-gray-600">
+            <div className="mt-6 text-center">
               Don&apos;t have an account?{" "}
               <Link
                 href="/register"
-                className="text-gray-800 transition duration-150 ease-in-out hover:text-primary-800"
+                className="transition duration-150 ease-in-out hover:text-primary-800"
               >
                 Register
               </Link>
