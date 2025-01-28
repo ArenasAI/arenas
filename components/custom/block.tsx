@@ -34,7 +34,7 @@ import { VersionFooter } from './version-footer';
 import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 
-import type { Document, Suggestion, Vote } from '@/lib/supabase/types';
+import { documents, votes, suggestions } from '@/lib/types';
 
 export interface UIBlock {
   title: string;
@@ -78,7 +78,7 @@ const EditorWrapper = memo(
     currentVersionIndex: number;
     status: 'streaming' | 'idle';
     saveContent: (content: string, debounce: boolean) => void;
-    suggestions: Suggestion[];
+    suggestions: suggestions[];
   }) {
     // Use a ref to track content updates
     const contentRef = useRef(content);
@@ -113,7 +113,7 @@ const EditorWrapper = memo(
 
 // Memoize the document content getter
 const useDocumentContent = (
-  documents: Document[] | undefined,
+  documents: documents[] | undefined,
   index: number
 ) => {
   return useMemo(() => {
@@ -150,7 +150,7 @@ export function Block({
   setBlock: Dispatch<SetStateAction<UIBlock>>;
   messages: Array<Message>;
   setMessages: Dispatch<SetStateAction<Array<Message>>>;
-  votes: Array<Vote> | undefined;
+  votes: Array<votes> | undefined;
   append: (
     message: Message | CreateMessage,
     chatRequestOptions?: ChatRequestOptions
@@ -169,7 +169,7 @@ export function Block({
     data: documents,
     isLoading: isDocumentsFetching,
     mutate: mutateDocuments,
-  } = useSWR<Array<Document>>(
+  } = useSWR<Array<documents>>(
     block?.documentId && block.status !== 'streaming'
       ? `/api/document?id=${block.documentId}`
       : null,
@@ -181,7 +181,7 @@ export function Block({
     }
   );
 
-  const { data: suggestions } = useSWR<Array<Suggestion>>(
+  const { data: suggestions } = useSWR<Array<suggestions>>(
     documents && block?.documentId && block.status !== 'streaming'
       ? `/api/suggestions?documentId=${block.documentId}`
       : null,
@@ -194,7 +194,7 @@ export function Block({
   );
 
   const [mode, setMode] = useState<'edit' | 'diff'>('edit');
-  const [document, setDocument] = useState<Document | null>(null);
+  const [document, setDocument] = useState<documents | null>(null);
   const [currentVersionIndex, setCurrentVersionIndex] = useState(-1);
 
   useEffect(() => {
@@ -228,7 +228,7 @@ export function Block({
     (updatedContent: string) => {
       if (!block) return;
 
-      mutate<Array<Document>>(
+      mutate<Array<documents>>(
         `/api/document?id=${block.documentId}`,
         async (currentDocuments) => {
           if (!currentDocuments) return undefined;
@@ -756,7 +756,7 @@ export function Block({
             <VersionFooter
               block={block}
               currentVersionIndex={currentVersionIndex}
-              documents={documents as Document[]}
+              documents={documents as documents[]}
               handleVersionChange={handleVersionChange}
             />
           )}

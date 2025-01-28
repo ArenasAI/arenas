@@ -2,7 +2,7 @@
 
 import { User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
-
+import { dela } from '../ui/fonts';
 import { PlusIcon } from '@/components/custom/icons';
 import { SidebarHistory } from '@/components/custom/sidebar-history';
 import { SidebarUserNav } from '@/components/custom/sidebar-user-nav';
@@ -18,10 +18,46 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { BetterTooltip } from '@/components/ui/tooltip';
+import { useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
 
 export function AppSidebar({ user }: { user: User | null }) {
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleNewChat = async () => {
+    if (isCreating || !user) return;
+
+    try {
+      setIsCreating(true);
+      const supabase = createClient();
+
+      const { data: chat, error} = await supabase
+      .from('chats')
+      .insert([
+        {
+          user_id: user.id,
+          title: 'New Chat', 
+        }
+      ])
+      .select()
+      .single()
+
+      if (error) throw error;
+
+      //open new chat now
+      setOpenMobile(false)
+      router.push(`/chat/${chat.id}`);
+      router.refresh();
+    } catch(error) {
+      console.error("Error creating new chat!", error);
+    } finally {
+      setIsCreating(false);
+    }
+  }
+
+
 
   return (
     <Sidebar className="group-data-[side=left]:border-r-0">
@@ -34,23 +70,24 @@ export function AppSidebar({ user }: { user: User | null }) {
                 router.push('/');
                 router.refresh();
               }}
-              className="flex flex-row gap-3 items-center"
+              className={`${dela.className} flex flex-row gap-3 items-center`}
             >
               <span className="text-lg font-semibold px-2 hover:bg-muted rounded-md cursor-pointer">
-                ArenasAI
+                Arenas
               </span>
             </div>
             <BetterTooltip content="New Chat" align="start">
               <Button
                 variant="ghost"
                 className="p-2 h-fit"
-                onClick={() => {
-                  setOpenMobile(false);
-                  router.push('/');
-                  router.refresh();
-                }}
+                onClick={handleNewChat}
+                disabled={isCreating || !user}
               >
-                <PlusIcon />
+                {isCreating ? (
+                  <div className="animate-spin">...</div>
+                ): (
+                  <PlusIcon />
+                )}
               </Button>
             </BetterTooltip>
           </div>
