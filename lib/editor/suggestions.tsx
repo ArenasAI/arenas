@@ -4,9 +4,9 @@ import { Decoration, DecorationSet, EditorView } from 'prosemirror-view';
 import { createRoot } from 'react-dom/client';
 
 import { Suggestion as PreviewSuggestion } from '@/components/custom/suggestion';
-import { Suggestion } from '@/lib/supabase/types';
+import { suggestions } from '../types';
 
-export interface UISuggestion extends Suggestion {
+export interface UISuggestion extends suggestions {
   selectionStart: number;
   selectionEnd: number;
 }
@@ -41,7 +41,7 @@ function findPositionsInDoc(doc: Node, searchText: string): Position | null {
 
 export function projectWithPositions(
   doc: Node,
-  suggestions: Array<Suggestion>
+  suggestions: Array<suggestions>
 ): Array<UISuggestion> {
   return suggestions.map((suggestion) => {
     const positions = findPositionsInDoc(doc, suggestion.original_text);

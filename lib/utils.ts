@@ -9,10 +9,10 @@ import {
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-import type { Database } from '@/lib/supabase/types';
+import { documents, messages } from './types';
 
-type DBMessage = Database['public']['Tables']['messages']['Row'];
-type Document = Database['public']['Tables']['documents']['Row'];
+type DBMessage = messages
+type Document = documents
 
 type MetadataProps = {
   title?: string;
@@ -296,7 +296,7 @@ export function getMessageIdFromAnnotations(message: Message) {
 export const getURL = () => {
   let url =
     process?.env?.NEXT_PUBLIC_SITE_URL ??
-    process?.env?.NEXT_PUBLIC_VERCEL_URL ?? // Automatically set by Vercel.
+    process?.env?.NEXT_PUBLIC_VERCEL_URL ?? 
     "http://localhost:3000";
 
   // Include `https://` when not localhost.
