@@ -34,21 +34,20 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { getChatsByUserIdQuery } from '@/db/queries';
+// import { getChatsByUserIdQuery } from '@/db/queries';
 import { createClient } from '@/lib/supabase/client';
-import { Database } from '@/lib/supabase/types';
+import { chats } from '@/lib/types';
 
-type Chat = Database['public']['Tables']['chats']['Row'];
 
 type GroupedChats = {
-  today: Chat[];
-  yesterday: Chat[];
-  lastWeek: Chat[];
-  lastMonth: Chat[];
-  older: Chat[];
+  today: chats[];
+  yesterday: chats[];
+  lastWeek: chats[];
+  lastMonth: chats[];
+  older: chats[];
 };
 
-const fetcher = async (): Promise<Chat[]> => {
+const fetcher = async (): Promise<chats[]> => {
   try {
     const supabase = createClient();
     const {
@@ -85,7 +84,7 @@ const ChatItem = ({
   onDelete,
   setOpenMobile,
 }: {
-  chat: Chat;
+  chat: chats;
   isActive: boolean;
   onDelete: (chatId: string) => void;
   setOpenMobile: (open: boolean) => void;
@@ -127,7 +126,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     data: history,
     isLoading,
     mutate,
-  } = useSWR<Chat[]>(user ? ['chats', user.id] : null, fetcher, {
+  } = useSWR<chats[]>(user ? ['chats', user.id] : null, fetcher, {
     fallbackData: [],
     refreshInterval: 5000, // Optional: refresh every 5 seconds
     revalidateOnFocus: true,
@@ -141,8 +140,14 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const router = useRouter();
   const handleDelete = async () => {
-    const deletePromise = fetch(`/api/chat?id=${deleteId}`, {
+    const deletePromise = fetch(`/api/chat/${deleteId}`, {
       method: 'DELETE',
+    }).then(async (response) => {
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || 'Failed to delete chat');
+      }
+      return response;
     });
 
     toast.promise(deletePromise, {
@@ -150,8 +155,12 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
       success: () => {
         mutate((history) => {
           if (history) {
-            return history.filter((h) => h.id !== id);
+            return history.filter((h) => h.id !== deleteId);
           }
+          if (deleteId === id) {
+            router.push('/');
+          }
+          return history;
         });
         return 'Chat deleted successfully';
       },
@@ -159,10 +168,6 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     });
 
     setShowDeleteDialog(false);
-
-    if (deleteId === id) {
-      router.push('/');
-    }
   };
 
   if (!user) {
@@ -220,14 +225,14 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     );
   }
 
-  const groupChatsByDate = (chats: Chat[]): GroupedChats => {
+  const groupChatsByDate = (chats: chats[]): GroupedChats => {
     const now = new Date();
     const oneWeekAgo = subWeeks(now, 1);
     const oneMonthAgo = subMonths(now, 1);
 
     return chats.reduce(
       (groups, chat) => {
-        const chatDate = new Date(chat.created_at); // Changed from createdAt to created_at
+        const chatDate = new Date(chat.created_at);
 
         if (isToday(chatDate)) {
           groups.today.push(chat);
