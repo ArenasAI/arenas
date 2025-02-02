@@ -1,50 +1,27 @@
 "use server";
 
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
-import { Provider } from "@supabase/supabase-js";
+import createClient from "@/lib/supabase/server";
+import { Session, User, Provider, SignInWithPasswordCredentials } from "@supabase/supabase-js";
 import { getURL } from "@/lib/utils";
 import { redirect } from "next/navigation";
-import { getUser } from "@/db/cached-queries";
 import { registerFormData, loginFormData } from "@/utils/form-schema";
 import { revalidatePath } from "next/cache";
+import { useRouter } from "next/router";
 
-export interface LoginActionState {
-    status: 'idle' | 'in_progress' | 'success' | 'failed' | 'invalid_data';
-}
-
-export interface RegisterActionState {
-    status:
-      | 'idle'
-      | 'in_progress'
-      | 'success'
-      | 'failed'
-      | 'user_exists'
-      | 'invalid_data';
-  }
-
-export async function login(_: LoginActionState, formData: loginFormData): Promise<LoginActionState> {
-    try {
+export async function login(formData: loginFormData)
+{
     const supabase = await createClient();
 
-    const { error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-    });
-
+    const data: SignInWithPasswordCredentials = {
+        email: formData.email as string,
+        password: formData.password as string,
+    };
+    const { data: res, error } = await supabase.auth.signInWithPassword(data);
     if (error) {
-        return { status: "failed" };
+        return { error: error.message };
     }
-
-    return { status: "success"};
-    revalidatePath('/', 'layout')
-    
-    } catch(error) {
-        if (error instanceof z.ZodError) {
-            return { status: "invalid_data"};
-        }
-    }
-    return { status: 'failed' };
+    revalidatePath("/")
 }
 
 export async function signInWithOAuth(provider: Provider) {
@@ -54,10 +31,6 @@ export async function signInWithOAuth(provider: Provider) {
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider,
             options: {
-                queryParams: {
-                    access_type: "offline",
-                    prompt: "consent",
-                },
                 redirectTo: redirectUrl
             }
         });
@@ -89,37 +62,47 @@ export async function resetPassword(formData: FormData) {
     }
 }
 
-export async function signOut() {
-    const supabase = await createClient();
-
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-        return { error: error.message };
-    }
-
-    redirect("/login");
+export async function checkUserExists(data: {
+    user: User | null ;
+    session: Session | null;
+}) {
+    return {
+        exists: data.user && data.user?.email
+    };
 }
 
-export async function register(_:RegisterActionState, formData: registerFormData) {
+
+export async function signOut() {
+    const supabase = await createClient();
+    try {
+        const { error } = await supabase.auth.signOut();
+        return { success: true};
+    } catch(err) {
+        console.error("sign out failed: ", err);
+        return { error: "sign out failed, please try again later!"}
+
+    }
+}
+
+export async function register(formData: registerFormData) {
     try {
         const supabase = await createClient();
         const data = {
             email: formData.email,
             password: formData.password,
-          };
-        // Check if user exists
-        const existingUser = await getUser(data.email);
-        if (existingUser) {
-          return { status: 'user_exists' };
+          };    
+
+        const userExists = await supabase.auth.getUser();
+
+        if (userExists) {
+            redirect("/login");
         }
     
-        // Sign up new user
         const { error } = await supabase.auth.signUp({
           email: data.email,
           password: data.password,
           options: {
-            emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+            emailRedirectTo: `${location.origin}/auth/callback`,
           },
         });
     

@@ -15,7 +15,7 @@ import { useToggle } from 'usehooks-ts'
 import { toast } from 'sonner';
 import Link from 'next/link'
 import { Checkbox } from '../ui/checkbox'
-import { useRouter } from 'next/router'
+import {createClient} from '@/lib/supabase/client'
 
 export function Register() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -70,7 +70,13 @@ export function Register() {
     const handleOAuthSignIn = async (provider: Provider) => {
       setErrorMessage(null);
       try {
-        await signInWithOAuth(provider);
+        const supabase = await createClient();
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: provider,
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback`
+          }
+        });
       } catch (error) {
         console.error(error)
         toast.error("An unexpected error occured, please try again")
@@ -95,8 +101,9 @@ export function Register() {
               }}
             >
               <Button
-                type="submit"
+                type="button"
                 size="lg"
+                onClick={()=> handleOAuthSignIn("google")}
                 variant="authgroup"
                 className="relative flex w-full items-center rounded-md px-0"
               >
@@ -113,8 +120,11 @@ export function Register() {
               <div className="-mx-3 flex flex-wrap">
                 <div className="mt-3 w-full px-3">
                   <Button
-                    type="submit"
+                    type="button"
                     size="lg"
+                    onClick={() => handleOAuthSignIn(
+                      "github"
+                    )}
                     variant="authgroup"
                     className="relative flex w-full items-center rounded-md px-0"
                   >

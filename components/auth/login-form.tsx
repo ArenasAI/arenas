@@ -15,6 +15,7 @@ import { useToggle } from 'usehooks-ts'
 import { toast } from 'sonner';
 import Link from 'next/link'
 import { Checkbox } from '../ui/checkbox'
+import { createClient } from '@/lib/supabase/client'
 
 export function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,7 +46,16 @@ export function Login() {
       if (response?.error) {
         setErrorMessage(response.error);
       } else {
-        form.reset();
+        const supabase = await createClient();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+        if (session) {
+        // Session exists, user is authenticated
+        // You can store the session or token if needed
+          form.reset();
+        } else {
+          setErrorMessage("Authentication failed");
+        }
       }
     } catch (error) {
       console.error(error)
@@ -56,9 +66,14 @@ export function Login() {
 
     const handleOAuthSignIn = async (provider: Provider) => {
       setErrorMessage(null)
-      
       try {
-        await signInWithOAuth(provider);
+        const supabase = await createClient();
+        const { data } = await supabase.auth.signInWithOAuth({
+          provider: provider,
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback`
+          }
+        });
       } catch (error) {
         toast.error("Failed to initiate OAuth login")
       } finally {
@@ -69,14 +84,13 @@ export function Login() {
     const [isPasswordVisible, togglePasswordVisibility] = useToggle(false);    
 
     return (
-      <section className="relative min-h-screen">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="pb-12 pt-32 md:pb-20 md:pt-40">
-            <div className="md: pb-17 mx-auto mx-w-3xl pb-10 text-center">
-            <h1 className="max-w-3xl text-3xl">Welcome back!</h1>
-            </div>
+      <section className="flex min-h-screen items-center justify-center">
+        <div className="w-full max-w-md px-4 py-8 sm:px-6">
+        <div className="text-center">
+          <h1 className="mb-6 text-3xl font-bold tracking-tight">Welcome back!</h1>
+        </div>
 
-            <div className="mx-w-3xl mx-auto">
+            <div className="space-y-6">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -84,12 +98,15 @@ export function Login() {
               }}
             >
               <Button
-                type="submit"
+                type="button"
+                onClick={() => handleOAuthSignIn(
+                  "google"
+                )}
                 size="lg"
-                variant="authgroup"
+                variant="outline"
                 className="relative flex w-full items-center rounded-md px-0"
-              >
-                <GoogleLogoColored className="text-white mx-1 h-4 w-4 shrink-0" />
+                >
+                <GoogleLogoColored className="h-5 w-5" />
                 <span className="">Sign in with Google</span>
               </Button>
             </form>
@@ -102,9 +119,10 @@ export function Login() {
               <div className="-mx-3 flex flex-wrap">
                 <div className="mt-3 w-full px-3">
                   <Button
-                    type="submit"
+                    type="button"
+                    onSubmit={() => handleOAuthSignIn("github")}
                     size="lg"
-                    variant="authgroup"
+                    variant="outline"
                     className="relative flex w-full items-center rounded-md px-0"
                   >
                     <GitHubLogo className="mx-1 h-4 w-4 shrink-0 text-gray-700" />
@@ -220,7 +238,6 @@ export function Login() {
             </div>
           </div>
         </div>
-      </div>
       </section>
 
     )
