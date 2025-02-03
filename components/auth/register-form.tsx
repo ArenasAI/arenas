@@ -86,14 +86,13 @@ export function Register() {
     const [isPasswordVisible, togglePasswordVisibility] = useToggle(false);    
 
     return (
-      <section className="relative">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="pb-12 pt-32 md:pb-20 md:pt-40">
-            <div className="md: pb-17 mx-auto mx-w-2xl pb-10 text-center">
-            <h1>Sign up with us!</h1>
-            </div>
+      <section className="flex min-h-screen items-center justify-center">
+        <div className="w-full max-w-md px-4 py-8 sm:px-6">
+        <div className="text-center">
+          <h1 className="mb-6 text-3xl font-bold tracking-tight">Sign up with us!</h1>
+        </div>
 
-            <div className="mx-w-3xl mx-auto">
+            <div className="space-y-6">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -104,10 +103,10 @@ export function Register() {
                 type="button"
                 size="lg"
                 onClick={()=> handleOAuthSignIn("google")}
-                variant="authgroup"
+                variant="outline"
                 className="relative flex w-full items-center rounded-md px-0"
               >
-                <GoogleLogoColored className="text-white mx-1 h-4 w-4 shrink-0" />
+                <GoogleLogoColored className="h-5 w-5" />
                 <span className="">Sign in with Google</span>
               </Button>
             </form>
@@ -125,7 +124,7 @@ export function Register() {
                     onClick={() => handleOAuthSignIn(
                       "github"
                     )}
-                    variant="authgroup"
+                    variant="outline"
                     className="relative flex w-full items-center rounded-md px-0"
                   >
                     <GitHubLogo className="mx-1 h-4 w-4 shrink-0 text-gray-700" />
@@ -241,7 +240,6 @@ export function Register() {
             </div>
           </div>
         </div>
-      </div>
       </section>
 
     )

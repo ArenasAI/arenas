@@ -8,14 +8,22 @@ import { signOut } from '@/app/(auth)/actions';
 
 export function LogoutButton() {
   const router = useRouter();
-
+  
   const handleLogout = async () => {
+
     try {
-      await signOut();
-      router.push('/login');
+      const out = await signOut()
+
+      if (out.error) {
+        throw new Error(out.error);
+      }
+      
+      toast.success("logged out successfully!");
+      router.push('/');
+      router.refresh();
     } catch (error) {
       console.error(error);
-      toast.error('Failed to logout');
+      toast.error('failed to logout');
     }
   }
 

@@ -7,10 +7,9 @@ import { getURL } from "@/lib/utils";
 import { redirect } from "next/navigation";
 import { registerFormData, loginFormData } from "@/utils/form-schema";
 import { revalidatePath } from "next/cache";
-import { useRouter } from "next/router";
 
-export async function login(formData: loginFormData)
-{
+
+export async function login(formData: loginFormData) {
     const supabase = await createClient();
 
     const data: SignInWithPasswordCredentials = {
@@ -63,26 +62,28 @@ export async function resetPassword(formData: FormData) {
 }
 
 export async function checkUserExists(data: {
-    user: User | null ;
+    user: User | null;
     session: Session | null;
 }) {
+        const supabase = await createClient();
     return {
         exists: data.user && data.user?.email
     };
 }
 
-
 export async function signOut() {
-    const supabase = await createClient();
     try {
+        const supabase = await createClient();
         const { error } = await supabase.auth.signOut();
-        return { success: true};
+        if (error) {
+            throw error;
+        }
+        return { success: true };
     } catch(err) {
         console.error("sign out failed: ", err);
-        return { error: "sign out failed, please try again later!"}
-
-    }
-}
+        return { error: "sign out failed, please try again later!" }
+        }
+      }
 
 export async function register(formData: registerFormData) {
     try {
@@ -90,32 +91,32 @@ export async function register(formData: registerFormData) {
         const data = {
             email: formData.email,
             password: formData.password,
-          };    
+        };    
 
         const userExists = await supabase.auth.getUser();
 
         if (userExists) {
             redirect("/login");
-        }
+}
     
         const { error } = await supabase.auth.signUp({
-          email: data.email,
-          password: data.password,
-          options: {
-            emailRedirectTo: `${location.origin}/auth/callback`,
-          },
+            email: data.email,
+            password: data.password,
+            options: {
+                emailRedirectTo: `${location.origin}/auth/callback`,
+            },
         });
     
         if (error) {
-          return { status: 'failed' };
+            return { status: 'failed' };
         }
     
         return { status: 'success' };
-      } catch (error) {
+    } catch (error) {
         if (error instanceof z.ZodError) {
-          return { status: 'invalid_data' };
+            return { status: 'invalid_data' };
         }
     
         return { status: 'failed' };
-      }
+    }
 }

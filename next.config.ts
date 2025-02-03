@@ -20,18 +20,5 @@ const nextConfig = {
     ],
   },
 };
-const nextConfiguration = {
-  ...nextConfig,
-  async redirects() {
-    // remove this redirect in next pearapp release
-    return [
-      {
-        source: '/api/v1/:path*',
-        destination: `${process.env.ARENAS_SERVER}/api/v1/:path*`,
-        permanent: true,
-      }
-    ];
-  },
-};
 
-module.exports = nextConfiguration;
+module.exports = nextConfig;

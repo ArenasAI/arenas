@@ -2,28 +2,26 @@
 
 import { Attachment, Message } from 'ai';
 import { useChat } from 'ai/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useWindowSize } from 'usehooks-ts';
-// import { ArrowUpIcon, Upload } from 'lucide-react';
 import { ChatHeader } from '@/components/custom/chat-header';
 import { PreviewMessage, ThinkingMessage } from '@/components/custom/message';
 import { useScrollToBottom } from '@/components/custom/use-scroll-to-bottom';
-import { Database } from '@/lib/supabase/types';
+import { votes } from '@/lib/types';
 import { fetcher } from '@/lib/utils';
-import {  UIBlock } from './block'
+import { UIBlock } from './block'
 import { BlockStreamHandler } from './block-stream-handler';
 import { MultimodalInput } from './multimodal-input';
 import { Overview } from './overview';
-// import { FilePreview } from './file-preview';
-// import { useDropzone } from 'react-dropzone';
+import { createClient } from '@/lib/supabase/client';
 
 type PreviewData = {
   headers: string[]
   rows: (string[] | Record<string, unknown>)[]
 }
 
-type Vote = Database['public']['Tables']['votes']['Row'];
+type Vote = votes;
 
 export function Chat({
   id,
@@ -34,8 +32,21 @@ export function Chat({
   initialMessages: Array<Message>;
   selectedModelId: string;
 }) {
+  const [user, setUser] = useState<any>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    
+    getUser();
+  }, []);
+
   const { mutate } = useSWRConfig();
-  const [parsedData ] = useState<PreviewData | null>(null)
+  const [parsedData] = useState<PreviewData | null>(null);
+
   const {
     messages,
     setMessages,
@@ -47,17 +58,14 @@ export function Chat({
     stop,
     data: streamingData,
   } = useChat({
-    // api: `${process.env.NEXT_PUBLIC_ARENAS_SERVER}/api/v1/chat`,
-    body: { id, modelId: selectedModelId, parsedData },
+    body: { id, modelId: selectedModelId, parsedData, userId: user?.id },
     initialMessages,
     onFinish: () => {
       mutate('/api/history');
     },
   });
 
-    const { width: windowWidth = 1920, height: windowHeight = 1080 } =
-    useWindowSize();
-
+  const { width: windowWidth = 1920, height: windowHeight = 1080 } = useWindowSize();
   const [block, setBlock] = useState<UIBlock>({
     documentId: 'init',
     content: '',
@@ -77,12 +85,8 @@ export function Chat({
     fetcher
   );
 
-  const [messagesContainerRef, messagesEndRef] =
-    useScrollToBottom<HTMLDivElement>();
-
+  const [messagesContainerRef, messagesEndRef] = useScrollToBottom<HTMLDivElement>();
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
-
-  console.log(messages);
 
   return (
     <>
