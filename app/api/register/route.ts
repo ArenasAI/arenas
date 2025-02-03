@@ -17,7 +17,7 @@ export async function POST (request: Request) {
                 {
                     error:
                     error.detail ||
-                    "Failed to sign up!! contact us on discord",
+                    "Failed to sign up!! please contact us on discord",
                 },
                 { status: response.status },
             );

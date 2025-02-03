@@ -4,7 +4,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ThemeProvider } from "next-themes";
-import { Navbar } from "@/components/nav";
 
 export default function RootLayout({
   children,
@@ -26,7 +25,6 @@ export default function RootLayout({
           enableColorScheme
         >
           <div className="flex min-h-screen flex-col overflow-auto">
-              <Navbar />
               {children}
               <Toaster position="bottom-right" richColors />
               <Analytics />
