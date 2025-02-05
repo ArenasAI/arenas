@@ -1,4 +1,4 @@
-import AuthCodeErrorPage from "@/components/auth-error";
+import AuthCodeErrorPage from "@/components/auth/auth-error";
 import { Suspense } from "react";
 
 const AuthCodeError = () => {

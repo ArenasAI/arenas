@@ -21,7 +21,7 @@ import {
   suggestionsPlugin,
   suggestionsPluginKey,
 } from '@/lib/editor/suggestions';
-import { Suggestion } from '@/lib/supabase/types';
+import { suggestions } from '@/lib/types';
 
 type EditorProps = {
   content: string;
@@ -29,7 +29,7 @@ type EditorProps = {
   status: 'streaming' | 'idle';
   isCurrentVersion: boolean;
   currentVersionIndex: number;
-  suggestions: Array<Suggestion>;
+  suggestions: Array<suggestions>;
 };
 
 function PureEditor({
