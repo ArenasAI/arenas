@@ -3,7 +3,7 @@
     <img src="public/assets/ar-light.svg" width="200" alt="arenas-logo" />
     </div>
     <h1 align="center">ArenasAI</h1>
-    <p align="center">Open Source AI-Powered Data Scientist</p>    
+    <p align="center">Open Source AI-Powered Data Scientist</p>
 </div>
 
 [![discord][discord]][discordurl]
@@ -21,7 +21,7 @@
 
 ### About the Project
 
-This app aims to solve several pain points in the data science industry, and hopefully bring about a significant change in how we work with data in the future.
+This app aims to solve several pain points in the data science industry, and hopefully bring about a significant change in how we work with data in the future. currently, we are focusing on a smaller problem: realtime changes in excel and google sheets, and performing data cleaning. 
 
 Made by [Mubashir Osmani](https://github.com/mubashir1osmani)
 
@@ -31,10 +31,6 @@ Made by [Mubashir Osmani](https://github.com/mubashir1osmani)
 - [![nextjs][nextjs]][nextjs-url]
 - [![tailwindcss][tailwindcss]][tailwindcss-url]
 - [![typescript][typescript]][typescripturl]
-- [![python][python]]
-- [![r][r]]
-- [![julia][julia]]
-- [![supabase][supabase]][supabaseurl]
 
 ## Getting Started
 
