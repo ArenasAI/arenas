@@ -70,7 +70,7 @@ export function Register() {
     const handleOAuthSignIn = async (provider: Provider) => {
       setErrorMessage(null);
       try {
-        const supabase = await createClient();
+        const supabase = createClient();
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: provider,
           options: {

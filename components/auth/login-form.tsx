@@ -67,7 +67,7 @@ export function Login() {
     const handleOAuthSignIn = async (provider: Provider) => {
       setErrorMessage(null)
       try {
-        const supabase = await createClient();
+        const supabase = createClient();
         const { data } = await supabase.auth.signInWithOAuth({
           provider: provider,
           options: {
@@ -120,7 +120,7 @@ export function Login() {
                 <div className="mt-3 w-full px-3">
                   <Button
                     type="button"
-                    onSubmit={() => handleOAuthSignIn("github")}
+                    onClick={() => handleOAuthSignIn("github")}
                     size="lg"
                     variant="outline"
                     className="relative flex w-full items-center rounded-md px-0"
