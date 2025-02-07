@@ -4,7 +4,7 @@ import { Attachment, Message } from 'ai';
 import { useChat } from 'ai/react';
 import { useState, useEffect } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
-
+import { RuntimeSelector } from './runtime-selector';
 import { useWindowSize } from 'usehooks-ts';
 import { ChatHeader } from '@/components/custom/chat-header';
 import { PreviewMessage, ThinkingMessage } from '@/components/custom/message';
@@ -34,6 +34,7 @@ export function Chat({
   selectedModelId: string;
 }) {
   const [user, setUser] = useState<any>(null);
+  const [selectedRuntime, setSelectedRuntime] = useState('python');
   const supabase = createClient();
 
   useEffect(() => {
@@ -59,7 +60,13 @@ export function Chat({
     stop,
     data: streamingData,
   } = useChat({
-    body: { id, modelId: selectedModelId, parsedData, userId: user?.id },
+    body: { 
+      id, 
+      modelId: selectedModelId, 
+      parsedData, 
+      userId: user?.id, 
+      runtime: selectedRuntime 
+    },
     initialMessages,
     onFinish: () => {
       mutate('/api/history');
@@ -93,6 +100,7 @@ export function Chat({
     <>
       <div className="flex flex-col min-w-0 h-dvh bg-background">
         <ChatHeader selectedModelId={selectedModelId} />
+        <RuntimeSelector selectedRuntime={selectedRuntime} onRuntimeChange={setSelectedRuntime} />
         <div
           ref={messagesContainerRef}
           className="flex flex-col min-w-0 gap-6 flex-1 overflow-y-scroll pt-4"
