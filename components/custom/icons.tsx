@@ -19,6 +19,22 @@ export const BotIcon = () => {
   );
 };
 
+export const BrainIcon = ({ size = 24 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-2.5 2.5H9a2.5 2.5 0 0 1-2.5-2.5V4.5A2.5 2.5 0 0 1 9 2h.5Z" />
+    <path d="M15 2.5A2.5 2.5 0 0 1 17.5 5v15a2.5 2.5 0 0 1-2.5 2.5h-.5a2.5 2.5 0 0 1-2.5-2.5V5A2.5 2.5 0 0 1 14.5 2.5h.5Z" />
+  </svg>
+);
+
 export const UserIcon = () => {
   return (
     <svg
@@ -553,6 +569,22 @@ export const StopIcon = ({ size = 16 }: { size?: number }) => {
     </svg>
   );
 };
+
+export const XIcon = ({ size = 24 }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2"
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+  >
+    <line x1="18" y1="6" x2="6" y2="18"></line>
+    <line x1="6" y1="6" x2="18" y2="18"></line>
+  </svg>
+);
 
 export const PaperclipIcon = ({ size = 16 }: { size?: number }) => {
   return (

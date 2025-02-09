@@ -49,6 +49,7 @@ export function ModelSelector({
           <DropdownMenuItem
             key={model.id}
             onSelect={() => {
+              if (model.disabled) return
               setOpen(false);
 
               startTransition(() => {
@@ -56,8 +57,12 @@ export function ModelSelector({
                 saveModelId(model.id);
               });
             }}
-            className="gap-4 group/item flex flex-row justify-between items-center"
+            className={cn(
+              "gap-4 group/item flex flex-row justify-between items-center",
+              model.disabled && "opacity-50 cursor-not-allowed"
+            )}
             data-active={model.id === optimisticModelId}
+            disabled={model.disabled}
           >
             <div className="flex flex-col gap-1 items-start">
               {model.label}
@@ -76,35 +81,3 @@ export function ModelSelector({
     </DropdownMenu>
   );
 }
-
-
-// interface ModelSelectorProps {
-//   value: string
-//   onChange: (value: string) => void
-// }
-
-// export function ModelSelector({ value, onChange }: ModelSelectorProps) {
-//   const models = [
-//     { id: 'arenas', name: 'Arenas' },
-//     { id: 'llama', name: 'Llama 3.3' },
-//     { id: 'vertex', name: 'Google Vertex' },
-//     { id: 'xai', name: 'xAI' },
-//     { id: 'anthropic', name: 'Anthropic' },
-//     { id: 'openai', name: 'OpenAI' },
-//     { id: 'groq', name: 'Groq' },
-//   ]
-
-//   return (
-//     <select
-//       value={value}
-//       onChange={(e) => onChange(e.target.value)}
-//       className="rounded-md border bg-background px-3 py-2 text-sm"
-//     >
-//       {models.map((model) => (
-//         <option key={model.id} value={model.id}>
-//           {model.name}
-//         </option>
-//       ))}
-//     </select>
-//   )
-// }

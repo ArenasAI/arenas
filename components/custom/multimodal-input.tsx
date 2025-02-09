@@ -10,13 +10,14 @@ import React, {
   Dispatch,
   SetStateAction,
   ChangeEvent,
+  DragEvent,
 } from 'react';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
 import { dela } from '../ui/fonts';
-import { sanitizeUIMessages } from '@/lib/utils';
+import { cn, sanitizeUIMessages } from '@/lib/utils';
 
-import { ArrowUpIcon, PaperclipIcon, StopIcon } from './icons';
+import { ArrowUpIcon, PaperclipIcon, StopIcon, BrainIcon } from './icons';
 import { PreviewAttachment } from './preview-attachment';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
@@ -33,6 +34,7 @@ export function MultimodalInput({
   setMessages,
   append,
   handleSubmit,
+  isDragging,
   className,
 }: {
   chatId: string;
@@ -54,6 +56,7 @@ export function MultimodalInput({
     },
     chatRequestOptions?: ChatRequestOptions
   ) => void;
+  isDragging:boolean;
   className?: string;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -70,6 +73,12 @@ export function MultimodalInput({
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight + 2}px`;
     }
+  };
+
+  const [advancedReasoning, setAdvancedReasoning] = useState(false);
+
+  const toggleAdvancedReasoning = () => {
+    setAdvancedReasoning(!advancedReasoning);
   };
 
   const [localStorageInput, setLocalStorageInput] = useLocalStorage(
@@ -123,11 +132,17 @@ export function MultimodalInput({
     chatId,
   ]);
 
+
   const uploadFile = async (file: File, chatId: string) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('chatId', chatId);
 
+    const isSpreadsheet = file.type.includes('spreadsheet') || 
+                       file.type.includes('csv') ||
+                       file.name.endsWith('.xlsx') ||
+                       file.name.endsWith('.xls') ||
+                       file.name.endsWith('.csv');
     try {
       const response = await fetch(`/api/files/upload`, {
         method: 'POST',
@@ -136,6 +151,14 @@ export function MultimodalInput({
 
       if (response.ok) {
         const data = await response.json();
+        if (isSpreadsheet) {
+          return {
+            url: data.url,
+            name: data.path,
+            contentType: file.type,
+            tableData: data.tableData,
+          };
+        }
         return {
           url: data.url,
           name: data.path,
@@ -180,6 +203,37 @@ export function MultimodalInput({
     [setAttachments, chatId]
   );
 
+
+  const removeAttachment = useCallback(async (attachment: Attachment) => {
+    try {
+      const response = await fetch(`/api/files/remove`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chatId,
+          path: attachment.name,
+          url: attachment.url
+        }),
+  })
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to remove file');
+    }
+
+    setAttachments(current => 
+      current.filter(a => a.url !== attachment.url)
+    );
+
+    toast.success('File removed successfully');
+    } catch (error) {
+    console.error('Error removing file:', error);
+    toast.error('Failed to remove file');
+    }
+    }, [chatId, setAttachments]);
+
   return (
     <div className="relative w-full flex flex-col gap-4">
       <input
@@ -192,9 +246,12 @@ export function MultimodalInput({
       />
 
       {(attachments.length > 0 || uploadQueue.length > 0) && (
-        <div className="flex flex-row gap-2 overflow-x-scroll items-end">
+        <div className={cn(
+          "flex flex-row gap-2 overflow-x-scroll items-end",
+          isDragging && "opacity-50"
+        )}>
           {attachments.map((attachment) => (
-            <PreviewAttachment key={attachment.url} attachment={attachment} />
+            <PreviewAttachment key={attachment.url} attachment={attachment} onRemove={()=> removeAttachment(attachment)} />
           ))}
 
           {uploadQueue.map((filename) => (
@@ -216,8 +273,9 @@ export function MultimodalInput({
         placeholder="say somethin..."
         value={input}
         onChange={handleInput}
-        className={cx(
-          'min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-xl text-base bg-muted',
+        className={cn(
+          'min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-xl text-base bg-muted transition-all duration-200',
+          isDragging && 'scale-102 border-primary',
           className
         )}
         rows={3}
@@ -260,17 +318,35 @@ export function MultimodalInput({
         </Button>
       )}
 
-      <Button
-        className={`${dela.className} rounded-sm p-1.5 h-fit absolute bottom-2 right-11 m-0.5 dark:border-zinc-700`}
-        onClick={(event) => {
-          event.preventDefault();
-          fileInputRef.current?.click();
-        }}
-        variant="outline"
-        disabled={isLoading}
-      >
-        attach
-      </Button>
+      <div>
+        <div className="flex gap-2 left-2">
+          <Button
+            className={`${dela.className} rounded-sm p-1.5 h-fit shadow-sm dark:border-zinc-700`}
+            onClick={toggleAdvancedReasoning}
+            variant={advancedReasoning ? "default" : "outline"}
+            disabled={isLoading}
+            title="Toggle Advanced Reasoning"
+          >
+            <span className="flex items-center gap-1">
+              <BrainIcon size={14} />
+              reason
+            </span>
+          </Button>
+
+          <Button
+            className={`${dela.className} rounded-sm p-1.5 h-fit shadow-sm dark:border-zinc-700`}
+            onClick={(event) => {
+              event.preventDefault();
+              fileInputRef.current?.click();
+            }}
+            variant="outline"
+            disabled={isLoading}
+          >
+            <PaperclipIcon />
+            attach
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

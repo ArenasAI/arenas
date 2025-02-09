@@ -1,12 +1,15 @@
 import { Attachment } from 'ai';
-import { LoaderIcon } from './icons';
+import { LoaderIcon, XIcon } from './icons';
+import { X } from 'lucide-react';
 
 export const PreviewAttachment = ({
   attachment,
   isUploading = false,
+  onRemove
 }: {
   attachment: Attachment;
   isUploading?: boolean;
+  onRemove?: () => void;
 }) => {
   const { name, url, contentType } = attachment;
 
@@ -15,14 +18,23 @@ export const PreviewAttachment = ({
       <div className="w-20 aspect-video bg-muted rounded-md relative flex flex-col items-center justify-center">
         {contentType ? (
           contentType.startsWith('image') ? (
-            // NOTE: it is recommended to use next/image for images
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={url}
-              src={url}
-              alt={name ?? 'An image attachment'}
-              className="rounded-md size-full object-cover"
-            />
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                key={url}
+                src={url}
+                alt={name ?? 'An image attachment'}
+                className="rounded-md size-full object-cover"
+              />
+              {!isUploading && onRemove && (
+                <button
+                  onClick={onRemove}
+                  className="absolute -top-0.5 -right-5 p-1 rounded-full bg-zinc-100 hover:bg-zinc-200 transition-colors"
+                >
+                  <X size={10} color='black'/>
+                </button>
+              )}
+            </>
           ) : (
             <div className=""></div>
           )

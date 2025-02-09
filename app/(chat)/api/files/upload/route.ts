@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
-import { createClient } from '@/lib/supabase/server';
-
+import { upload } from '@/lib/cached/storage';
+import  createClient from '@/lib/supabase/server';
 
 function sanitizeFileName(fileName: string): string {
   return fileName.replace(/[^a-zA-Z0-9.-]/g, '_').toLowerCase();
@@ -12,6 +12,14 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     const file = formData.get('file') as File;
     const chatId = formData.get('chatId') as string;
+    const isSpreadsheet = file.type.includes('spreadsheet') || 
+                         file.type.includes('csv') ||
+                         file.name.endsWith('.xlsx') ||
+                         file.name.endsWith('.xls') ||
+                         file.name.endsWith('.csv');
+                         
+
+    const bucketId = isSpreadsheet ? 'data-files' : 'chat_attachments';
 
     console.log('Upload request:', {
       fileName: file?.name,
@@ -81,7 +89,7 @@ export async function POST(req: Request) {
           {
             public: true,
             fileSizeLimit: 52428800,
-            allowedMimeTypes: ['image/*', 'application/pdf'],
+            allowedMimeTypes: ['image/*', 'application/pdf', 'csv', '.xlsx', '.xls'],
           }
         );
         if (createError) {
@@ -89,49 +97,52 @@ export async function POST(req: Request) {
         }
       }
 
-      const { data, error: uploadError } = await supabase.storage
-        .from('chat_attachments')
-        .upload(filePath.join('/'), file, {
-          upsert: true,
-          contentType: file.type,
-          cacheControl: '3600',
-          duplex: 'half',
-          metadata: {
-            owner: user.id,
-            chatId: chatId,
-          }
-        });
-
-      if (uploadError) {
-        console.error('Upload error details:', {
-          error: uploadError,
-          message: uploadError.message,
-          // status: uploadError.status,
-          // statusCode: uploadError.statusCode,
-          name: uploadError.name,
-          stack: uploadError.stack,
-        });
-
-        if (uploadError.message?.includes('row-level security')) {
-          // Log RLS details
-          console.error('RLS policy violation. Current user:', user);
-          const { data: policies } = await supabase
-            .from('postgres_policies')
-            .select('*')
-            .eq('table', 'storage.objects');
-          console.log('Current storage policies:', policies);
-        }
-
-        return NextResponse.json(
+      if (isSpreadsheet && !buckets?.some((b) => b.id === 'data-files')) {
+        console.log('Creating data-files bucket...');
+        const { error: createError } = await supabase.storage.createBucket(
+          'data-files',
           {
-            error: 'File upload failed',
-            details: uploadError.message,
-          },
-          { status: 500 }
+            public: true,
+            fileSizeLimit: 52428800,
+            allowedMimeTypes: [
+              'application/vnd.ms-excel', 
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+              'text/csv',                                                       
+              'application/csv',                                                
+              'text/plain'                                                      
+            ],
+          }
         );
+        if (createError) {
+          console.error('Bucket creation error:', createError);
+          throw createError;
+        }
       }
+      
+      // Add logging to track bucket creation and file upload
+      console.log('Attempting file upload:', {
+        bucketId,
+        fileType: file.type,
+        isSpreadsheet,
+        allowedTypes: [
+          'application/vnd.ms-excel',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'text/csv',
+          'application/csv',
+          'text/plain'
+        ]
+      });
 
-      console.log('Upload successful:', { publicUrl: data });
+      const publicUrl = await upload(supabase, {
+        file,
+        path: filePath,
+        bucket: bucketId,
+        options: {
+          contentType: file.type
+        }
+      });
+
+      console.log('Upload successful:', { publicUrl });
 
       // Check if file already exists
       const { data: existingFile } = await supabase
@@ -141,6 +152,7 @@ export async function POST(req: Request) {
           user_id: user.id,
           chat_id: chatId,
           storage_path: filePath.join('/'),
+          bucket_id: bucketId
         })
         .order('version', { ascending: false })
         .limit(1)
@@ -151,6 +163,7 @@ export async function POST(req: Request) {
         return NextResponse.json({
           url: existingFile.url,
           path: filePath.join('/'),
+          isSpreadsheet,
         });
       }
 
@@ -158,14 +171,15 @@ export async function POST(req: Request) {
       const { error: dbError } = await supabase.from('file_uploads').insert({
         user_id: user.id,
         chat_id: chatId,
-        bucket_id: 'chat_attachments',
+        bucket_id: bucketId,
         storage_path: filePath.join('/'),
         filename: sanitizedFileName,
         original_name: file.name,
         content_type: file.type,
         size: file.size,
-        url: data,
+        url: publicUrl,
         version: 1, // Will be auto-incremented by trigger if needed
+        is_spreadsheet: isSpreadsheet
       });
 
       if (dbError) {
@@ -181,8 +195,9 @@ export async function POST(req: Request) {
       console.log('File record created successfully');
 
       return NextResponse.json({
-        url: data,
+        url: publicUrl,
         path: filePath.join('/'),
+        isSpreadsheet,
       });
     } catch (uploadError: any) {
       console.error('Upload error details:', {

@@ -19,9 +19,8 @@ import {
 } from '@/components/ui/sidebar';
 import { BetterTooltip } from '@/components/ui/tooltip';
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
 
-export async function AppSidebar({ user }: { user: User | null }) {
+export function AppSidebar({ user }: { user: User | null }) {
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
   const [isCreating, setIsCreating] = useState(false);
@@ -31,18 +30,10 @@ export async function AppSidebar({ user }: { user: User | null }) {
 
     try {
       setIsCreating(true);
-      const supabase = createClient();
-
-      const { data: {session} } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error("no session found!");
-      }
-      
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           title: 'New Chat',
