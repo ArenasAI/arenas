@@ -5,6 +5,21 @@
 @tailwind utilities;
 
 
+@layer utilities {
+  .backdrop-blur-sm {
+    backdrop-filter: blur(8px);
+  }
+
+  .scale-102 {
+    transform: scale(1.02);
+  }
+}
+
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
 
 body {
   font-family: Geist Mono;
