@@ -1,5 +1,3 @@
-// models are declared here.
-
 export interface Model {
   id: string;
   label: string;
@@ -10,18 +8,20 @@ export interface Model {
   maxTokens?: number;
   streaming?: boolean;
   tools?: string[];
+  disabled?: boolean;
 }
 
 export const models: Array<Model> = [
   {
     id: 'arenas',
-    label: 'Arenas',
+    label: 'Arenas (Coming soon)',
     apiIdentifier: 'arenas',
     description: 'Specialized data analysis model with visualization tools',
     provider: 'arenas',
     contextWindow: 32768,
     maxTokens: 8192,
     streaming: true,
+    disabled: true
   },
   {
       id: 'gpt-4o',
@@ -36,7 +36,7 @@ export const models: Array<Model> = [
   {
     id: 'claude-3-5-sonnet',
     label: 'Claude 3.5 Sonnet',
-    apiIdentifier: 'claude-3-5-sonnet',
+    apiIdentifier: 'claude-3-5-sonnet-20241022',
     description: 'Anthropic\'s latest model for advanced analysis',
     provider: 'anthropic',
     contextWindow: 200000,
@@ -44,15 +44,36 @@ export const models: Array<Model> = [
     streaming: true
   },
   {
-    id: 'deepseek',
-    label: 'Deepseek',
-    apiIdentifier: 'deepseek/deepseek-coder',
-    description: 'Deepseek MoE architecture for advanced reasoning',
+    id: 'deepseek-r1',
+    label: 'Deepseek R1',
+    apiIdentifier: 'deepseek/deepseek-reasoner',
+    description: 'Optimized for code generation and analysis',
     provider: 'deepseek',
+    contextWindow: 32768,
+    streaming: true
+  },
+  {
+    id: 'deepseek-chat',
+    label: 'Deepseek Chat',
+    apiIdentifier: 'deepseek-chat',
+    description: 'General purpose chat model from Deepseek',
+    provider: 'deepseek',
+    contextWindow: 32768,
+    streaming: true
+  },
+  {
+    id: 'gemini-2.0-flash',
+    label: 'Gemini 2.0 Flash',
+    apiIdentifier: 'gemini-2.0-flash',
+    description: 'Google\'s latest advanced language model',
+    provider: 'gemini',
+    contextWindow: 32768,
+    maxTokens: 2048,
+    streaming: true
   }
 ] as const;
 
-export const DEFAULT_MODEL_NAME = 'gpt-4o';
+export const DEFAULT_MODEL_NAME = 'deepseek-chat';
 
 export type ModelId = typeof models[number]['id'];
 
