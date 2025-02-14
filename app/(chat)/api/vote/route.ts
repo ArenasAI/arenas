@@ -1,32 +1,26 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
-import { NextResponse } from 'next/server';
-import { voteMessage } from '@/db/mutations';
+import { getSession } from '@/lib/cached/cached-queries';
+import { voteMessage } from '@/lib/cached/mutations';
+import createClient from '@/lib/supabase/server';
 
 export async function POST(request: Request) {
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-
   try {
     const { chatId, messageId, type } = await request.json();
-    const { data: { user } } = await supabase.auth.getUser();
+
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return new Response('Unauthorized', { status: 401 });
     }
 
     await voteMessage({ chatId, messageId, type });
 
-    return NextResponse.json({ message: 'Vote recorded' });
+    return new Response('Vote recorded', { status: 200 });
   } catch (error) {
-    console.error('Vote recording error:', error);
-    return NextResponse.json(
-      { error: 'Failed to record vote' },
-      { status: 500 }
-    );
+    console.error('Error recording vote:', error);
+    return new Response('An error occurred', { status: 500 });
   }
 }
 
@@ -34,56 +28,41 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const chatId = searchParams.get('chatId');
 
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+  if (!chatId) {
+    return new Response('Missing chatId', { status: 400 });
+  }
 
-    const { data: votes, error } = await supabase
+  try {
+    const supabase = await createClient();
+    const { data: votes } = await supabase
       .from('votes')
-      .select('*')
+      .select()
       .eq('chat_id', chatId);
 
-    if (error) throw error;
-    return NextResponse.json(votes);
+    return Response.json(votes || [], { status: 200 });
   } catch (error) {
-    console.error('Vote fetch error:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch votes' },
-      { status: 500 }
-    );
+    console.error('Error fetching votes:', error);
+    return new Response('An error occurred', { status: 500 });
   }
 }
 
 export async function PATCH(request: Request) {
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-
   try {
-    const { chatId, messageId, type }: { chatId: string; messageId: string; type: 'up' | 'down' } = 
+    const {
+      chatId,
+      messageId,
+      type,
+    }: { chatId: string; messageId: string; type: 'up' | 'down' } =
       await request.json();
 
     if (!chatId || !messageId || !type) {
-      return NextResponse.json(
-        { error: 'messageId and type are required' },
-        { status: 400 }
-      );
+      return new Response('messageId and type are required', { status: 400 });
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getSession();
 
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    if (!user || !user.email) {
+      return new Response('Unauthorized', { status: 401 });
     }
 
     await voteMessage({
@@ -92,20 +71,15 @@ export async function PATCH(request: Request) {
       type: type,
     });
 
-    return NextResponse.json({ message: 'Message voted' });
+    return new Response('Message voted', { status: 200 });
   } catch (error) {
-    console.error('Vote update error:', error);
+    console.error('Error voting message:', error);
 
+    // Handle specific error cases
     if (error instanceof Error && error.message === 'Message not found') {
-      return NextResponse.json(
-        { error: 'Message not found' },
-        { status: 404 }
-      );
+      return new Response('Message not found', { status: 404 });
     }
 
-    return NextResponse.json(
-      { error: 'Failed to update vote' },
-      { status: 500 }
-    );
+    return new Response('An error occurred while voting', { status: 500 });
   }
 }

@@ -1,5 +1,5 @@
-import { getSession } from '@/db/cached-queries';
-import { createClient } from '@/lib/supabase/server';
+import { getSession } from '@/lib/cached/cached-queries';
+import createClient from '@/lib/supabase/server';
 
 export async function GET() {
   const supabase = await createClient();

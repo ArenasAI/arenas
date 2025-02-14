@@ -129,7 +129,8 @@ export async function POST(req: Request) {
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           'text/csv',
           'application/csv',
-          'text/plain'
+          'text/plain',
+          'application/pdf',
         ]
       });
 
@@ -167,7 +168,6 @@ export async function POST(req: Request) {
         });
       }
 
-      // Insert new file record
       const { error: dbError } = await supabase.from('file_uploads').insert({
         user_id: user.id,
         chat_id: chatId,
@@ -210,7 +210,6 @@ export async function POST(req: Request) {
       });
 
       if (uploadError.message?.includes('row-level security')) {
-        // Log RLS details
         console.error('RLS policy violation. Current user:', user);
         const { data: policies } = await supabase
           .from('postgres_policies')
