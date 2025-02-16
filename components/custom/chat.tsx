@@ -1,7 +1,7 @@
 'use client';
 
 import { Attachment, Message } from 'ai';
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 import { useState, useEffect, useCallback, DragEvent } from 'react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
@@ -13,7 +13,7 @@ import { useWindowSize } from 'usehooks-ts';
 import { ChatHeader } from '@/components/custom/chat-header';
 import { PreviewMessage, ThinkingMessage } from '@/components/custom/message';
 import { useScrollToBottom } from '@/components/custom/use-scroll-to-bottom';
-import { votes } from '@/lib/types';
+import { Database } from '@/lib/supabase/types';
 import { fetcher } from '@/lib/utils';
 import { UIBlock } from './block'
 import { BlockStreamHandler } from './block-stream-handler';
@@ -21,13 +21,15 @@ import { MultimodalInput } from './multimodal-input';
 import { TablePreview } from './table-preview';
 import { Overview } from './overview';
 import { createClient } from '@/lib/supabase/client';
+import { useArtifactSelector } from '@/hooks/use-artifact';
+import { Artifact } from '../artifacts/artifact';
 
 type PreviewData = {
   headers: string[]
   rows: (string[] | Record<string, unknown>)[]
 }
 
-type Vote = votes;
+type Vote = Database['public']['Tables']['votes']['Row'];
 
 export function Chat({
   id,
@@ -210,16 +212,20 @@ export function Chat({
     body: { 
       id, 
       modelId: selectedModelId, 
-      parsedData, 
+      parsedData,
       userId: user?.id,
     },
     initialMessages,
     onFinish: () => {
       mutate('/api/history');
     },
+    onError: () => {
+      toast.error("An error occurred! please try again later.")
+    }
   });
 
   const { width: windowWidth = 1920, height: windowHeight = 1080 } = useWindowSize();
+  const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
   const [block, setBlock] = useState<UIBlock>({
     documentId: 'init',
     content: '',
@@ -315,6 +321,23 @@ export function Chat({
           />
         </form>
       </div>
+
+      <Artifact
+        chatId={id}
+        input={input}
+        setInput={setInput}
+        handleSubmit={handleSubmit}
+        isLoading={isLoading}
+        stop={stop}
+        attachments={attachments}
+        setAttachments={setAttachments}
+        append={append}
+        messages={messages}
+        setMessages={setMessages}
+        reload={reload}
+        votes={votes}
+        isReadonly={isReadonly}
+      />
 
       <BlockStreamHandler streamingData={streamingData} setBlock={setBlock} />
     </>
