@@ -110,19 +110,17 @@ export const requestSuggestions = ({
       if (session.user?.id) {
         const userId = session.user.id;
 
-
-      await saveSuggestions({
-        suggestions: suggestions.map((suggestion) => ({
-          documentId: suggestion.document_id,
-          documentCreatedAt: suggestion.document_created_at,
-          originalText: suggestion.original_text,
-          suggestedText: suggestion.suggested_text,
-          description: suggestion.description || '', // Provide default empty string if null/undefined
-          userId: suggestion.user_id,
-          isResolved: suggestion.is_resolved || false, // Provide default false if undefined
-        }))
-});
-
+        await saveSuggestions({
+          suggestions: suggestions.map((suggestion) => ({
+            documentId: suggestion.document_id,
+            documentCreatedAt: suggestion.document_created_at,
+            originalText: suggestion.original_text,
+            suggestedText: suggestion.suggested_text,
+            description: suggestion.description || '', // Provide default empty string if null/undefined
+            userId: userId,
+            isResolved: suggestion.is_resolved || false, // Provide default false if undefined
+          })),
+        });
       }
 
       return {
