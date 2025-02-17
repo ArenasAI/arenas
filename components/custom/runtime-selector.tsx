@@ -66,7 +66,6 @@ export function RuntimeSelector({
       <PopoverContent className="w-[200px] p-0">
         <Command>
           <CommandInput placeholder="Search runtime..." />
-          <CommandEmpty>No runtime found.</CommandEmpty>
           <CommandGroup>
             {runtimes.map(runtime => (
               <CommandItem
