@@ -36,9 +36,9 @@ import {
 } from '@/components/ui/sidebar';
 // import { getChatsByUserIdQuery } from '@/db/queries';
 import { createClient } from '@/lib/supabase/client';
-import { chats } from '@/lib/types';
+import { Database } from '@/lib/supabase/types';
 
-
+type chats = Database['public']['Tables']['chats']['Row'];
 type GroupedChats = {
   today: chats[];
   yesterday: chats[];
@@ -128,19 +128,18 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     mutate,
   } = useSWR<chats[]>(user ? ['chats', user.id] : null, fetcher, {
     fallbackData: [],
-    refreshInterval: 5000, // Optional: refresh every 5 seconds
+    refreshInterval: 5000,
     revalidateOnFocus: true,
   });
-
-  useEffect(() => {
-    mutate();
-  }, [pathname, mutate]);
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const router = useRouter();
+
   const handleDelete = async () => {
-    const deletePromise = fetch(`/api/chat/${deleteId}`, {
+    if (!deleteId) return;
+
+    const deletePromise = fetch(`/api/chat?id=${deleteId}`, {
       method: 'DELETE',
     }).then(async (response) => {
       if (!response.ok) {
@@ -169,6 +168,10 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
 
     setShowDeleteDialog(false);
   };
+
+  useEffect(() => {
+    mutate();
+  }, [pathname, mutate]);
 
   if (!user) {
     return (
