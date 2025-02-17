@@ -9,10 +9,10 @@ import {
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-import { documents, messages } from './types';
+import { Database } from './supabase/types';
 
-type DBMessage = messages
-type Document = documents
+type DBMessage = Database['public']['Tables']['messages']['Row'];
+type Document = Database['public']['Tables']['documents']['Row'];
 
 type MetadataProps = {
   title?: string;

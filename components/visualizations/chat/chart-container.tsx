@@ -1,4 +1,3 @@
-// components/Visualization/ChartContainer.tsx
 import { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import * as THREE from 'three';
@@ -62,6 +61,14 @@ export const ChartContainer = ({ data, type, options }: ChartProps) => {
     // ... D3.js specific code for line chart
   };
 
+
+  //finish this function
+  const renderBarChart = () => {
+    const margin = {top: 20, right: 30, bottom: 30, left: 40};
+    const width = options.width - margin.left - margin.right;
+  };
+
+
   const render3DChart = () => {
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, options.width / options.height, 0.1, 1000);
@@ -90,7 +97,13 @@ export const ChartContainer = ({ data, type, options }: ChartProps) => {
             saveAs(blob, `chart-${Date.now()}.svg`);
           }
           break;
-        // Add PDF export
+        case 'pdf':
+            const pdf = chartRef.current?.querySelector('pdf')?.outerHTML;
+            if (svgData) {
+              const blob = new Blob([svgData], { type: 'image/svg+xml' });
+              saveAs(blob, `chart-${Date.now()}.pdf`);
+            }
+            break;
       }
     } finally {
       setIsExporting(false);

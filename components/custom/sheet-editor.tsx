@@ -17,7 +17,7 @@ type SheetEditorProps = {
 };
 
 const MIN_ROWS = 50;
-const MIN_COLS = 26;
+const MIN_COLS = 50;
 
 const PureSpreadsheetEditor = ({
   content,

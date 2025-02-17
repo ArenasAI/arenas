@@ -21,8 +21,10 @@ import { MultimodalInput } from './multimodal-input';
 import { TablePreview } from './table-preview';
 import { Overview } from './overview';
 import { createClient } from '@/lib/supabase/client';
+import { VisibilityType } from '../visibility-selector';
 import { useArtifactSelector } from '@/hooks/use-artifact';
 import { Artifact } from '../artifacts/artifact';
+import { Messages } from './messages';
 
 type PreviewData = {
   headers: string[]
@@ -35,10 +37,14 @@ export function Chat({
   id,
   initialMessages,
   selectedModelId,
+  selectedVisibilityType,
+  isReadonly,
 }: {
   id: string;
   initialMessages: Array<Message>;
   selectedModelId: string;
+  selectedVisibilityType: VisibilityType;
+  isReadonly: boolean;
 }) {
   const [user, setUser] = useState<any>(null);
   const supabase = createClient();
@@ -100,7 +106,6 @@ export function Chat({
     e.preventDefault();
     e.stopPropagation();
     
-    // Only set isDragging to false if we're leaving the main container
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX;
     const y = e.clientY;
@@ -207,15 +212,16 @@ export function Chat({
     append,
     isLoading,
     stop,
+    reload,
     data: streamingData,
   } = useChat({
     body: { 
       id, 
-      modelId: selectedModelId, 
+      modelId: selectedModelId,
+      initialMessages,
       parsedData,
       userId: user?.id,
     },
-    initialMessages,
     onFinish: () => {
       mutate('/api/history');
     },
@@ -254,7 +260,13 @@ export function Chat({
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
-        <ChatHeader selectedModelId={selectedModelId} />
+        <ChatHeader 
+          chatId={id}
+          selectedModelId={selectedModelId}
+          selectedVisibilityType={selectedVisibilityType}
+          isReadonly={isReadonly}
+          selectedRuntime='python'
+        />
         {isDragging && (
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm 
                          flex items-center justify-center z-50 pointer-events-none">
@@ -269,43 +281,19 @@ export function Chat({
             </div>
           </div>
         )}
-        <div
-          ref={messagesContainerRef}
-          className="flex flex-col min-w-0 gap-6 flex-1 overflow-y-scroll pt-4"
-        >
-          {messages.length === 0 && <Overview />}
-          {tableData && <TablePreview data={tableData} />}
-
-
-          {messages.map((message, index) => (
-            <PreviewMessage
-              key={message.id}
-              chatId={id}
-              message={message}
-              block={block}
-              setBlock={setBlock}
-              isLoading={isLoading && messages.length - 1 === index}
-              vote={
-                votes
-                  ? votes.find((vote) => vote.message_id === message.id)
-                  : undefined
-              }
-            />
-          ))}
-
-          {isLoading &&
-            messages.length > 0 &&
-            messages[messages.length - 1].role === 'user' && (
-              <ThinkingMessage />
-            )}
-
-          <div
-            ref={messagesEndRef}
-            className="shrink-0 min-w-[24px] min-h-[24px]"
-          />
-        </div>
+        <Messages
+          chatId={id}
+          isLoading={isLoading}
+          votes={votes}
+          messages={messages}
+          setMessages={setMessages}
+          reload={reload}
+          isReadonly={isReadonly}
+          isArtifactVisible={isArtifactVisible}
+        />
         <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
-          <MultimodalInput
+          {!isReadonly && ( 
+            <MultimodalInput
             chatId={id}
             input={input}
             setInput={setInput}
@@ -319,6 +307,7 @@ export function Chat({
             append={append}
             isDragging={isDragging}
           />
+          )}
         </form>
       </div>
 
@@ -338,8 +327,6 @@ export function Chat({
         votes={votes}
         isReadonly={isReadonly}
       />
-
-      <BlockStreamHandler streamingData={streamingData} setBlock={setBlock} />
     </>
   );
 }

@@ -8,19 +8,21 @@ import {
   useMemo,
   useRef,
 } from 'react';
-import { ArtifactKind, UIArtifact } from './artifact';
-import { FileIcon, FullscreenIcon, ImageIcon, LoaderIcon } from './icons';
+import { ArtifactKind, UIArtifact } from '../artifacts/artifact';
+import { FileIcon, FullscreenIcon, ImageIcon, LoaderIcon } from '../icons';
 import { cn, fetcher } from '@/lib/utils';
-import { Document } from '@/lib/db/schema';
+import { Database } from '@/lib/supabase/types';
 import { InlineDocumentSkeleton } from './document-skeleton';
 import useSWR from 'swr';
 import { Editor } from './text-editor';
 import { DocumentToolCall, DocumentToolResult } from './document';
-import { CodeEditor } from './code-editor';
+import { CodeEditor } from '../code-editor';
 import { useArtifact } from '@/hooks/use-artifact';
 import equal from 'fast-deep-equal';
-import { SpreadsheetEditor } from './sheet-editor';
-import { ImageEditor } from './image-editor';
+import { SpreadsheetEditor } from '@/components/custom/sheet-editor';
+import { ImageEditor } from '@/components/custom/image-editor';
+
+type Document = Database['public']['Tables']['documents']['Row']
 
 interface DocumentPreviewProps {
   isReadonly: boolean;

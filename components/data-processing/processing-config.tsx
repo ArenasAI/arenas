@@ -1,8 +1,6 @@
 // components/DataProcessing/ProcessingConfig.tsx
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Button, Select, Input } from "@/components/ui";
-import type { ProcessingOperation } from '@/types/data';
 
 const AVAILABLE_OPERATIONS = [
   { value: 'remove_duplicates', label: 'Remove Duplicates' },
@@ -29,7 +27,7 @@ export const ProcessingConfig: React.FC<ProcessingConfigProps> = ({
   const handleProcess = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/v1/data/process', {
+      const response = await fetch('/api/files/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ file_id: fileId, operations }),
