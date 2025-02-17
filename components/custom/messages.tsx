@@ -1,14 +1,20 @@
-import { PreviewMessage } from '../custom/message';
-import { useScrollToBottom } from '../custom/use-scroll-to-bottom';
-import { Database } from '@/lib/supabase/types';
 import { ChatRequestOptions, Message } from 'ai';
+import { PreviewMessage, ThinkingMessage } from './message';
+import { useScrollToBottom } from './use-scroll-to-bottom';
+import { Overview } from './overview';
 import { memo } from 'react';
+import { Database } from '@/lib/supabase/types';
 import equal from 'fast-deep-equal';
-import { UIArtifact } from './artifact';
+import { TablePreview } from './table-preview';
+import { useState } from 'react';
 
 type Vote = Database['public']['Tables']['votes']['Row']
+type PreviewData = {
+  headers: string[]
+  rows: (string[] | Record<string, unknown>)[]
+}
 
-interface ArtifactMessagesProps {
+interface MessagesProps {
   chatId: string;
   isLoading: boolean;
   votes: Array<Vote> | undefined;
@@ -20,10 +26,10 @@ interface ArtifactMessagesProps {
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
   isReadonly: boolean;
-  artifactStatus: UIArtifact['status'];
+  isArtifactVisible: boolean;
 }
 
-function PureArtifactMessages({
+function PureMessages({
   chatId,
   isLoading,
   votes,
@@ -31,21 +37,23 @@ function PureArtifactMessages({
   setMessages,
   reload,
   isReadonly,
-}: ArtifactMessagesProps) {
+}: MessagesProps) {
   const [messagesContainerRef, messagesEndRef] =
     useScrollToBottom<HTMLDivElement>();
-
+  const [tableData, setTableData] = useState<PreviewData | null>(null);
   return (
     <div
       ref={messagesContainerRef}
-      className="flex flex-col gap-4 h-full items-center overflow-y-scroll px-4 pt-20"
+      className="flex flex-col min-w-0 gap-6 flex-1 overflow-y-scroll pt-4"
     >
+      {messages.length === 0 && <Overview />}
+      {tableData && <TablePreview data={tableData} />}
       {messages.map((message, index) => (
         <PreviewMessage
-          chatId={chatId}
           key={message.id}
+          chatId={chatId}
           message={message}
-          isLoading={isLoading && index === messages.length - 1}
+          isLoading={isLoading && messages.length - 1 === index}
           vote={
             votes
               ? votes.find((vote) => vote.message_id === message.id)
@@ -57,6 +65,10 @@ function PureArtifactMessages({
         />
       ))}
 
+      {isLoading &&
+        messages.length > 0 &&
+        messages[messages.length - 1].role === 'user' && <ThinkingMessage />}
+
       <div
         ref={messagesEndRef}
         className="shrink-0 min-w-[24px] min-h-[24px]"
@@ -65,22 +77,14 @@ function PureArtifactMessages({
   );
 }
 
-function areEqual(
-  prevProps: ArtifactMessagesProps,
-  nextProps: ArtifactMessagesProps,
-) {
-  if (
-    prevProps.artifactStatus === 'streaming' &&
-    nextProps.artifactStatus === 'streaming'
-  )
-    return true;
+export const Messages = memo(PureMessages, (prevProps, nextProps) => {
+  if (prevProps.isArtifactVisible && nextProps.isArtifactVisible) return true;
 
   if (prevProps.isLoading !== nextProps.isLoading) return false;
   if (prevProps.isLoading && nextProps.isLoading) return false;
   if (prevProps.messages.length !== nextProps.messages.length) return false;
+  if (!equal(prevProps.messages, nextProps.messages)) return false;
   if (!equal(prevProps.votes, nextProps.votes)) return false;
 
   return true;
-}
-
-export const ArtifactMessages = memo(PureArtifactMessages, areEqual);
+});
