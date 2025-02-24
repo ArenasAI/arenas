@@ -21,7 +21,7 @@ import {
   suggestionsPlugin,
   suggestionsPluginKey,
 } from '@/lib/editor/suggestions';
-import { suggestions } from '@/lib/types';
+import { Suggestion } from '@/lib/supabase/types';
 
 type EditorProps = {
   content: string;
@@ -29,7 +29,7 @@ type EditorProps = {
   status: 'streaming' | 'idle';
   isCurrentVersion: boolean;
   currentVersionIndex: number;
-  suggestions: Array<suggestions>;
+  suggestions: Array<Suggestion>;
 };
 
 function PureEditor({
@@ -72,8 +72,6 @@ function PureEditor({
         editorRef.current = null;
       }
     };
-    // NOTE: we only want to run this effect once
-    // eslint-disable-next-line
   }, []);
 
   useEffect(() => {

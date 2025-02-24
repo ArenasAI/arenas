@@ -76,6 +76,13 @@ export function Navbar() {
             >
                 docs
             </Link>
+            <Link 
+                href="/files" 
+                className="text-sm text-foreground/80 hover:text-foreground transition-colors"
+                onClick={() => setIsOpen(false)}
+            >
+                files
+            </Link>
             <a 
                 target='_blank' 
                 href='https://discord.gg/spZ5yucbnn' 

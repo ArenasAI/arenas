@@ -42,13 +42,6 @@ export default function Hero() {
         </motion.div>
     </section>
 
-      {/* Feature Cards Section */}
-      <section className="py-24 bg-gradient-to-b from-transparent to-black/5">
-        <div className="container mx-auto">
-            <FeatureCards />
-        </div>
-      </section>
-
       {/* Newsletter Section */}
       <section className="py-24">
         <div className="container mx-auto px-4">

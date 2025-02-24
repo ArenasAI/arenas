@@ -4,6 +4,7 @@ import type { ChatRequestOptions, Message } from 'ai';
 import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 import { memo, useMemo, useState } from 'react';
+import { Dispatch, SetStateAction } from 'react';
 
 import { Database } from '@/lib/supabase/types';
 
@@ -25,30 +26,31 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { MessageEditor } from './message-editor';
 import { DocumentPreview } from './document-preview';
 import { MessageReasoning } from './message-reasoning';
+import { UIBlock } from './block';
 
 type Vote = Database['public']['Tables']['votes']['Row']
+
+interface PreviewMessageProps {
+  chatId: string;
+  message: Message;
+  block: UIBlock;
+  setBlock: Dispatch<SetStateAction<UIBlock>>;
+  isLoading: boolean;
+  vote: { chat_id: string; is_upvoted: boolean; message_id: string } | undefined;
+  setMessages: (messages: Message[] | ((messages: Message[]) => Message[])) => void;
+  reload: (chatRequestOptions?: ChatRequestOptions | undefined) => Promise<void>;
+}
 
 const PurePreviewMessage = ({
   chatId,
   message,
+  block,
+  setBlock,
   vote,
   isLoading,
   setMessages,
   reload,
-  isReadonly,
-}: {
-  chatId: string;
-  message: Message;
-  vote: Vote | undefined;
-  isLoading: boolean;
-  setMessages: (
-    messages: Message[] | ((messages: Message[]) => Message[]),
-  ) => void;
-  reload: (
-    chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
-  isReadonly: boolean;
-}) => {
+}: PreviewMessageProps) => {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
 
   return (
@@ -97,7 +99,7 @@ const PurePreviewMessage = ({
 
             {(message.content || message.reasoning) && mode === 'view' && (
               <div className="flex flex-row gap-2 items-start">
-                {message.role === 'user' && !isReadonly && (
+                {message.role === 'user' && (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -153,20 +155,17 @@ const PurePreviewMessage = ({
                           <Weather weatherAtLocation={result} />
                         ) : toolName === 'createDocument' ? (
                           <DocumentPreview
-                            isReadonly={isReadonly}
                             result={result}
                           />
                         ) : toolName === 'updateDocument' ? (
                           <DocumentToolResult
                             type="update"
                             result={result}
-                            isReadonly={isReadonly}
                           />
                         ) : toolName === 'requestSuggestions' ? (
                           <DocumentToolResult
                             type="request-suggestions"
                             result={result}
-                            isReadonly={isReadonly}
                           />
                         ) : (
                           <pre>{JSON.stringify(result, null, 2)}</pre>
@@ -184,18 +183,16 @@ const PurePreviewMessage = ({
                       {toolName === 'getWeather' ? (
                         <Weather />
                       ) : toolName === 'createDocument' ? (
-                        <DocumentPreview isReadonly={isReadonly} args={args} />
+                        <DocumentPreview args={args} />
                       ) : toolName === 'updateDocument' ? (
                         <DocumentToolCall
                           type="update"
                           args={args}
-                          isReadonly={isReadonly}
                         />
                       ) : toolName === 'requestSuggestions' ? (
                         <DocumentToolCall
                           type="request-suggestions"
                           args={args}
-                          isReadonly={isReadonly}
                         />
                       ) : null}
                     </div>
@@ -204,7 +201,7 @@ const PurePreviewMessage = ({
               </div>
             )}
 
-            {!isReadonly && (
+            {(
               <MessageActions
                 key={`action-${message.id}`}
                 chatId={chatId}

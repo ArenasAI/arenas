@@ -173,6 +173,12 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     mutate();
   }, [pathname, mutate]);
 
+  useEffect(() => {
+    if (user) {
+      mutate();
+    }
+  }, [user, mutate]);
+
   if (!user) {
     return (
       <SidebarGroup>

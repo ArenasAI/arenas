@@ -17,7 +17,7 @@ import { useLocalStorage, useWindowSize } from 'usehooks-ts';
 import { dela } from '../ui/fonts';
 import { cn, sanitizeUIMessages } from '@/lib/utils';
 
-import { ArrowUpIcon, PaperclipIcon, StopIcon, BrainIcon } from './icons';
+import { ArrowUpIcon, PaperclipIcon, StopIcon, BrainIcon, BrainWithGogglesIcon, RobotWithBookwormHatIcon } from './icons';
 import { PreviewAttachment } from './preview-attachment';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
@@ -76,6 +76,11 @@ export function MultimodalInput({
   };
 
   const [advancedReasoning, setAdvancedReasoning] = useState(false);
+  const [research, setResearch] = useState(false);
+
+  const toggleResearch = () => {
+    setResearch(!research);
+  }
 
   const toggleAdvancedReasoning = () => {
     setAdvancedReasoning(!advancedReasoning);
@@ -320,7 +325,7 @@ export function MultimodalInput({
 
       <div>
         <div className="flex gap-2 left-2">
-          <Button
+          {/* <Button
             className={`${dela.className} rounded-sm p-1.5 h-fit shadow-sm dark:border-zinc-700`}
             onClick={toggleAdvancedReasoning}
             variant={advancedReasoning ? "default" : "outline"}
@@ -331,6 +336,16 @@ export function MultimodalInput({
               <BrainIcon size={14} />
               reason
             </span>
+          </Button> */}
+
+          <Button
+            className={`${dela.className} rounded-sm p-1.5 h-fit shadow-sm dark:border-zinc-700`}
+            variant="outline"
+            onClick={toggleResearch}
+            disabled={isLoading}
+          >
+            <RobotWithBookwormHatIcon />
+            deep research
           </Button>
 
           <Button

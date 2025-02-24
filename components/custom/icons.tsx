@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { ReactElement } from 'react';
 
 export const BotIcon = () => {
   return (
@@ -18,6 +19,73 @@ export const BotIcon = () => {
     </svg>
   );
 };
+
+export const BrainWithGogglesIcon = () => (
+  <svg
+    width="64"
+    height="64"
+    viewBox="0 0 64 64"
+    fill="currentColor"
+    className="size-8"
+  >
+    <path
+      d="M32 0C14.67 0 0 14.67 0 32s14.67 32 32 32 32-14.67 32-32-14.67-32-32-32zm0 16c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8z"
+      fill="currentColor"
+    />
+    <path
+      d="M24 12L40 28l16-16L24 12z"
+      stroke="#000"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M32 0C14.67 0 0 14.67 0 32s14.67 32 32 32 32-14.67 32-32-14.67-32-32-32zm0 16c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8z"
+      fill="none"
+    />
+    <path
+      d="M20 26h4v-6h-4zm8-2H4V16h14v-2h-12v10z"
+      stroke="#000"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+export const RobotWithBookwormHatIcon = () => (
+  <svg
+    width="48"
+    height="48"
+    viewBox="0 0 48 48"
+    fill="currentColor"
+    className="size-8"
+  >
+    <path
+      d="M24 12C14.67 12 0 16.67 0 32s14.67 20 32 20 32-14.67 32-20-14.67-20-32-20z"
+      fill="currentColor"
+    />
+    <path
+      d="M24 28L40 44l16-16L24 28z"
+      stroke="#000"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M32 0C14.67 0 0 16.67 0 32s14.67 32 32 32 32-14.67 32-32-14.67-32-32-32z"
+      fill="none"
+    />
+    <path
+      d="M18 24h10v4h-10zm8-2H4V16h14v-2h-12v10z"
+      stroke="#000"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 
 export const ChatIcon = (props: any) => (
   <svg
