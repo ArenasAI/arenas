@@ -28,7 +28,6 @@ export const ChartContainer = ({ data, type, options }: ChartProps) => {
   useEffect(() => {
     if (!chartRef.current) return;
 
-    // Clear previous chart
     d3.select(chartRef.current).selectAll('*').remove();
 
     switch (type) {
@@ -41,7 +40,6 @@ export const ChartContainer = ({ data, type, options }: ChartProps) => {
       case '3d':
         render3DChart();
         break;
-      // Add more chart types
     }
   }, [data, type, options]);
 

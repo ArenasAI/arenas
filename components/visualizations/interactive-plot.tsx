@@ -1,6 +1,7 @@
 // components/visualizations/InteractivePlot.tsx
 'use client';
 
+import React from 'react';
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
@@ -55,8 +56,8 @@ export function InteractivePlot({
       : data;
 
     return [{
-      type: 'scatter',
-      mode: 'lines+markers',
+      type: 'scatter' as const,
+      mode: 'lines+markers' as const,
       x: filteredData.map(d => new Date(d.timestamp)),
       y: filteredData.map(d => d.value),
       marker: { color: 'blue' },
@@ -64,7 +65,6 @@ export function InteractivePlot({
     }];
   }, [data, selectedCategory]);
 
-  // Plot layout with dark/light mode support
   const layout: Partial<Plotly.Layout> = {
     title: title,
     autosize: true,
@@ -89,7 +89,6 @@ export function InteractivePlot({
     modeBarButtonsToRemove: ['lasso2d', 'select2d']
   };
 
-  // Get unique categories for filter
   const categories = [...new Set(data.map(d => d.category))];
 
   return (
@@ -117,11 +116,9 @@ export function InteractivePlot({
           config={config}
           className="w-full h-full"
           onHover={(event) => {
-            // Handle hover events
             console.log('Hover:', event);
           }}
           onClick={(event) => {
-            // Handle click events
             console.log('Click:', event);
           }}
         />
