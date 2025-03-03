@@ -19,7 +19,6 @@ export async function POST(request: Request) {
 
     return new Response('Vote recorded', { status: 200 });
   } catch (error) {
-    console.error('Error recording vote:', error);
     return new Response('An error occurred', { status: 500 });
   }
 }
@@ -74,8 +73,6 @@ export async function PATCH(request: Request) {
     return new Response('Message voted', { status: 200 });
   } catch (error) {
     console.error('Error voting message:', error);
-
-    // Handle specific error cases
     if (error instanceof Error && error.message === 'Message not found') {
       return new Response('Message not found', { status: 404 });
     }

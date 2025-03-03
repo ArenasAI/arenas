@@ -1,114 +1,175 @@
 import {
-  convertToCoreMessages,
-  CoreMessage,
   createDataStreamResponse,
   type Message,
   smoothStream,
   streamText,
 } from 'ai';
-import { z } from 'zod';
-import { myProvider } from '@/ai/models';
-import { models } from '@/ai/models';
-import { systemPrompt } from '@/ai/prompts';
-import { getChatById, getDocumentById, getSession } from '@/lib/cached/cached-queries';
+import { getChatById, getSession } from '@/lib/cached/cached-queries';
 import {
   saveChat,
-  saveDocument,
   saveMessages,
-  saveSuggestions,
   deleteChatById,
 } from '@/lib/cached/mutations';
-import createClient from '@/lib/supabase/server';
-import { MessageRole } from '@/lib/supabase/types';
 import {
   generateUUID,
   getMostRecentUserMessage,
+  extractDocumentId,
+  sanitizeUIMessages,
   sanitizeResponseMessages,
 } from '@/lib/utils';
+import type { FileAttachment } from '@/shared/chat';
 import { NextResponse } from 'next/server';
-import { getUser } from '@/lib/cached/cached-queries';
-
+import { generateTitleFromUserMessage } from '../../actions';
+import { systemPrompt } from '@/ai/prompts';
+import { MessageRole } from '@/lib/supabase/types';
+import { queryDocumentContext } from '@/lib/pinecone';
+import { myProvider } from '@/ai/models';
+import { openai } from '@ai-sdk/openai';
 export const maxDuration = 60;
 
-function formatMessageContent(message: CoreMessage): string {
-  // For user messages, store as plain text
-  if (message.role === 'user') {
-    return typeof message.content === 'string'
-      ? message.content
-      : JSON.stringify(message.content);
+type RequestBody = {
+  id: string;
+  messages: Array<Message>;
+  modelId: string;
+};
+
+const ALLOWED_MIME_TYPES = [
+  'text/csv',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/pdf',
+  'text/plain',
+  'image/png',
+  'image/jpeg',
+];
+
+function validateAttachment(attachment: FileAttachment) {
+  if (!ALLOWED_MIME_TYPES.includes(attachment.mimeType)) {
+    throw new Error(`Unsupported file format: ${attachment.mimeType}`);
   }
+}
 
-  // For tool messages, format as array of tool results
-  if (message.role === 'tool') {
-    return JSON.stringify(
-      message.content.map((content) => ({
-        type: content.type || 'tool-result',
-        toolCallId: content.toolCallId,
-        toolName: content.toolName,
-        result: content.result,
-      }))
-    );
+function contentToString(content: any): string {
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content
+      .filter(part => part.type === 'text')
+      .map(part => part.text)
+      .join('\n');
   }
-
-  // For assistant messages, format as array of text and tool calls
-  if (message.role === 'assistant') {
-    if (typeof message.content === 'string') {
-      return JSON.stringify([{ type: 'text', text: message.content }]);
-    }
-
-    return JSON.stringify(
-      message.content.map((content) => {
-        if (content.type === 'text') {
-          return {
-            type: 'text',
-            text: content.text,
-          };
-        }
-        return {
-          type: 'tool-call',
-          toolCallId: content.toolCallId,
-          toolName: content.toolName,
-          args: content.args,
-        };
-      })
-    );
-  }
-
-  return '';
+  return JSON.stringify(content);
 }
 
 export async function POST(request: Request) {
-  const { id, messages, modelId } = await request.json();
-  const session = await getSession();
+    const { id, messages, modelId } : RequestBody = await request.json();
 
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+    if (!id || !modelId ) {
+      return NextResponse.json({ error: 'Invalid id or modelId' }, { status: 400 });
+    }
+    const user = await getSession();
 
-  try {
-    const response = await fetch(`${process.env.ARENAS_SERVER}/start`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        id,
-        messages,
-        modelId,
-        userId: session.user_metadata.user.id,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch response from the server');
+    if (!user || !user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error('Error fetching response from the API:', error);
-    return NextResponse.json({ error: 'Failed to fetch response' }, { status: 500 });
-  }
+    const userMessage = getMostRecentUserMessage(messages);    
+    if (!userMessage) {
+      return NextResponse.json({ error: 'No user message found' }, { status: 400 });
+    }
+
+    const chat = await getChatById(id);
+    if (!chat) {
+      const title = await generateTitleFromUserMessage({ message: userMessage, selectedModelId: modelId });
+      await saveChat({ id, userId: user.id, title });
+    }
+
+    await saveMessages({
+      chatId: id,
+      messages: [
+        {
+          id: generateUUID(),
+          chat_id: id,
+          role: userMessage.role as MessageRole,
+          content: userMessage.content,
+          created_at: new Date().toISOString(),
+        },
+      ],
+    });
+    if (userMessage.content.includes('document:')) {
+      const documentId = extractDocumentId(userMessage.content);
+      if (!documentId) {
+        return NextResponse.json({ error: 'No document ID found' }, { status: 400 });
+      }
+      
+      const documentContext = await queryDocumentContext(
+        userMessage.content,
+        documentId,
+        user.id,
+        5
+      );
+      
+      const contextPrompt = `
+        Document context:
+        ${documentContext.map(ctx => ctx.text).join('\n\n')}
+        
+        User query: ${userMessage.content}
+        
+        Based on the document context above, please respond to the user's query.
+      `;
+    }
+    
+    return createDataStreamResponse({
+      execute: (dataStream) => {
+        const result = streamText({
+          model: myProvider.languageModel(modelId),
+          system: systemPrompt,
+          messages,
+          maxSteps: 5,
+          experimental_transform: smoothStream({ chunking: 'word' }),
+          experimental_generateMessageId: generateUUID,
+          onFinish: async ({ response, reasoning }) => {
+            if (user && user.id) {
+              try {
+                const responseMessagesWithoutIncompleteToolCalls = sanitizeResponseMessages({
+                messages: response.messages,
+                reasoning,
+              });
+
+            await saveMessages({
+              chatId: id,
+              messages: responseMessagesWithoutIncompleteToolCalls.map((message) => {
+                return {
+                    id: message.id,
+                    chat_id: id,
+                    role: message.role as MessageRole,
+                    content: contentToString(message.content),
+                    created_at: new Date().toISOString(),
+                  };
+                }
+              ),
+            });
+              } catch (error) {
+                console.error('Failed to save chat', error);
+              }
+            }
+          },
+          experimental_telemetry: {
+            isEnabled: true,
+            functionId: 'stream-text',
+          },
+        });
+
+        result.consumeStream();
+
+        result.mergeIntoDataStream(dataStream, {
+          sendReasoning: true,
+        });
+      },
+      onError: (error) => {
+        console.error('Error in chat stream:', error);
+        return 'Oops, an error occurred while processing your request!';
+      },
+    });
 }
 
 export async function DELETE(request: Request) {
@@ -125,11 +186,7 @@ export async function DELETE(request: Request) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-
-
   try {
-    console.log(`Attempting to delete chat with ID: ${id}`);
-
     const chat = await getChatById(id);
 
     if (!chat) {

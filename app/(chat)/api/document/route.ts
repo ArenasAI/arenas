@@ -81,6 +81,7 @@ export async function POST(req: Request) {
         content,
         title,
         userId: user.id,
+        kind: 'writing',
       });
     }
 

@@ -27,8 +27,8 @@ export default async function ChatPage() {
         key={id}
         id={id}
         initialMessages={[]}
-        selectedModelId={selectedModelId}
-      />
+        selectedModelId={selectedModelId} 
+        />
     </div>
   );
 }

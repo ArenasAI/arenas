@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
-
 import { upload } from '@/lib/cached/storage';
 import  createClient from '@/lib/supabase/server';
+import { storeDocument } from '@/lib/pinecone';
+import { buffer } from 'stream/consumers';
+import { generateUUID } from '@/lib/utils';
 
+import { readExcelFile } from '@/lib/excel-utils';
 function sanitizeFileName(fileName: string): string {
   return fileName.replace(/[^a-zA-Z0-9.-]/g, '_').toLowerCase();
 }
@@ -41,16 +44,10 @@ export async function POST(req: Request) {
 
     const supabase = await createClient();
 
-    // Log auth status
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
-    console.log('Auth status:', {
-      isAuthenticated: !!user,
-      userId: user?.id,
-      authError,
-    });
 
     if (!user) {
       console.error('Authentication failed:', authError);
@@ -58,7 +55,6 @@ export async function POST(req: Request) {
     }
 
     try {
-      // Create folder structure with user ID for RLS
       const sanitizedFileName = sanitizeFileName(file.name);
       const filePath = [user.id, chatId, sanitizedFileName];
 
@@ -69,7 +65,6 @@ export async function POST(req: Request) {
         userId: user.id,
       });
 
-      // Ensure bucket exists
       const { data: buckets, error: bucketError } =
         await supabase.storage.listBuckets();
       console.log('Storage buckets:', {
@@ -81,7 +76,7 @@ export async function POST(req: Request) {
         error: bucketError,
       });
 
-      // Create bucket if it doesn't exist
+
       if (!buckets?.some((b) => b.id === 'chat_attachments')) {
         console.log('Creating bucket...');
         const { error: createError } = await supabase.storage.createBucket(
@@ -119,7 +114,6 @@ export async function POST(req: Request) {
         }
       }
       
-      // Add logging to track bucket creation and file upload
       console.log('Attempting file upload:', {
         bucketId,
         fileType: file.type,
@@ -145,7 +139,6 @@ export async function POST(req: Request) {
 
       console.log('Upload successful:', { publicUrl });
 
-      // Check if file already exists
       const { data: existingFile } = await supabase
         .from('file_uploads')
         .select('url')
@@ -178,7 +171,7 @@ export async function POST(req: Request) {
         content_type: file.type,
         size: file.size,
         url: publicUrl,
-        version: 1, // Will be auto-incremented by trigger if needed
+        version: 1, 
         is_spreadsheet: isSpreadsheet
       });
 
@@ -194,10 +187,24 @@ export async function POST(req: Request) {
 
       console.log('File record created successfully');
 
+      // Generate a fileId
+      const fileId = generateUUID();
+      let parsedData = null;
+
+      const result = await storeDocument(
+        await file.arrayBuffer(),
+        sanitizedFileName,
+        file.type,
+        user.id,
+        fileId
+      );
+
       return NextResponse.json({
         url: publicUrl,
         path: filePath.join('/'),
         isSpreadsheet,
+        tableData: parsedData,
+        pineconeDocumentId: fileId,
       });
     } catch (uploadError: any) {
       console.error('Upload error details:', {
@@ -238,3 +245,17 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export async function GET() {
+  try {
+    const workbookData = await readExcelFile('data/default.xlsx');
+    return NextResponse.json(workbookData);
+  } catch (error) {
+    console.error('Error loading Excel file:', error);
+    return NextResponse.json(
+      { error: 'Failed to load Excel file' },
+      { status: 500 }
+    );
+  }
+}
+

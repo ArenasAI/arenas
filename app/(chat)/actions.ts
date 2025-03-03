@@ -1,15 +1,13 @@
 'use server';
 
-import { CoreUserMessage, generateText } from 'ai';
+import { generateText, Message } from 'ai';
 import { cookies } from 'next/headers';
-import { customModel } from '@/ai/models';
+import { myProvider } from '@/ai/models';
 import createClient from '@/lib/supabase/server';
 import {
   deleteMessagesByChatIdAfterTimestamp,
   getMessageById,
-  updateChatVisiblityById,
 } from '@/lib/cached/queries';
-import { VisibilityType } from '@/components/visibility-selector';
 
 export async function saveModelId(model: string) {
   const cookieStore = await cookies();
@@ -20,15 +18,17 @@ export async function generateTitleFromUserMessage({
   message,
   selectedModelId,
 }: {
-  message: CoreUserMessage;
+  message: Message;
   selectedModelId: string;
 }) {
   try {
   const { text: title } = await generateText({
-    model: customModel('gpt-4o'),
+    model: myProvider.languageModel('gpt-4o'),
     system: `\n
-    generate a short summary of user's query which should not be more than 80 characters long
-    do not use quotes or colons.`,
+    - you will generate a short title based on the first message a user begins a conversation with
+    - ensure it is not more than 80 characters long
+    - the title should be a summary of the user's message
+    - do not use quotes or colons`,
     prompt: JSON.stringify(message),
   });
   return title;
@@ -48,13 +48,10 @@ export async function deleteTrailingMessages({ id }: { id: string }) {
   });
 }
 
-export async function updateChatVisibility({
-  chatId,
-  visibility,
-}: {
-  chatId: string;
-  visibility: VisibilityType;
-}) {
-  const supabase = await createClient();
-  await updateChatVisiblityById(supabase, {chatId, visibility});
+export async function analyzeData() {
+  const response = await fetch('http://localhost:3001/api/analyze');
+  if (!response.ok) {
+    throw new Error('Failed to analyze data');
+  }
+  return response.json();
 }
