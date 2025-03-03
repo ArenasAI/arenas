@@ -24,12 +24,12 @@ export default function RootLayout({
           disableTransitionOnChange
           enableColorScheme
         >
-          <div className="flex min-h-screen flex-col overflow-auto">
+            <div className="flex min-h-screen flex-col overflow-auto">
               {children}
               <Toaster position="bottom-right" richColors />
               <Analytics />
               <SpeedInsights />
-          </div>
+            </div>
         </ThemeProvider>
       </body>
     </html>

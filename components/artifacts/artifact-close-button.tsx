@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { CrossIcon } from '../icons';
+import { CrossIcon } from '../custom/icons';
 import { Button } from '../ui/button';
 import { initialArtifactData, useArtifact } from '@/hooks/use-artifact';
 

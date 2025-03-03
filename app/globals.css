@@ -25,6 +25,18 @@ body {
   font-family: Geist Mono;
 }
 
+@keyframes float {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
 .transition-transform {
   transition: transform 0.3s ease-in-out;
 }
@@ -116,4 +128,15 @@ body {
 
 .overflow-hidden {
   overflow: hidden;
+}
+
+
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }

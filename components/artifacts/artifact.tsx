@@ -31,7 +31,7 @@ import { codeArtifact } from '@/artifacts/code/client';
 import { sheetArtifact } from '@/artifacts/sheet/client';
 import { textArtifact } from '@/artifacts/text/client';
 import equal from 'fast-deep-equal';
-
+import { User } from '@supabase/supabase-js';
 type Vote = Database['public']['Tables']['votes']['Row'];
 type Document = Database['public']['Tables']['documents']['Row']
 
@@ -72,7 +72,7 @@ function PureArtifact({
   setMessages,
   reload,
   votes,
-  isReadonly,
+  user,
 }: {
   chatId: string;
   input: string;
@@ -97,7 +97,7 @@ function PureArtifact({
   reload: (
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
-  isReadonly: boolean;
+  user: User;
 }) {
   const { artifact, setArtifact, metadata, setMetadata } = useArtifact();
 
@@ -333,7 +333,8 @@ function PureArtifact({
                   messages={messages}
                   setMessages={setMessages}
                   reload={reload}
-                  isReadonly={isReadonly}
+                  user={user}
+                  append={append}
                   artifactStatus={artifact.status}
                 />
 

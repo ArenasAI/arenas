@@ -5,11 +5,15 @@ import { ChatRequestOptions, Message } from 'ai';
 import { memo } from 'react';
 import equal from 'fast-deep-equal';
 import { UIArtifact } from './artifact';
+import { User } from '@supabase/supabase-js';
+import { VisualizationMessage } from '../visualizations/types';
 
 type Vote = Database['public']['Tables']['votes']['Row']
 
 interface ArtifactMessagesProps {
   chatId: string;
+  user: User;
+  append: (message: Message | VisualizationMessage) => void;
   isLoading: boolean;
   votes: Array<Vote> | undefined;
   messages: Array<Message>;
@@ -19,7 +23,6 @@ interface ArtifactMessagesProps {
   reload: (
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
-  isReadonly: boolean;
   artifactStatus: UIArtifact['status'];
 }
 
@@ -27,10 +30,11 @@ function PureArtifactMessages({
   chatId,
   isLoading,
   votes,
+  user,
+  append,
   messages,
   setMessages,
   reload,
-  isReadonly,
 }: ArtifactMessagesProps) {
   const [messagesContainerRef, messagesEndRef] =
     useScrollToBottom<HTMLDivElement>();
@@ -43,6 +47,8 @@ function PureArtifactMessages({
       {messages.map((message, index) => (
         <PreviewMessage
           chatId={chatId}
+          user={user}
+          append={append}
           key={message.id}
           message={message}
           isLoading={isLoading && index === messages.length - 1}
@@ -53,7 +59,6 @@ function PureArtifactMessages({
           }
           setMessages={setMessages}
           reload={reload}
-          isReadonly={isReadonly}
         />
       ))}
 
