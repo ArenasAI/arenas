@@ -1,12 +1,14 @@
-import { ChatRequestOptions, Message } from 'ai';
+import { ChatRequestOptions, Message, UIMessage } from 'ai';
 import { PreviewMessage, ThinkingMessage } from './message';
 import { useScrollToBottom } from './use-scroll-to-bottom';
 import { Overview } from './overview';
-import { memo } from 'react';
+import { Dispatch, memo, SetStateAction } from 'react';
 import { Database } from '@/lib/supabase/types';
 import equal from 'fast-deep-equal';
 import { TablePreview } from './table-preview';
 import { useState } from 'react';
+import { UIBlock } from './block';
+import { User } from '@supabase/supabase-js';
 
 type Vote = Database['public']['Tables']['votes']['Row']
 type PreviewData = {
@@ -17,15 +19,13 @@ type PreviewData = {
 interface MessagesProps {
   chatId: string;
   isLoading: boolean;
-  votes: Array<Vote> | undefined;
-  messages: Array<Message>;
-  setMessages: (
-    messages: Message[] | ((messages: Message[]) => Message[]),
-  ) => void;
-  reload: (
-    chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
-  isArtifactVisible: boolean;
+  votes: { chat_id: string; is_upvoted: boolean; message_id: string; }[] | undefined;
+  messages: UIMessage[];
+  setMessages: (messages: Message[] | ((messages: Message[]) => Message[])) => void;
+  reload: (chatRequestOptions?: ChatRequestOptions | undefined) => Promise<string | null | undefined>;
+  isArtifact?: boolean;
+  user: User | null;
+  append: (message: Message) => void;
 }
 
 function PureMessages({
@@ -35,6 +35,8 @@ function PureMessages({
   messages,
   setMessages,
   reload,
+  user,
+  append,
 }: MessagesProps) {
   const [messagesContainerRef, messagesEndRef] =
     useScrollToBottom<HTMLDivElement>();
@@ -51,6 +53,8 @@ function PureMessages({
           key={message.id}
           chatId={chatId}
           message={message}
+          user={user}
+          append={append}
           isLoading={isLoading && messages.length - 1 === index}
           vote={
             votes
@@ -75,7 +79,7 @@ function PureMessages({
 }
 
 export const Messages = memo(PureMessages, (prevProps, nextProps) => {
-  if (prevProps.isArtifactVisible && nextProps.isArtifactVisible) return true;
+  if (prevProps.isArtifact && nextProps.isArtifact) return true;
 
   if (prevProps.isLoading !== nextProps.isLoading) return false;
   if (prevProps.isLoading && nextProps.isLoading) return false;

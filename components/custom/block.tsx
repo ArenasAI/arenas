@@ -33,8 +33,12 @@ import { useScrollToBottom } from './use-scroll-to-bottom';
 import { VersionFooter } from './version-footer';
 import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+import { Database } from '@/lib/supabase/types';
+import { FileAttachment } from '@/shared/chat';
 
-import { documents, votes, suggestions } from '@/lib/types';
+type documents = Database['public']['Tables']['documents']['Row']
+type votes = Database['public']['Tables']['votes']['Row']
+type suggestions = Database['public']['Tables']['suggestions']['Row']
 
 export interface UIBlock {
   title: string;
@@ -144,8 +148,8 @@ export function Block({
   setInput: (input: string) => void;
   isLoading: boolean;
   stop: () => void;
-  attachments: Array<Attachment>;
-  setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
+  attachments: Array<FileAttachment>;
+  setAttachments: Dispatch<SetStateAction<Array<FileAttachment>>>;
   block: UIBlock;
   setBlock: Dispatch<SetStateAction<UIBlock>>;
   messages: Array<Message>;
@@ -460,8 +464,6 @@ export function Block({
                   chatId={chatId}
                   key={message.id}
                   message={message}
-                  block={block}
-                  setBlock={setBlock}
                   isLoading={isLoading && index === messages.length - 1}
                   vote={
                     votes

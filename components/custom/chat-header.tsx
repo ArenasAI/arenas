@@ -7,37 +7,25 @@ import { useState } from 'react';
 import { ModelSelector } from '@/components/custom/model-selector';
 import { SidebarToggle } from '@/components/custom/sidebar-toggle';
 import { Button } from '@/components/ui/button';
-import { PlusIcon, VercelIcon } from './icons';
+import { PlusIcon } from './icons';
 import { useSidebar } from '../ui/sidebar';
 import { memo } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
-import { VisibilityType, VisibilitySelector } from '../visibility-selector';
-import { RuntimeSelector } from './runtime-selector';
 
 interface ChatHeaderProps {
   chatId: string;
   selectedModelId: string;
-  selectedVisibilityType: VisibilityType;
-  selectedRuntime?: string;
-  isReadonly: boolean;
 }
 
 function PureChatHeader({
   chatId,
   selectedModelId,
-  selectedVisibilityType,
-  selectedRuntime='python',
-  isReadonly,
 }: ChatHeaderProps ) {
   const router = useRouter();
   const { open } = useSidebar();
   const { width: windowWidth } = useWindowSize();
-  const [currentRuntime, setCurrentRuntime] = useState(selectedRuntime);
+  const [isCreating, setIsCreating] = useState(false);
 
-  const handleRuntimeChange = (runtime: string) => {
-    setCurrentRuntime(runtime);
-    //api
-  };
   return (
     <header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2">
       <SidebarToggle />
@@ -48,11 +36,8 @@ function PureChatHeader({
             <Button
               variant="outline"
               className="order-2 md:order-1 md:px-2 px-2 md:h-fit ml-auto md:ml-0"
-              onClick={() => {
-                router.push('/');
-                router.refresh();
-              }}
-            >
+              // onClick={handleNewChat}
+            > 
               <PlusIcon />
               <span className="md:sr-only">New Chat</span>
             </Button>
@@ -61,25 +46,10 @@ function PureChatHeader({
         </Tooltip>
       )}
 
-      {!isReadonly && (
+      {(
         <ModelSelector
           selectedModelId={selectedModelId}
           className="order-1 md:order-2"
-        />
-      )}
-
-      {!isReadonly && (
-        <VisibilitySelector
-          chatId={chatId}
-          selectedVisibilityType={selectedVisibilityType}
-          className="order-1 md:order-3"
-        />
-      )}
-      {!isReadonly && (
-        <RuntimeSelector 
-          selectedRuntime={selectedRuntime}
-          className="order-1 md:order-4"
-          onRuntimeChange={handleRuntimeChange}
         />
       )}
     </header>
@@ -88,7 +58,6 @@ function PureChatHeader({
 
 export const ChatHeader = memo(PureChatHeader, (prevProps, nextProps) => {
   return (
-    prevProps.selectedModelId === nextProps.selectedModelId &&
-    prevProps.selectedRuntime === nextProps.selectedRuntime
+    prevProps.selectedModelId === nextProps.selectedModelId
   )
 });

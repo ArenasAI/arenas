@@ -8,23 +8,22 @@ import * as XLSX from 'xlsx';
 
 import useSWR, { useSWRConfig } from 'swr';
 import { toast } from 'sonner';
-import { RuntimeSelector } from './runtime-selector';
 import { useWindowSize } from 'usehooks-ts';
 import { ChatHeader } from '@/components/custom/chat-header';
 import { PreviewMessage, ThinkingMessage } from '@/components/custom/message';
 import { useScrollToBottom } from '@/components/custom/use-scroll-to-bottom';
 import { Database } from '@/lib/supabase/types';
-import { fetcher } from '@/lib/utils';
+import { fetcher, generateUUID } from '@/lib/utils';
 import { UIBlock } from './block'
 import { BlockStreamHandler } from './block-stream-handler';
 import { MultimodalInput } from './multimodal-input';
 import { TablePreview } from './table-preview';
 import { Overview } from './overview';
 import { createClient } from '@/lib/supabase/client';
-import { VisibilityType } from '../visibility-selector';
 import { useArtifactSelector } from '@/hooks/use-artifact';
 import { Artifact } from '../artifacts/artifact';
 import { Messages } from './messages';
+import { RealtimeToggle } from './realtime-toggle';
 
 type PreviewData = {
   headers: string[]
@@ -37,22 +36,99 @@ export function Chat({
   id,
   initialMessages,
   selectedModelId,
-  selectedVisibilityType,
-  isReadonly,
 }: {
   id: string;
   initialMessages: Array<Message>;
   selectedModelId: string;
-  selectedVisibilityType: VisibilityType;
-  isReadonly: boolean;
 }) {
   const [user, setUser] = useState<any>(null);
   const supabase = createClient();
   const [tableData, setTableData] = useState<PreviewData | null>(null);
-  const [messagesContainerRef, messagesEndRef] = useScrollToBottom<HTMLDivElement>();
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
+
+  const {
+    messages,
+    setMessages,
+    handleSubmit,
+    input,
+    setInput,
+    append,
+    isLoading,
+    stop,
+    reload,
+  } = useChat({
+    body: { id, modelId: selectedModelId },
+    initialMessages,
+    onFinish: () => {
+      mutate('/api/history');
+    },
+    onError: () => {
+      toast.error("An error occurred! please try again later.")
+    }
+  });
+
+  const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
+
+  const { data: votes } = useSWR<Array<Vote>>(
+    `/api/vote?chatId=${id}`,
+    fetcher
+  );
+
+  const hasSpreadsheetAttachment = attachments.some(
+    attachment => 
+      attachment.contentType?.includes('spreadsheet') || 
+      attachment.contentType?.includes('csv') ||
+      attachment.name?.endsWith('.xlsx') ||
+      attachment.name?.endsWith('.xls') ||
+      attachment.name?.endsWith('.csv')
+  );
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    
+    getUser();
+  }, [supabase]);
+  
+  useEffect(() => {
+    const isSpreadsheetFile = (filename: string) => { 
+      const spreadsheetExtensions = ['.xlsx', '.xls', '.csv']; 
+      return spreadsheetExtensions.some(ext => filename.toLowerCase().endsWith(ext)); 
+    };
+
+    const processAttachment = async (attachment: any) => { 
+      if (attachment && isSpreadsheetFile(attachment.name)) { 
+          try { 
+            const response = await fetch(attachment.url); 
+            const buffer = await response.arrayBuffer();
+            let parsedData: any;
+
+            if (attachment.name.toLowerCase().endsWith('.csv')) {
+              const text = new TextDecoder('utf-8').decode(buffer);
+              const result = Papa.parse(text, { header: true });
+              parsedData = result.data;
+            } else {
+              const workbook = XLSX.read(buffer, { type: 'array' });
+              const firstSheetName = workbook.SheetNames[0];
+              const worksheet = workbook.Sheets[firstSheetName];
+              parsedData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            }
+            setTableData(parsedData);
+          } catch (error) {
+             console.error('Error processing spreadsheet:', error);
+          }
+        }}
+    if (attachments.length > 0) { 
+      processAttachment(attachments[0]); 
+    } 
+  }, [attachments]);
+  
+
+  const { mutate } = useSWRConfig();
 
   const uploadFile = async (file: File, chatId: string) => {
     const formData = new FormData();
@@ -154,103 +230,6 @@ export function Chat({
     }
   }, [id, setAttachments]);
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    };
-    
-    getUser();
-  }, []);
-  
-  useEffect(() => {
-    const isSpreadsheetFile = (filename: string) => { 
-      const spreadsheetExtensions = ['.xlsx', '.xls', '.csv']; 
-      return spreadsheetExtensions.some(ext => filename.toLowerCase().endsWith(ext)); 
-    };
-
-    const processAttachment = async (attachment: any) => { 
-      if (attachment && isSpreadsheetFile(attachment.name)) { 
-          try { 
-            const response = await fetch(attachment.url); 
-    // Read data as an array buffer. 
-            const buffer = await response.arrayBuffer();
-            let parsedData: any;
-
-            if (attachment.name.toLowerCase().endsWith('.csv')) {
-              const text = new TextDecoder('utf-8').decode(buffer);
-              const result = Papa.parse(text, { header: true });
-              parsedData = result.data;
-            } else {
-              // Process XLSX or XLS file using XLSX library.
-              const workbook = XLSX.read(buffer, { type: 'array' });
-              const firstSheetName = workbook.SheetNames[0];
-              const worksheet = workbook.Sheets[firstSheetName];
-              // You can adjust options (such as header) as needed.
-              parsedData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-            }
-            setTableData(parsedData);
-          } catch (error) {
-             console.error('Error processing spreadsheet:', error);
-          }
-        }}
-    if (attachments.length > 0) { 
-      processAttachment(attachments[0]); 
-    } 
-  }, [attachments]);
-  
-
-  const { mutate } = useSWRConfig();
-  const [parsedData] = useState<PreviewData | null>(null);
-
-  const {
-    messages,
-    setMessages,
-    handleSubmit,
-    input,
-    setInput,
-    append,
-    isLoading,
-    stop,
-    reload,
-    data: streamingData,
-  } = useChat({
-    body: { 
-      id, 
-      modelId: selectedModelId,
-      initialMessages,
-      parsedData,
-      userId: user?.id,
-    },
-    onFinish: () => {
-      mutate('/api/history');
-    },
-    onError: () => {
-      toast.error("An error occurred! please try again later.")
-    }
-  });
-
-  const { width: windowWidth = 1920, height: windowHeight = 1080 } = useWindowSize();
-  const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
-  const [block, setBlock] = useState<UIBlock>({
-    documentId: 'init',
-    content: '',
-    title: '',
-    status: 'idle',
-    isVisible: false,
-    boundingBox: {
-      top: windowHeight / 4,
-      left: windowWidth / 4,
-      width: 250,
-      height: 50,
-    },
-  });
-
-  const { data: votes } = useSWR<Array<Vote>>(
-    `/api/vote?chatId=${id}`,
-    fetcher
-  );
-
   return (
     <>
       <div 
@@ -263,11 +242,16 @@ export function Chat({
         <ChatHeader 
           chatId={id}
           selectedModelId={selectedModelId}
-          selectedVisibilityType={selectedVisibilityType}
-          isReadonly={isReadonly}
-          selectedRuntime='python'
         />
-        {isDragging && (
+        
+        {/* <div className="flex justify-end px-4 py-2">
+          <RealtimeToggle 
+            chatId={id} 
+            isSpreadsheetAttached={hasSpreadsheetAttachment} 
+          />
+        </div> */}
+        
+        {/* {isDragging && (
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm 
                          flex items-center justify-center z-50 pointer-events-none">
             <div className="p-8 rounded-xl border-2 border-dashed border-primary 
@@ -280,7 +264,8 @@ export function Chat({
               </p>
             </div>
           </div>
-        )}
+        )} */}
+
         <Messages
           chatId={id}
           isLoading={isLoading}
@@ -288,11 +273,13 @@ export function Chat({
           messages={messages}
           setMessages={setMessages}
           reload={reload}
-          isReadonly={isReadonly}
-          isArtifactVisible={isArtifactVisible}
+          isArtifact={false}
+          user={user}
+          append={append}
         />
+
         <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
-          {!isReadonly && ( 
+          {( 
             <MultimodalInput
             chatId={id}
             input={input}
@@ -311,7 +298,8 @@ export function Chat({
         </form>
       </div>
 
-      <Artifact
+      {/* <Artifact
+        user={user}
         chatId={id}
         input={input}
         setInput={setInput}
@@ -325,8 +313,7 @@ export function Chat({
         setMessages={setMessages}
         reload={reload}
         votes={votes}
-        isReadonly={isReadonly}
-      />
+      /> */}
     </>
   );
 }

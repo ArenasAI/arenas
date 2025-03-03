@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 
-import { getChatsByUserId } from '@/db/cached-queries';
+import { getChatsByUserId } from '@/lib/cached/cached-queries';
 
 import { ChatHistoryClient } from './chat-history-client';
 import { ChatHistorySkeleton } from './chat-history-skeleton';

@@ -1,5 +1,4 @@
-'use client';
-
+'use client'
 import { User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { dela } from '../ui/fonts';
@@ -20,6 +19,7 @@ import {
 import { BetterTooltip } from '@/components/ui/tooltip';
 import { useState } from 'react';
 
+
 export function AppSidebar({ user }: { user: User | null }) {
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
@@ -27,37 +27,31 @@ export function AppSidebar({ user }: { user: User | null }) {
 
   const handleNewChat = async () => {
     if (isCreating || !user) return;
-
+  
     try {
       setIsCreating(true);
-      const response = await fetch('/api/chat', {
+      const response = await fetch('/api/chat/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          title: 'New Chat',
-          user_id: user.id
-        })
+        body: JSON.stringify({ userId: user.id, title: 'New Chat' }),
       });
   
       if (!response.ok) {
         throw new Error('Failed to create chat');
       }
   
-      const chat = await response.json();
-      //open new chat now
-      setOpenMobile(false)
-      router.push(`/chat/${chat.id}`);
+      const { newChatId } = await response.json();
+      setOpenMobile(false);
+      router.push(`/chat/${newChatId}`);
       router.refresh();
-    } catch(error) {
-      console.error("Error creating new chat!", error);
+    } catch (error) {
+      console.error('Error creating new chat:', error);
     } finally {
       setIsCreating(false);
     }
-  }
-
-
+  };
 
   return (
     <Sidebar className="group-data-[side=left]:border-r-0">
@@ -85,7 +79,7 @@ export function AppSidebar({ user }: { user: User | null }) {
               >
                 {isCreating ? (
                   <div className="animate-spin">...</div>
-                ): (
+                ) : (
                   <PlusIcon />
                 )}
               </Button>

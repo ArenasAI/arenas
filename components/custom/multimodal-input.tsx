@@ -1,28 +1,35 @@
 'use client';
 
-import { Attachment, ChatRequestOptions, CreateMessage, Message } from 'ai';
+import type {
+  Attachment,
+  ChatRequestOptions,
+  CreateMessage,
+  Message,
+} from 'ai';
 import cx from 'classnames';
-import React, {
+import type React from 'react';
+import {
   useRef,
   useEffect,
   useState,
   useCallback,
-  Dispatch,
-  SetStateAction,
-  ChangeEvent,
-  DragEvent,
+  type Dispatch,
+  type SetStateAction,
+  type ChangeEvent,
+  memo,
 } from 'react';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
-import { dela } from '../ui/fonts';
+
 import { cn, sanitizeUIMessages } from '@/lib/utils';
 
-import { ArrowUpIcon, PaperclipIcon, StopIcon, BrainIcon, BrainWithGogglesIcon, RobotWithBookwormHatIcon } from './icons';
+import { ArrowUpIcon, PaperclipIcon, StopIcon } from './icons';
 import { PreviewAttachment } from './preview-attachment';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
+import equal from 'fast-deep-equal';
 
-export function MultimodalInput({
+function PureMultimodalInput({
   chatId,
   input,
   setInput,
@@ -34,9 +41,9 @@ export function MultimodalInput({
   setMessages,
   append,
   handleSubmit,
-  isDragging,
   className,
-}: {
+  isDragging,
+}: {  
   chatId: string;
   input: string;
   setInput: (value: string) => void;
@@ -48,20 +55,17 @@ export function MultimodalInput({
   setMessages: Dispatch<SetStateAction<Array<Message>>>;
   append: (
     message: Message | CreateMessage,
-    chatRequestOptions?: ChatRequestOptions
+    chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
   handleSubmit: (
-    event?: {
-      preventDefault?: () => void;
-    },
+    event?: React.FormEvent<HTMLFormElement> | { preventDefault?: () => void },
     chatRequestOptions?: ChatRequestOptions
   ) => void;
-  isDragging:boolean;
   className?: string;
+  isDragging: boolean;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
-
   useEffect(() => {
     if (textareaRef.current) {
       adjustHeight();
@@ -75,20 +79,16 @@ export function MultimodalInput({
     }
   };
 
-  const [advancedReasoning, setAdvancedReasoning] = useState(false);
-  const [research, setResearch] = useState(false);
-
-  const toggleResearch = () => {
-    setResearch(!research);
-  }
-
-  const toggleAdvancedReasoning = () => {
-    setAdvancedReasoning(!advancedReasoning);
+  const resetHeight = () => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = '98px';
+    }
   };
 
   const [localStorageInput, setLocalStorageInput] = useLocalStorage(
     'input',
-    ''
+    '',
   );
 
   useEffect(() => {
@@ -124,6 +124,7 @@ export function MultimodalInput({
 
     setAttachments([]);
     setLocalStorageInput('');
+    resetHeight();
 
     if (width && width > 768) {
       textareaRef.current?.focus();
@@ -137,25 +138,26 @@ export function MultimodalInput({
     chatId,
   ]);
 
-
-  const uploadFile = async (file: File, chatId: string) => {
+  const uploadFile = async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('chatId', chatId);
 
-    const isSpreadsheet = file.type.includes('spreadsheet') || 
-                       file.type.includes('csv') ||
-                       file.name.endsWith('.xlsx') ||
-                       file.name.endsWith('.xls') ||
-                       file.name.endsWith('.csv');
+    const isSpreadsheet = file.type.includes('spreadsheet') ||
+      file.name.includes('.csv') ||
+      file.name.includes('.xlsx') ||
+      file.name.includes('.xls');
+
     try {
-      const response = await fetch(`/api/files/upload`, {
+      const response = await fetch('/api/files/upload', {
         method: 'POST',
         body: formData,
       });
 
       if (response.ok) {
         const data = await response.json();
+        const { url, pathname, contentType } = data;
+
         if (isSpreadsheet) {
           return {
             url: data.url,
@@ -164,18 +166,16 @@ export function MultimodalInput({
             tableData: data.tableData,
           };
         }
+
         return {
-          url: data.url,
-          name: data.path,
-          contentType: file.type,
+          url,
+          name: pathname,
+          contentType: contentType,
         };
-      } else {
-        const { error, details } = await response.json();
-        console.error('Upload error:', { error, details });
-        toast.error(error);
       }
+      const { error } = await response.json();
+      toast.error(error);
     } catch (error) {
-      console.error('Upload failed:', error);
       toast.error('Failed to upload file, please try again!');
     }
   };
@@ -187,11 +187,10 @@ export function MultimodalInput({
       setUploadQueue(files.map((file) => file.name));
 
       try {
-        const uploadPromises = files.map((file) => uploadFile(file, chatId));
+        const uploadPromises = files.map((file) => uploadFile(file));
         const uploadedAttachments = await Promise.all(uploadPromises);
         const successfullyUploadedAttachments = uploadedAttachments.filter(
-          (attachment): attachment is NonNullable<typeof attachment> =>
-            attachment !== undefined
+          (attachment) => attachment !== undefined,
         );
 
         setAttachments((currentAttachments) => [
@@ -199,18 +198,16 @@ export function MultimodalInput({
           ...successfullyUploadedAttachments,
         ]);
       } catch (error) {
-        console.error('Error uploading files:', error);
-        toast.error('Failed to upload one or more files');
+        console.error('Error uploading files!', error);
       } finally {
         setUploadQueue([]);
       }
     },
-    [setAttachments, chatId]
+    [setAttachments],
   );
 
-
   const removeAttachment = useCallback(async (attachment: Attachment) => {
-    try {
+  try {
       const response = await fetch(`/api/files/remove`, {
         method: 'DELETE',
         headers: {
@@ -221,23 +218,12 @@ export function MultimodalInput({
           path: attachment.name,
           url: attachment.url
         }),
-  })
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to remove file');
-    }
-
-    setAttachments(current => 
-      current.filter(a => a.url !== attachment.url)
-    );
-
-    toast.success('File removed successfully');
+      });
     } catch (error) {
-    console.error('Error removing file:', error);
-    toast.error('Failed to remove file');
+      console.error('Error removing attachment!', error);
     }
-    }, [chatId, setAttachments]);
+  }, [chatId]);
+
 
   return (
     <div className="relative w-full flex flex-col gap-4">
@@ -256,7 +242,7 @@ export function MultimodalInput({
           isDragging && "opacity-50"
         )}>
           {attachments.map((attachment) => (
-            <PreviewAttachment key={attachment.url} attachment={attachment} onRemove={()=> removeAttachment(attachment)} />
+            <PreviewAttachment key={attachment.url} attachment={attachment} onRemove={() => removeAttachment(attachment)}/>
           ))}
 
           {uploadQueue.map((filename) => (
@@ -275,15 +261,15 @@ export function MultimodalInput({
 
       <Textarea
         ref={textareaRef}
-        placeholder="say somethin..."
+        placeholder="Say somethin..."
         value={input}
         onChange={handleInput}
-        className={cn(
-          'min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-xl text-base bg-muted transition-all duration-200',
+        className={cx(
+          'min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-2xl !text-base bg-muted pb-10 dark:border-zinc-700',
           isDragging && 'scale-102 border-primary',
-          className
+          className,
         )}
-        rows={3}
+        rows={2}
         autoFocus
         onKeyDown={(event) => {
           if (event.key === 'Enter' && !event.shiftKey) {
@@ -296,72 +282,111 @@ export function MultimodalInput({
             }
           }
         }}
-        
       />
 
-      {isLoading ? (
-        <Button
-          className="rounded-full p-1.5 h-fit absolute bottom-2 right-2 m-0.5 border dark:border-zinc-600"
-          onClick={(event) => {
-            event.preventDefault();
-            stop();
-            setMessages((messages) => sanitizeUIMessages(messages));
-          }}
-        >
-          <StopIcon size={14} />
-        </Button>
-      ) : (
-        <Button
-          className="rounded-full p-1.5 h-fit absolute bottom-2 right-2 m-0.5 border dark:border-zinc-600"
-          onClick={(event) => {
-            event.preventDefault();
-            submitForm();
-          }}
-          disabled={input.length === 0 || uploadQueue.length > 0}
-        >
-          <ArrowUpIcon size={14} />
-        </Button>
-      )}
+      <div className="absolute bottom-0 p-2 w-fit flex flex-row justify-start">
+        <AttachmentsButton fileInputRef={fileInputRef} isLoading={isLoading} />
+      </div>
 
-      <div>
-        <div className="flex gap-2 left-2">
-          {/* <Button
-            className={`${dela.className} rounded-sm p-1.5 h-fit shadow-sm dark:border-zinc-700`}
-            onClick={toggleAdvancedReasoning}
-            variant={advancedReasoning ? "default" : "outline"}
-            disabled={isLoading}
-            title="Toggle Advanced Reasoning"
-          >
-            <span className="flex items-center gap-1">
-              <BrainIcon size={14} />
-              reason
-            </span>
-          </Button> */}
-
-          <Button
-            className={`${dela.className} rounded-sm p-1.5 h-fit shadow-sm dark:border-zinc-700`}
-            variant="outline"
-            onClick={toggleResearch}
-            disabled={isLoading}
-          >
-            <RobotWithBookwormHatIcon />
-            deep research
-          </Button>
-
-          <Button
-            className={`${dela.className} rounded-sm p-1.5 h-fit shadow-sm dark:border-zinc-700`}
-            onClick={(event) => {
-              event.preventDefault();
-              fileInputRef.current?.click();
-            }}
-            variant="outline"
-            disabled={isLoading}
-          >
-            <PaperclipIcon />
-            attach
-          </Button>
-        </div>
+      <div className="absolute bottom-0 right-0 p-2 w-fit flex flex-row justify-end">
+        {isLoading ? (
+          <StopButton stop={stop} setMessages={setMessages} />
+        ) : (
+          <SendButton
+            input={input}
+            submitForm={submitForm}
+            uploadQueue={uploadQueue}
+          />
+        )}
       </div>
     </div>
   );
 }
+
+export const MultimodalInput = memo(
+  PureMultimodalInput,
+  (prevProps, nextProps) => {
+    if (prevProps.input !== nextProps.input) return false;
+    if (prevProps.isLoading !== nextProps.isLoading) return false;
+    if (!equal(prevProps.attachments, nextProps.attachments)) return false;
+
+    return true;
+  },
+);
+
+function PureAttachmentsButton({
+  fileInputRef,
+  isLoading,
+}: {
+  fileInputRef: React.MutableRefObject<HTMLInputElement | null>;
+  isLoading: boolean;
+}) {
+  return (
+    <Button
+      className="rounded-md rounded-bl-lg p-[7px] h-fit dark:border-zinc-700 hover:dark:bg-zinc-900 hover:bg-zinc-200"
+      onClick={(event) => {
+        event.preventDefault();
+        fileInputRef.current?.click();
+      }}
+      disabled={isLoading}
+      variant="ghost"
+    >
+      <PaperclipIcon size={14} />
+    </Button>
+  );
+}
+
+const AttachmentsButton = memo(PureAttachmentsButton);
+
+function PureStopButton({
+  stop,
+  setMessages,
+}: {
+  stop: () => void;
+  setMessages: Dispatch<SetStateAction<Array<Message>>>;
+}) {
+  return (
+    <Button
+      className="rounded-full p-1.5 h-fit border dark:border-zinc-600"
+      onClick={(event) => {
+        event.preventDefault();
+        stop();
+        setMessages((messages) => sanitizeUIMessages(messages));
+      }}
+    >
+      <StopIcon size={14} />
+    </Button>
+  );
+}
+
+const StopButton = memo(PureStopButton);
+
+function PureSendButton({
+  submitForm,
+  input,
+  uploadQueue,
+}: {
+  submitForm: () => void;
+  input: string;
+  uploadQueue: Array<string>;
+}) {
+  return (
+    <Button
+      className="rounded-full p-1.5 h-fit border dark:border-zinc-600"
+      onClick={(event) => {
+        event.preventDefault();
+        submitForm();
+      }}
+      disabled={input.length === 0 || uploadQueue.length > 0}
+    >
+      <ArrowUpIcon size={14} />
+    </Button>
+  );
+}
+
+const SendButton = memo(PureSendButton, (prevProps, nextProps) => {
+  if (prevProps.uploadQueue.length !== nextProps.uploadQueue.length)
+    return false;
+  if (prevProps.input !== nextProps.input) return false;
+  return true;
+});

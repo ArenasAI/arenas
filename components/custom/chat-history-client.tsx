@@ -5,22 +5,23 @@ import { memo } from 'react';
 import useSWR from 'swr';
 
 import { useSidebar } from '@/components/ui/sidebar';
-import { chats } from '@/lib/types';
+import { Database } from '@/lib/supabase/types';
 
 import { GroupedChatList } from './chat-history-grouped-list';
+import { Chat } from '@/lib/supabase/types';
 
 export function ChatHistoryClient({
   initialChats,
   userId,
 }: {
-  initialChats: chats[];
+  initialChats: Chat[];
   userId: string;
 }) {
   const { id } = useParams();
   const { setOpenMobile } = useSidebar();
 
   // Use SWR with initial data from server
-  const { data: chats } = useSWR<chats[]>(['chats', userId], null, {
+  const { data: chats } = useSWR<Chat[]>(['chats', userId], null, {
     fallbackData: initialChats,
     revalidateOnFocus: false,
   });
@@ -48,7 +49,7 @@ const ChatList = memo(function ChatList({
   currentChatId,
   setOpenMobile,
 }: {
-  chats: chats[];
+  chats: Chat[];
   currentChatId: string;
   setOpenMobile: (open: boolean) => void;
 }) {

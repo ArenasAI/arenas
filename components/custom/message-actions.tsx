@@ -4,8 +4,8 @@ import { useSWRConfig } from 'swr';
 import { useCopyToClipboard } from 'usehooks-ts';
 
 import { Vote } from '@/lib/supabase/types';
-import { getMessageIdFromAnnotations } from '@/lib/utils';
-
+import { extractDocumentId, generateUUID, getMessageIdFromAnnotations } from '@/lib/utils';
+import { User } from '@supabase/supabase-js';
 import { CopyIcon, ThumbDownIcon, ThumbUpIcon } from './icons';
 import { Button } from '../ui/button';
 import {
@@ -14,18 +14,27 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '../ui/tooltip';
+import { VisualizationMessage, VisualizationData } from '../visualizations/types';
+import { BarChart2 } from 'lucide-react';
+import { FileAttachment } from '@/shared/chat';
+
+interface MessageActionsProps {
+  chatId: string;
+  message: Message;
+  vote: { chat_id: string; is_upvoted: boolean; message_id: string; } | undefined;
+  isLoading: boolean;
+  user: User | null;
+  append: (message: Message | VisualizationMessage) => void;
+}
 
 export function MessageActions({
   chatId,
   message,
   vote,
   isLoading,
-}: {
-  chatId: string;
-  message: Message;
-  vote: Vote | undefined;
-  isLoading: boolean;
-}) {
+  user,
+  append,
+}: MessageActionsProps) {
   const { mutate } = useSWRConfig();
   const [_, copyToClipboard] = useCopyToClipboard();
 
@@ -161,6 +170,44 @@ export function MessageActions({
             </Button>
           </TooltipTrigger>
           <TooltipContent>Downvote Response</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                // Get file attachment if any
+                const attachment = message.experimental_attachments?.[0];
+                
+                // Create visualization content
+                const visualizationContent = {
+                  id: generateUUID(),
+                  fileUrl: attachment?.url,
+                  fileName: attachment?.name,
+                  fileType: attachment?.contentType,
+                  documentId: extractDocumentId(message.content as string) || 
+                              (attachment as unknown as FileAttachment)?.id || 
+                              generateUUID(),
+                  userId: user?.id,
+                  query: message.content as string
+                };
+                
+                // Add visualization message
+                append({
+                  id: generateUUID(),
+                  role: 'assistant',
+                  content: '',
+                  visualizationData: visualizationContent
+                } as VisualizationMessage);
+              }}
+              disabled={!message.experimental_attachments?.length && !message.content?.includes('document:')}
+            >
+              <BarChart2 className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Generate Visualization</TooltipContent>
         </Tooltip>
       </div>
     </TooltipProvider>

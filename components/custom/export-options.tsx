@@ -1,4 +1,3 @@
-
 import { 
     FileIcon, 
     TableIcon, 
@@ -9,25 +8,33 @@ import {
   
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import createClient from '@/lib/supabase/server';
 
 
 interface ExportOptionsProps {
   onExport: (format: 'csv' | 'excel' | 'image' | 'pdf') => void;
-  data: any; // Your analysis data
+  data: any;
   insights: Array<{
     title: string;
-    description: string;
+    description: string;  
     importance: 'high' | 'medium' | 'low';
   }>;
 }
 
 export const ExportOptions = ({ onExport, data, insights }: ExportOptionsProps) => {
   const handlePdfExport = async () => {
+    const supabase = await createClient()
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      throw new Error('Unauthorized');
+    }
     try {
-      const response = await fetch('/api/generate-report', {
+      const response = await fetch(`${process.env.ARENAS_SERVER}/export`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           data,
@@ -49,7 +56,6 @@ export const ExportOptions = ({ onExport, data, insights }: ExportOptionsProps) 
       document.body.removeChild(a);
     } catch (error) {
       console.error('PDF generation error:', error);
-      // Add error handling/notification here
     }
   };
 

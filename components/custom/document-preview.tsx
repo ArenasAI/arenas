@@ -25,13 +25,11 @@ import { ImageEditor } from '@/components/custom/image-editor';
 type Document = Database['public']['Tables']['documents']['Row']
 
 interface DocumentPreviewProps {
-  isReadonly: boolean;
   result?: any;
   args?: any;
 }
 
 export function DocumentPreview({
-  isReadonly,
   result,
   args,
 }: DocumentPreviewProps) {
@@ -42,7 +40,7 @@ export function DocumentPreview({
   >(result ? `/api/document?id=${result.id}` : null, fetcher);
 
   const previewDocument = useMemo(() => documents?.[0], [documents]);
-  const hitboxRef = useRef<HTMLDivElement>(null);
+  const hitboxRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const boundingBox = hitboxRef.current?.getBoundingClientRect();
@@ -66,7 +64,6 @@ export function DocumentPreview({
         <DocumentToolResult
           type="create"
           result={{ id: result.id, title: result.title, kind: result.kind }}
-          isReadonly={isReadonly}
         />
       );
     }
@@ -76,14 +73,13 @@ export function DocumentPreview({
         <DocumentToolCall
           type="create"
           args={{ title: args.title }}
-          isReadonly={isReadonly}
         />
       );
     }
   }
 
   if (isDocumentsFetching) {
-    return <LoadingSkeleton artifactKind={result.kind ?? args.kind} />;
+    return <LoadingSkeleton artifactKind={artifact.kind} />;
   }
 
   const document: Document | null = previewDocument
@@ -91,11 +87,11 @@ export function DocumentPreview({
     : artifact.status === 'streaming'
       ? {
           title: artifact.title,
-          kind: artifact.kind,
+          kind: artifact.kind as "text" | "code" | "image" | "sheet",
           content: artifact.content,
           id: artifact.documentId,
-          createdAt: new Date(),
-          userId: 'noop',
+          created_at: new Date().toISOString(),
+          user_id: 'noop',
         }
       : null;
 
@@ -110,7 +106,7 @@ export function DocumentPreview({
       />
       <DocumentHeader
         title={document.title}
-        kind={document.kind}
+        kind={document.kind as ArtifactKind}
         isStreaming={artifact.status === 'streaming'}
       />
       <DocumentContent document={document} />
@@ -148,7 +144,7 @@ const PureHitboxLayer = ({
   result,
   setArtifact,
 }: {
-  hitboxRef: React.RefObject<HTMLDivElement>;
+  hitboxRef: React.RefObject<HTMLDivElement | null>;
   result: any;
   setArtifact: (
     updaterFn: UIArtifact | ((currentArtifact: UIArtifact) => UIArtifact),

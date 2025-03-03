@@ -4,9 +4,8 @@ import type { ChatRequestOptions, Message } from 'ai';
 import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 import { memo, useMemo, useState } from 'react';
-import { Dispatch, SetStateAction } from 'react';
 
-import { Database } from '@/lib/supabase/types';
+import type { Vote } from '@/lib/supabase/types';
 
 import { DocumentToolCall, DocumentToolResult } from './document';
 import {
@@ -26,31 +25,32 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { MessageEditor } from './message-editor';
 import { DocumentPreview } from './document-preview';
 import { MessageReasoning } from './message-reasoning';
-import { UIBlock } from './block';
-
-type Vote = Database['public']['Tables']['votes']['Row']
-
-interface PreviewMessageProps {
-  chatId: string;
-  message: Message;
-  block: UIBlock;
-  setBlock: Dispatch<SetStateAction<UIBlock>>;
-  isLoading: boolean;
-  vote: { chat_id: string; is_upvoted: boolean; message_id: string } | undefined;
-  setMessages: (messages: Message[] | ((messages: Message[]) => Message[])) => void;
-  reload: (chatRequestOptions?: ChatRequestOptions | undefined) => Promise<void>;
-}
+import { User } from '@supabase/supabase-js';
+import { VisualizationMessage } from '../visualizations/types';
 
 const PurePreviewMessage = ({
   chatId,
   message,
-  block,
-  setBlock,
   vote,
   isLoading,
+  user,
+  append,
   setMessages,
   reload,
-}: PreviewMessageProps) => {
+}: {
+  chatId: string;
+  message: Message;
+  vote: Vote | undefined;
+  isLoading: boolean;
+  user: User | null;
+  append: (message: Message | VisualizationMessage) => void;
+  setMessages: (
+    messages: Message[] | ((messages: Message[]) => Message[]),
+  ) => void;
+  reload: (
+    chatRequestOptions?: ChatRequestOptions,
+  ) => Promise<string | null | undefined>;
+}) => {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
 
   return (
@@ -203,11 +203,12 @@ const PurePreviewMessage = ({
 
             {(
               <MessageActions
-                key={`action-${message.id}`}
                 chatId={chatId}
                 message={message}
                 vote={vote}
                 isLoading={isLoading}
+                user={user}
+                append={append}
               />
             )}
           </div>

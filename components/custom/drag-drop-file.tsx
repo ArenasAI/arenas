@@ -1,24 +1,57 @@
-import React, {useState} from "react";
+import React, { useState, useRef, DragEvent } from 'react';
 
-const DragDrop = () => {
-    const [file, setFile] = useState<File | null>(null);
+export function DragDropFile({
+  onFilesDrop,
+  className,
+  children,
+}: {
+  onFilesDrop: (files: File[]) => void;
+  className?: string;
+  children?: React.ReactNode;
+}) {
+  const [isDragging, setIsDragging] = useState(false);
+  const dropRef = useRef<HTMLDivElement>(null);
 
-    const handleDrop = (event: ReactDragEvent<HTMLDivElement>) => {
-        event.preventDefault();
-        if (event.dataTransfer.files.length) {
-            setFile(event.dataTransfer.files[0]);
-        }
-    };
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
 
-    return (
-        <div
-            onDragOver={(e) => e.preventDefault()}
-            onDrop = {handleDrop}
-            className = "border-2 border-dashed p-6 text-center"
-        >
-            {file ? <p>{file.name}</p> : <p>Drag and drop files!</p>}
-        </div>
-    )
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer?.files || []);
+    if (files.length > 0) {
+      onFilesDrop(files);
+    }
+  };
+
+  return (
+    <div
+      ref={dropRef}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={`
+        ${className} 
+        ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}
+        border-2 border-dashed rounded-lg p-4 transition-colors duration-200
+      `}
+    >
+      {children || (
+        <p className="text-center text-gray-500">
+          Drag and drop files here or click to upload
+        </p>
+      )}
+    </div>
+  );
 }
-
-export default DragDrop;
