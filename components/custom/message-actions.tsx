@@ -98,7 +98,7 @@ export function MessageActions({
                             chat_id: chatId,
                             message_id: message.id,
                             is_upvoted: true,
-                            updated_at: new Date().toISOString(), // Add this line
+                            updated_at: new Date().toISOString(),
                           },
                         ];
                       },
@@ -150,10 +150,10 @@ export function MessageActions({
                         return [
                           ...votesWithoutCurrent,
                           {
-                            chat_id: chatId, // Changed from chatId
-                            message_id: message.id, // Changed from messageId
-                            is_upvoted: false, // Changed from isUpvoted
-                            updated_at: new Date().toISOString(), // Add this line
+                            chat_id: chatId,
+                            message_id: message.id,
+                            is_upvoted: false,
+                            updated_at: new Date().toISOString(),
                           },
                         ];
                       },

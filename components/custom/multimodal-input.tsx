@@ -20,6 +20,7 @@ import {
 } from 'react';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
+import { v4 as uuidv4 } from 'uuid';
 
 import { cn, sanitizeUIMessages } from '@/lib/utils';
 
@@ -28,7 +29,9 @@ import { PreviewAttachment } from './preview-attachment';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import equal from 'fast-deep-equal';
-
+import { UploadStatus } from './upload-status';
+import { DataTablePreview } from './data-preview';
+import { FileAttachment } from '@/shared/chat';
 function PureMultimodalInput({
   chatId,
   input,
@@ -115,6 +118,21 @@ function PureMultimodalInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
 
+  // Add file upload tracking state
+  const [fileUploads, setFileUploads] = useState<Array<{
+    id: string;
+    fileName: string;
+    progress: number;
+    status: 'uploading' | 'processing' | 'complete' | 'error';
+    error?: string;
+  }>>([]);
+
+  // Add state to track which spreadsheet is being previewed
+  const [previewData, setPreviewData] = useState<{
+    fileName: string;
+    data: Array<Array<string | number>>;
+  } | null>(null);
+
   const submitForm = useCallback(() => {
     window.history.replaceState({}, '', `/chat/${chatId}`);
 
@@ -138,7 +156,33 @@ function PureMultimodalInput({
     chatId,
   ]);
 
+  const addFileUpload = (fileName: string) => {
+    const id = uuidv4();
+    setFileUploads(prev => [...prev, {
+      id,
+      fileName,
+      progress: 0,
+      status: 'uploading'
+    }]);
+    return id;
+  };
+
+  const updateFileUpload = (id: string, updates: Partial<typeof fileUploads[0]>) => {
+    setFileUploads(prev => 
+      prev.map(upload => 
+        upload.id === id ? { ...upload, ...updates } : upload
+      )
+    );
+  };
+
+  const removeFileUpload = (id: string) => {
+    setFileUploads(prev => prev.filter(upload => upload.id !== id));
+  };
+
+  // Modify the uploadFile function to handle spreadsheet data
   const uploadFile = async (file: File) => {
+    const uploadId = addFileUpload(file.name);
+    
     const formData = new FormData();
     formData.append('file', file);
     formData.append('chatId', chatId);
@@ -149,16 +193,36 @@ function PureMultimodalInput({
       file.name.includes('.xls');
 
     try {
+      // Update to uploading state
+      updateFileUpload(uploadId, { progress: 20 });
+      
       const response = await fetch('/api/files/upload', {
         method: 'POST',
         body: formData,
       });
 
       if (response.ok) {
+        // Update to processing state
+        updateFileUpload(uploadId, { progress: 60, status: 'processing' });
+        
         const data = await response.json();
         const { url, pathname, contentType } = data;
 
-        if (isSpreadsheet) {
+        // Update to complete state
+        updateFileUpload(uploadId, { progress: 100, status: 'complete' });
+        
+        // Remove the status after a delay
+        setTimeout(() => {
+          removeFileUpload(uploadId);
+        }, 2000);
+
+        if (isSpreadsheet && data.tableData) {
+          // If it's a spreadsheet, show the preview
+          setPreviewData({
+            fileName: file.name,
+            data: data.tableData
+          });
+          
           return {
             url: data.url,
             name: data.path,
@@ -174,11 +238,33 @@ function PureMultimodalInput({
         };
       }
       const { error } = await response.json();
+      updateFileUpload(uploadId, { 
+        status: 'error', 
+        progress: 100,
+        error: error || 'Upload failed'
+      });
       toast.error(error);
+      return undefined;
     } catch (error) {
+      updateFileUpload(uploadId, { 
+        status: 'error', 
+        progress: 100,
+        error: 'Failed to upload file'
+      });
       toast.error('Failed to upload file, please try again!');
+      return undefined;
     }
   };
+
+  // Add a function to show preview for an existing attachment
+  const showSpreadsheetPreview = useCallback((attachment: FileAttachment) => {
+    if (attachment.previewData) {
+      setPreviewData({
+        fileName: attachment.name?.split('/').pop() || 'Spreadsheet',
+        data: attachment.previewData
+      });
+    }
+  }, []);
 
   const handleFileChange = useCallback(
     async (event: ChangeEvent<HTMLInputElement>) => {
@@ -236,13 +322,43 @@ function PureMultimodalInput({
         tabIndex={-1}
       />
 
+      {/* Add the file upload status indicators */}
+      {fileUploads.length > 0 && (
+        <div className="w-full space-y-2 mb-2">
+          {fileUploads.map((upload) => (
+            <UploadStatus
+              key={upload.id}
+              fileName={upload.fileName}
+              progress={upload.progress}
+              status={upload.status}
+              error={upload.error}
+              onDismiss={() => removeFileUpload(upload.id)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Add the data preview component */}
+      {previewData && (
+        <DataTablePreview
+          data={previewData.data}
+          fileName={previewData.fileName}
+          onClose={() => setPreviewData(null)}
+        />
+      )}
+
       {(attachments.length > 0 || uploadQueue.length > 0) && (
         <div className={cn(
           "flex flex-row gap-2 overflow-x-scroll items-end",
           isDragging && "opacity-50"
         )}>
           {attachments.map((attachment) => (
-            <PreviewAttachment key={attachment.url} attachment={attachment} onRemove={() => removeAttachment(attachment)}/>
+            <PreviewAttachment 
+              key={attachment.url} 
+              attachment={attachment} 
+              onRemove={() => removeAttachment(attachment)}
+              // onPreview={attachment.tableData ? () => showSpreadsheetPreview(attachment) : undefined}
+            />
           ))}
 
           {uploadQueue.map((filename) => (
