@@ -1,18 +1,23 @@
 import { generateUUID } from '@/lib/utils';
-import { DataStreamWriter, tool } from 'ai';
+import { DataStreamWriter, streamObject, tool } from 'ai';
 import { z } from 'zod';
-import { Session } from '@supabase/supabase-js'
+import { getSession } from '../cached/cached-queries';
 import {
   artifactKinds,
   documentHandlersByArtifactKind,
 } from '@/lib/artifacts/server';
+import { Session } from '@supabase/supabase-js';
+import { saveDocument } from '@/lib/cached/mutations';
+import { myProvider } from '@/ai/models';
+import { sheetPrompt } from '@/ai/prompts';
 
 interface CreateDocumentProps {
-  session: Session;
-  dataStream: DataStreamWriter;
+  session: any,
+  dataStream: DataStreamWriter,
+  selectedModelId: string;
 }
 
-export const createDocument = ({ session, dataStream }: CreateDocumentProps) =>
+export const createDocument = ({ session, dataStream, selectedModelId }: CreateDocumentProps) =>
   tool({
     description:
       'Create a document for a writing or content creation activities. This tool will call other functions that will generate the contents of the document based on the title and kind.',
@@ -21,51 +26,78 @@ export const createDocument = ({ session, dataStream }: CreateDocumentProps) =>
       kind: z.enum(artifactKinds),
     }),
     execute: async ({ title, kind }) => {
-      const id = generateUUID();
-
-      dataStream.writeData({
-        type: 'kind',
-        content: kind,
-      });
-
-      dataStream.writeData({
-        type: 'id',
-        content: id,
-      });
-
-      dataStream.writeData({
-        type: 'title',
-        content: title,
-      });
-
-      dataStream.writeData({
-        type: 'clear',
-        content: '',
-      });
-
-      const documentHandler = documentHandlersByArtifactKind.find(
-        (documentHandlerByArtifactKind) =>
-          documentHandlerByArtifactKind.kind === kind,
-      );
-
-      if (!documentHandler) {
-        throw new Error(`No document handler found for kind: ${kind}`);
+      if (!session || !session.id) {
+        return { success: false, error: 'Not authenticated' };
       }
 
-      await documentHandler.onCreateDocument({
-        id,
-        title,
-        dataStream,
-        session,
-      });
+      try {
+        const documentId = generateUUID();
+        
+        await saveDocument({
+          id: documentId,
+          userId: session.id,
+          title,
+          content: '',
+          kind,
+        });
 
-      dataStream.writeData({ type: 'finish', content: '' });
+        const { fullStream } = streamObject({
+          model: myProvider.languageModel(selectedModelId || 'gpt-4o'),
+          system: sheetPrompt,
+          prompt: title,
+          schema: z.object({
+            csv: z.string().describe('CSV data'),
+          }),
+        });
 
-      return {
-        id,
-        title,
-        kind,
-        content: 'A document was created and is now visible to the user.',
-      };
+        dataStream.writeData({
+          type: 'kind',
+          content: kind,
+        });
+
+        dataStream.writeData({
+          type: 'id',
+          content: documentId,
+        });
+
+        dataStream.writeData({
+          type: 'title',
+          content: title,
+        });
+
+        dataStream.writeData({
+          type: 'clear',
+          content: '',
+        });
+
+        const documentHandler = documentHandlersByArtifactKind.find(
+          (documentHandlerByArtifactKind) =>
+            documentHandlerByArtifactKind.kind === kind,
+        );
+
+        if (!documentHandler) {
+          throw new Error(`No document handler found for kind: ${kind}`);
+        }
+
+        await documentHandler.onCreateDocument({
+          id: documentId,
+          title,
+          dataStream,
+          session,
+        });
+
+        dataStream.writeData({ type: 'finish', content: '' });
+
+        return {
+          success: true,
+          documentId,
+          title,
+          kind,
+          content: 'A document was created and is now visible to the user.',
+        };
+      } catch (error) {
+        console.error('Error creating document:', error);
+        return { success: false, error: 'Failed to create document' };
+      }
     },
   });

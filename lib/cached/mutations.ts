@@ -6,6 +6,7 @@ import {
   type Client,
   type Message,
 } from '@/lib/supabase/types';
+import { FileAttachment } from '@/shared/chat';
 
 const getSupabase = async () => createClient();
 
@@ -126,7 +127,7 @@ export async function voteMessage({
 }) {
   await mutateQuery(
     async (client, { chatId, messageId, type }) => {
-      // First verify the message exists
+      // First verify the message exists                         
       const { data: message, error: messageError } = await client
         .from('messages')
         .select('id')
@@ -343,3 +344,23 @@ export async function deleteDocumentsByIdAfterTimestamp({
     ]
   );
 }
+
+// export async function saveVisualization({
+//   id,
+//   chatId,
+// }: {
+//   id: string;
+//   chatId: string;
+// }) {
+//   await mutateQuery(
+//     async (client, { id, chatId }) => {
+//       const { error } = await client.from('visualizations').insert({
+//         document_id: id,
+//         chat_id: chatId,
+//       });
+//       if (error) throw error;
+//     },
+//     [{ id, chatId }],
+//     [`visualization_${id}`, `chat_${chatId}`]
+//   );
+// }

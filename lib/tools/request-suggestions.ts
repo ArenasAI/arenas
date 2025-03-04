@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { Session } from "@supabase/supabase-js"
 import { DataStreamWriter, streamObject, tool } from 'ai';
 import { getDocumentById } from '@/lib/cached/cached-queries';
 import { saveSuggestions } from '@/lib/cached/mutations';
@@ -10,8 +9,9 @@ import { myProvider } from '@/ai/models';
 type Suggestions = Database['public']['Tables']['suggestions']['Row']
 
 interface RequestSuggestionsProps {
-  session: Session;
+  session: any;
   dataStream: DataStreamWriter;
+  selectedModelId: string;
 }
 
 export interface SuggestionInput {
@@ -55,6 +55,7 @@ export interface SuggestionWithMetadata extends Suggestions {
 export const requestSuggestions = ({
   session,
   dataStream,
+  selectedModelId,
 }: RequestSuggestionsProps) =>
   tool({
     description: 'Request suggestions for a document',
@@ -76,7 +77,7 @@ export const requestSuggestions = ({
         'created_at' | 'user_id' | 'document_created_at'>> = [];
 
       const { elementStream } = streamObject({
-        model: myProvider.languageModel('artifact-model'),
+        model: myProvider.languageModel(selectedModelId),
         system:
           'You are a help writing assistant. Given a piece of writing, please offer suggestions to improve the piece of writing and describe the change. It is very important for the edits to contain full sentences instead of just words. Max 5 suggestions.',
         prompt: document.content,
@@ -85,6 +86,7 @@ export const requestSuggestions = ({
           originalText: z.string().describe('The original text to be replaced'),
           suggestedText: z.string().describe('The suggested replacement text'),
           description: z.string().describe('The description of the suggestion'),
+          document_created_at: z.string().optional().default(new Date().toISOString()),
         }),
       });
 
@@ -92,7 +94,7 @@ export const requestSuggestions = ({
         const suggestion = {
           id: generateUUID(),
           document_id: documentId,
-          document_created_at: element.document_created_at,
+          document_created_at: element.document_created_at || new Date().toISOString(),
           original_text: element.originalText,
           suggested_text: element.suggestedText,
           description: element.description,
@@ -116,9 +118,9 @@ export const requestSuggestions = ({
             documentCreatedAt: suggestion.document_created_at,
             originalText: suggestion.original_text,
             suggestedText: suggestion.suggested_text,
-            description: suggestion.description || '', // Provide default empty string if null/undefined
+            description: suggestion.description || '',
             userId: userId,
-            isResolved: suggestion.is_resolved || false, // Provide default false if undefined
+            isResolved: suggestion.is_resolved || false,
           })),
         });
       }

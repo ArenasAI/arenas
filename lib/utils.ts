@@ -126,6 +126,50 @@ function addToolMessageToChat({
   });
 }
 
+// Add fetcher function for SWR
+export async function fetcher<T = any>(
+  input: RequestInfo | URL,
+  init?: RequestInit
+): Promise<T> {
+  const response = await fetch(input, init);
+
+  if (!response.ok) {
+    throw new Error('Network response was not ok');
+  }
+
+  return response.json();
+}
+
+// Add type for message annotations
+interface MessageAnnotation {
+  messageIdFromServer?: string;
+}
+
+// Update getMessageIdFromAnnotations to use proper typing
+export function getMessageIdFromAnnotations(message: Message) {
+  if (!message.annotations) return message.id;
+
+  const annotations = message.annotations as MessageAnnotation[];
+  const [annotation] = annotations;
+
+  if (!annotation?.messageIdFromServer) return message.id;
+
+  return annotation.messageIdFromServer;
+}
+
+export const getURL = () => {
+  let url =
+    process?.env?.NEXT_PUBLIC_SITE_URL ??
+    process?.env?.NEXT_PUBLIC_VERCEL_URL ?? 
+    "http://localhost:3000";
+
+  // Include `https://` when not localhost.
+  url = url.startsWith("http") ? url : `https://${url}`;
+  // Remove trailing slash if present
+  url = url.endsWith("/") ? url.slice(0, -1) : url;
+  return url;
+};
+
 export function convertToUIMessages(
   messages: Array<DBMessage>
 ): Array<Message> {
@@ -175,9 +219,18 @@ export function convertToUIMessages(
   }, []);
 }
 
-export function sanitizeResponseMessages(
-  messages: Array<CoreToolMessage | CoreAssistantMessage>
-): Array<CoreToolMessage | CoreAssistantMessage> {
+type ResponseMessageWithoutId = CoreToolMessage | CoreAssistantMessage;
+type ResponseMessage = ResponseMessageWithoutId & { id: string };
+
+export function sanitizeResponseMessages({
+  messages,
+  reasoning,
+  fileUrls,
+}: {
+  messages: Array<ResponseMessage>;
+  reasoning: string | undefined;
+  fileUrls?: string[];
+}) {
   const toolResultIds: Array<string> = [];
 
   for (const message of messages) {
@@ -200,8 +253,22 @@ export function sanitizeResponseMessages(
         ? toolResultIds.includes(content.toolCallId)
         : content.type === 'text'
           ? content.text.length > 0
-          : true
+          : true,
     );
+
+    if (reasoning) {
+      sanitizedContent.push({ type: 'reasoning', reasoning });
+    }
+    
+    // Add file URLs to the sanitized content if available
+    if (fileUrls && fileUrls.length > 0) {
+      fileUrls.forEach(url => {
+        sanitizedContent.push({ 
+          type: 'file-reference', 
+          url: url 
+        });
+      });
+    }
 
     return {
       ...message,
@@ -210,7 +277,7 @@ export function sanitizeResponseMessages(
   });
 
   return messagesBySanitizedContent.filter(
-    (message) => message.content.length > 0
+    (message) => message.content.length > 0,
   );
 }
 
@@ -231,7 +298,7 @@ export function sanitizeUIMessages(messages: Array<Message>): Array<Message> {
     const sanitizedToolInvocations = message.toolInvocations.filter(
       (toolInvocation) =>
         toolInvocation.state === 'result' ||
-        toolResultIds.includes(toolInvocation.toolCallId)
+        toolResultIds.includes(toolInvocation.toolCallId),
     );
 
     return {
@@ -243,18 +310,18 @@ export function sanitizeUIMessages(messages: Array<Message>): Array<Message> {
   return messagesBySanitizedToolInvocations.filter(
     (message) =>
       message.content.length > 0 ||
-      (message.toolInvocations && message.toolInvocations.length > 0)
+      (message.toolInvocations && message.toolInvocations.length > 0),
   );
 }
 
-export function getMostRecentUserMessage(messages: Array<CoreMessage>) {
+export function getMostRecentUserMessage(messages: Array<Message>) {
   const userMessages = messages.filter((message) => message.role === 'user');
   return userMessages.at(-1);
 }
 
 export function getDocumentTimestampByIndex(
   documents: Array<Document>,
-  index: number
+  index: number,
 ) {
   if (!documents) return new Date();
   if (index > documents.length) return new Date();
@@ -262,46 +329,11 @@ export function getDocumentTimestampByIndex(
   return documents[index].created_at;
 }
 
-// Add fetcher function for SWR
-export async function fetcher<T = any>(
-  input: RequestInfo | URL,
-  init?: RequestInit
-): Promise<T> {
-  const response = await fetch(input, init);
-
-  if (!response.ok) {
-    throw new Error('Network response was not ok');
-  }
-
-  return response.json();
+/**
+ * Extracts a document ID from a message string
+ * Format expected: "document:123456"
+ */
+export function extractDocumentId(message: string): string | null {
+  const match = message.match(/document:([a-zA-Z0-9-_]+)/);
+  return match ? match[1] : null;
 }
-
-// Add type for message annotations
-interface MessageAnnotation {
-  messageIdFromServer?: string;
-}
-
-// Update getMessageIdFromAnnotations to use proper typing
-export function getMessageIdFromAnnotations(message: Message) {
-  if (!message.annotations) return message.id;
-
-  const annotations = message.annotations as MessageAnnotation[];
-  const [annotation] = annotations;
-
-  if (!annotation?.messageIdFromServer) return message.id;
-
-  return annotation.messageIdFromServer;
-}
-
-export const getURL = () => {
-  let url =
-    process?.env?.NEXT_PUBLIC_SITE_URL ??
-    process?.env?.NEXT_PUBLIC_VERCEL_URL ?? 
-    "http://localhost:3000";
-
-  // Include `https://` when not localhost.
-  url = url.startsWith("http") ? url : `https://${url}`;
-  // Remove trailing slash if present
-  url = url.endsWith("/") ? url.slice(0, -1) : url;
-  return url;
-};

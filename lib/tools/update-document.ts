@@ -1,16 +1,15 @@
 import { DataStreamWriter, tool } from 'ai';
-import { Session } from 'next-auth';
 import { z } from 'zod';
-import { getDocumentById } from '@/lib/cached/cached-queries';
-import { saveDocument } from '@/lib/cached/mutations';
+import { getDocumentById, getSession } from '@/lib/cached/cached-queries';
 import { documentHandlersByArtifactKind } from '@/lib/artifacts/server';
 
 interface UpdateDocumentProps {
-  session: Session;
+  session: any;
   dataStream: DataStreamWriter;
+  selectedModelId: string;
 }
 
-export const updateDocument = ({ session, dataStream }: UpdateDocumentProps) =>
+export const updateDocument = ({ session, dataStream, selectedModelId }: UpdateDocumentProps) =>
   tool({
     description: 'Update a document with the given description.',
     parameters: z.object({
@@ -21,6 +20,11 @@ export const updateDocument = ({ session, dataStream }: UpdateDocumentProps) =>
     }),
     execute: async ({ id, description }) => {
       const document = await getDocumentById(id);
+      const user = await getSession();
+
+      if (!user) {
+        return new Response('Unauthorized', { status: 401 });
+      }
 
       if (!document) {
         return {

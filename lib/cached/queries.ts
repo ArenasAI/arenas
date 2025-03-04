@@ -380,3 +380,19 @@ export async function updateChatVisiblityById(
 
   if (error) throw error;
 }
+
+export async function getUserSubscriptionQuery(
+  client: Client,
+  { id }: { id: string }
+) {
+  const { data: subscription, error } = await client.from('user_subscriptions').select().eq('user_id', id).single();
+  if (error) throw error;
+  return subscription;
+}
+
+export async function checkUserSubscription(client: Client, { id }: { id: string }) {
+  const { data: subscription, error } = await client.from('user_subscriptions').select().eq('user_id', id).eq('status', 'active').single();
+  if (error) throw error;
+  return subscription;
+}
+
