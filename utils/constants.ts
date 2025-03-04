@@ -14,22 +14,22 @@ export const PRICING_TIERS: {
         {
             title: "Student",
             price: "10",
-            description: "dont worry about using R studio now, we gotchu.",
-            features: ["community discord server", "15 messages free"],
+            description: "Perfect for students and beginners",
+            features: ["Community Discord access", "15 messages free", "Basic data visualization", "CSV & Excel support"],
             index: 0,
         },
         {
             title: "Pro",
             price: "40",
-            description: "automate tedious tasks at work",
-            features: ["monthly 100 messages", "discord server", "contributing"],
+            description: "For professionals who need powerful tools",
+            features: ["Monthly 100 messages", "Discord priority support", "Advanced visualizations", "API access", "Contributing"],
             index: 1,
         },
         {
             title: "Team",
             price: "80",
-            description: "get one for your whole team and be merry",
-            features: ["unlimited access to chat", "latest models", "long term file storage"],
+            description: "Ideal for teams and organizations",
+            features: ["Unlimited access to chat", "Latest AI models", "Team collaboration", "Custom dashboards", "Long term file storage"],
             index: 2,
         }
     ],
@@ -38,26 +38,25 @@ export const PRICING_TIERS: {
         {
             title: "Student",
             price: "100",
-            description: "pay once, rejoice everyday!",
-            features: ['discord server', 'unlimited access to chat'],
-            index: 1
+            description: "Perfect for students and beginners",
+            features: ["Community Discord access", "15 messages free", "Basic data visualization", "CSV & Excel support"],
+            index: 0
         },
         {
             title: "Pro",
-            price: "840",
-            description: "pay once, rejoice everyday!",
-            features: ['discord server', 'unlimited access to chat'],
+            price: "400",
+            description: "For professionals who need powerful tools",
+            features: ["Monthly 100 messages", "Discord priority support", "Advanced visualizations", "API access", "Contributing"],
             index: 1
         },
         {
-            title: "Student",
-            price: "1000",
-            description: "pay once, rejoice everyday!",
-            features: ['discord server', 'unlimited access to chat'],
-            index: 1
+            title: "Team",
+            price: "800",
+            description: "Ideal for teams and organizations",
+            features: ["Unlimited access to chat", "Latest AI models", "Team collaboration", "Custom dashboards", "Long term file storage"],
+            index: 2
         }, 
     ]
-
 }
 
 
