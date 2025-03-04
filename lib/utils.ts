@@ -257,15 +257,15 @@ export function sanitizeResponseMessages({
     );
 
     if (reasoning) {
-      sanitizedContent.push({ type: 'reasoning', reasoning });
+      sanitizedContent.push({ type: 'text', text: reasoning }); // this should be reasoning i think?
     }
     
     // Add file URLs to the sanitized content if available
     if (fileUrls && fileUrls.length > 0) {
       fileUrls.forEach(url => {
         sanitizedContent.push({ 
-          type: 'file-reference', 
-          url: url 
+          type: 'text', 
+          text: url 
         });
       });
     }

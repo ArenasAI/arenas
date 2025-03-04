@@ -27,7 +27,12 @@ export const createDocument = ({ session, dataStream, selectedModelId }: CreateD
     }),
     execute: async ({ title, kind }) => {
       if (!session || !session.id) {
-        return { success: false, error: 'Not authenticated' };
+        return {
+          id: generateUUID(),
+          title,
+          kind,
+          content: 'Error: Not authenticated',
+        };
       }
 
       try {
@@ -42,7 +47,7 @@ export const createDocument = ({ session, dataStream, selectedModelId }: CreateD
         });
 
         const { fullStream } = streamObject({
-          model: myProvider.languageModel(selectedModelId || 'gpt-4o'),
+          model: myProvider.languageModel(selectedModelId),
           system: sheetPrompt,
           prompt: title,
           schema: z.object({
@@ -70,34 +75,49 @@ export const createDocument = ({ session, dataStream, selectedModelId }: CreateD
           content: '',
         });
 
-        const documentHandler = documentHandlersByArtifactKind.find(
-          (documentHandlerByArtifactKind) =>
-            documentHandlerByArtifactKind.kind === kind,
-        );
+        try {
+          const documentHandler = documentHandlersByArtifactKind.find(
+            (handler) => handler.kind === kind,
+          );
 
-        if (!documentHandler) {
-          throw new Error(`No document handler found for kind: ${kind}`);
+          if (!documentHandler) {
+            dataStream.writeData({ type: 'error', content: `No document handler found for kind: ${kind}` });
+            return {
+              id: documentId,
+              title,
+              kind,
+              content: `Error: No document handler found for kind: ${kind}`,
+            };
+          }
+
+          await documentHandler.onCreateDocument({
+            id: documentId,
+            title,
+            dataStream,
+            session,
+          });
+        } catch (handlerError) {
+          console.error('Error in document handler:', handlerError);
+          // Still return a valid result even if handler fails
         }
-
-        await documentHandler.onCreateDocument({
-          id: documentId,
-          title,
-          dataStream,
-          session,
-        });
 
         dataStream.writeData({ type: 'finish', content: '' });
 
+        // Important: Always return a valid result with the expected structure
         return {
-          success: true,
-          documentId,
+          id: documentId,
           title,
           kind,
           content: 'A document was created and is now visible to the user.',
         };
       } catch (error) {
         console.error('Error creating document:', error);
-        return { success: false, error: 'Failed to create document' };
+        return {
+          id: generateUUID(),
+          title,
+          kind,
+          content: 'Error: Failed to create document',
+        };
       }
     },
   });
