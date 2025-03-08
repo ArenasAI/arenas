@@ -51,7 +51,13 @@ export const models: Array<Model> = [
     apiIdentifier: 'gpt-4.5',
     streaming: true,
     disabled: true
-},
+  },
+  {
+    id: 'deepseek-reasoner',
+    label: 'Deepseek',
+    apiIdentifier: 'deepseek-reasoner',
+    streaming: true
+  }
 ] as const;
 
 export const DEFAULT_MODEL_NAME = 'deepseek-chat';
@@ -74,7 +80,7 @@ export const myProvider = customProvider({
     'gpt-4o': openai('gpt-4o'),
     'gemini-2.0-flash': google('models/gemini-2.0-flash-exp'),
     'claude-3-7-sonnet': anthropic('claude-3-7-sonnet-20250219'),
-    'reasoning': wrapLanguageModel({
+    'deepseek-reasoner': wrapLanguageModel({
       model: fireworks('accounts/fireworks/models/deepseek-r1'),
       middleware: extractReasoningMiddleware({ tagName: 'think'}),
     }),

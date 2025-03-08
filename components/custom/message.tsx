@@ -17,7 +17,6 @@ import {
 import { Markdown } from './markdown';
 import { MessageActions } from './message-actions';
 import { PreviewAttachment } from './preview-attachment';
-import { Weather } from './weather';
 import equal from 'fast-deep-equal';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
@@ -26,7 +25,6 @@ import { MessageEditor } from './message-editor';
 import { DocumentPreview } from './document-preview';
 import { MessageReasoning } from './message-reasoning';
 import { User } from '@supabase/supabase-js';
-import { VisualizationMessage } from '../visualizations/types';
 
 const PurePreviewMessage = ({
   chatId,
@@ -43,7 +41,7 @@ const PurePreviewMessage = ({
   vote: Vote | undefined;
   isLoading: boolean;
   user: User | null;
-  append: (message: Message | VisualizationMessage) => void;
+  append: (message: Message) => void;
   setMessages: (
     messages: Message[] | ((messages: Message[]) => Message[]),
   ) => void;
@@ -151,9 +149,7 @@ const PurePreviewMessage = ({
 
                     return (
                       <div key={toolCallId}>
-                        {toolName === 'getWeather' ? (
-                          <Weather weatherAtLocation={result} />
-                        ) : toolName === 'createDocument' ? (
+                        {toolName === 'createDocument' ? (
                           <DocumentPreview
                             result={result}
                           />
@@ -177,12 +173,10 @@ const PurePreviewMessage = ({
                     <div
                       key={toolCallId}
                       className={cx({
-                        skeleton: ['getWeather'].includes(toolName),
+                        skeleton: ['createDocument'].includes(toolName),
                       })}
                     >
-                      {toolName === 'getWeather' ? (
-                        <Weather />
-                      ) : toolName === 'createDocument' ? (
+                      {toolName === 'createDocument' ? (
                         <DocumentPreview args={args} />
                       ) : toolName === 'updateDocument' ? (
                         <DocumentToolCall

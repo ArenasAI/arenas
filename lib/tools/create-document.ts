@@ -81,7 +81,20 @@ export const createDocument = ({ session, dataStream, selectedModelId }: CreateD
           );
 
           if (!documentHandler) {
-            dataStream.writeData({ type: 'error', content: `No document handler found for kind: ${kind}` });
+            dataStream.writeData({ 
+              type: 'error', 
+              content: `No document handler found for kind: ${kind}` 
+            });
+            
+            // Update the document with the error message
+            await saveDocument({
+              id: documentId,
+              userId: session.id,
+              title,
+              content: `Error: No document handler found for kind: ${kind}`,
+              kind,
+            });
+            
             return {
               id: documentId,
               title,
@@ -90,15 +103,37 @@ export const createDocument = ({ session, dataStream, selectedModelId }: CreateD
             };
           }
 
+          // Execute the document handler to generate content
           await documentHandler.onCreateDocument({
             id: documentId,
             title,
             dataStream,
             session,
           });
+          
+          // Make sure the final document has content saved to the database
+          await saveDocument({
+            id: documentId,
+            userId: session.id,
+            title,
+            content: 'Document content created successfully',
+            kind,
+          });
         } catch (handlerError) {
           console.error('Error in document handler:', handlerError);
-          // Still return a valid result even if handler fails
+          dataStream.writeData({ 
+            type: 'error', 
+            content: `Error generating document content: ${handlerError instanceof Error ? handlerError.message : 'Unknown error'}` 
+          });
+          
+          // Save document with error message if handler fails
+          await saveDocument({
+            id: documentId,
+            userId: session.id,
+            title,
+            content: `Error generating content: ${handlerError instanceof Error ? handlerError.message : 'Unknown error'}`,
+            kind,
+          });
         }
 
         dataStream.writeData({ type: 'finish', content: '' });
@@ -108,7 +143,7 @@ export const createDocument = ({ session, dataStream, selectedModelId }: CreateD
           id: documentId,
           title,
           kind,
-          content: 'A document was created and is now visible to the user.',
+          content: 'Document created successfully.',
         };
       } catch (error) {
         console.error('Error creating document:', error);
@@ -116,7 +151,7 @@ export const createDocument = ({ session, dataStream, selectedModelId }: CreateD
           id: generateUUID(),
           title,
           kind,
-          content: 'Error: Failed to create document',
+          content: `Error: Failed to create document - ${error instanceof Error ? error.message : 'Unknown error'}`,
         };
       }
     },

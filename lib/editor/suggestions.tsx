@@ -1,12 +1,17 @@
 import { Node } from 'prosemirror-model';
-import { PluginKey, Plugin } from 'prosemirror-state';
+import { PluginKey, Plugin, EditorState } from 'prosemirror-state';
 import { Decoration, DecorationSet, EditorView } from 'prosemirror-view';
 import { createRoot } from 'react-dom/client';
-
 import { Suggestion as PreviewSuggestion } from '@/components/custom/suggestion';
-import { suggestions } from '../types';
+import { Suggestion } from '../supabase/types';
 
-export interface UISuggestion extends suggestions {
+// Define proper types for the plugin state
+interface SuggestionPluginState {
+  decorations: DecorationSet;
+  selected: string | null;
+}
+
+export interface UISuggestion extends Suggestion {
   selectionStart: number;
   selectionEnd: number;
 }
@@ -17,7 +22,9 @@ interface Position {
 }
 
 function findPositionsInDoc(doc: Node, searchText: string): Position | null {
-  let positions: { start: number; end: number } | null = null;
+  if (!searchText) return null;
+
+  let positions: Position | null = null;
 
   doc.nodesBetween(0, doc.content.size, (node, pos) => {
     if (node.isText && node.text) {
@@ -29,7 +36,7 @@ function findPositionsInDoc(doc: Node, searchText: string): Position | null {
           end: pos + index + searchText.length,
         };
 
-        return false;
+        return false; // Stop searching once found
       }
     }
 
@@ -41,7 +48,7 @@ function findPositionsInDoc(doc: Node, searchText: string): Position | null {
 
 export function projectWithPositions(
   doc: Node,
-  suggestions: Array<suggestions>
+  suggestions: Array<Suggestion>
 ): Array<UISuggestion> {
   return suggestions.map((suggestion) => {
     const positions = findPositionsInDoc(doc, suggestion.original_text);
@@ -62,13 +69,19 @@ export function projectWithPositions(
   });
 }
 
+interface SuggestionWidgetSpec {
+  dom: HTMLElement;
+  destroy: () => void;
+}
+
 export function createSuggestionWidget(
   suggestion: UISuggestion,
   view: EditorView
-): { dom: HTMLElement; destroy: () => void } {
+): SuggestionWidgetSpec {
   const dom = document.createElement('span');
   const root = createRoot(dom);
 
+  // Prevent editor from losing focus when clicking suggestion
   dom.addEventListener('mousedown', (event) => {
     event.preventDefault();
     view.dom.blur();
@@ -77,15 +90,15 @@ export function createSuggestionWidget(
   const onApply = () => {
     const { state, dispatch } = view;
 
+    // Handle decorations
     let decorationTransaction = state.tr;
-    const currentState = suggestionsPluginKey.getState(state);
-    const currentDecorations = currentState?.decorations;
-
-    if (currentDecorations) {
+    const currentState = suggestionsPluginKey.getState(state) as SuggestionPluginState;
+    
+    if (currentState?.decorations) {
       const newDecorations = DecorationSet.create(
         state.doc,
-        currentDecorations.find().filter((decoration: Decoration) => {
-          return decoration.spec.suggestionId !== suggestion.id;
+        currentState.decorations.find().filter((decoration: Decoration) => {
+          return (decoration.spec as any).suggestionId !== suggestion.id;
         })
       );
 
@@ -96,15 +109,18 @@ export function createSuggestionWidget(
       dispatch(decorationTransaction);
     }
 
-    const textTransaction = view.state.tr.replaceWith(
-      suggestion.selectionStart,
-      suggestion.selectionEnd,
-      state.schema.text(suggestion.suggested_text)
-    );
+    // Apply the suggestion text
+    if (suggestion.selectionStart !== suggestion.selectionEnd) {
+      const textTransaction = view.state.tr.replaceWith(
+        suggestion.selectionStart,
+        suggestion.selectionEnd,
+        state.schema.text(suggestion.suggested_text)
+      );
 
-    textTransaction.setMeta('no-debounce', true);
-
-    dispatch(textTransaction);
+      // Mark as non-debounced change
+      textTransaction.setMeta('no-debounce', true);
+      dispatch(textTransaction);
+    }
   };
 
   root.render(<PreviewSuggestion suggestion={suggestion} onApply={onApply} />);
@@ -112,7 +128,7 @@ export function createSuggestionWidget(
   return {
     dom,
     destroy: () => {
-      // Wrapping unmount in setTimeout to avoid synchronous unmounting during render
+      // Safely unmount the React component
       setTimeout(() => {
         root.unmount();
       }, 0);
@@ -120,26 +136,36 @@ export function createSuggestionWidget(
   };
 }
 
-export const suggestionsPluginKey = new PluginKey('suggestions');
-export const suggestionsPlugin = new Plugin({
-  key: suggestionsPluginKey,
-  state: {
-    init() {
-      return { decorations: DecorationSet.empty, selected: null };
-    },
-    apply(tr, state) {
-      const newDecorations = tr.getMeta(suggestionsPluginKey);
-      if (newDecorations) return newDecorations;
+export const suggestionsPluginKey = new PluginKey<SuggestionPluginState>('suggestions');
 
+export const suggestionsPlugin = new Plugin<SuggestionPluginState>({
+  key: suggestionsPluginKey,
+
+  state: {
+    init(): SuggestionPluginState {
+      return { 
+        decorations: DecorationSet.empty, 
+        selected: null 
+      };
+    },
+
+    apply(tr, pluginState: SuggestionPluginState, oldState: EditorState, newState: EditorState): SuggestionPluginState {
+      // Check for plugin-specific metadata updates
+      const meta = tr.getMeta(suggestionsPluginKey);
+      if (meta) return meta;
+
+      // Map decorations through document changes
       return {
-        decorations: state.decorations.map(tr.mapping, tr.doc),
-        selected: state.selected,
+        decorations: pluginState.decorations.map(tr.mapping, tr.doc),
+        selected: pluginState.selected,
       };
     },
   },
+
   props: {
-    decorations(state) {
-      return this.getState(state)?.decorations ?? DecorationSet.empty;
+    decorations(state: EditorState): DecorationSet {
+      const pluginState = this.getState(state);
+      return pluginState?.decorations ?? DecorationSet.empty;
     },
   },
 });

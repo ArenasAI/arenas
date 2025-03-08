@@ -243,8 +243,16 @@ const DocumentContent = ({ document }: { document: Document }) => {
     },
   );
 
+  const content = document.content || '';
+  
+  useEffect(() => {
+    if (!content && document.id) {
+      console.log(`Document ${document.id} has empty content`);
+    }
+  }, [content, document.id]);
+
   const commonProps = {
-    content: document.content ?? '',
+    content,
     isCurrentVersion: true,
     currentVersionIndex: 0,
     status: artifact.status,
@@ -271,7 +279,7 @@ const DocumentContent = ({ document }: { document: Document }) => {
       ) : document.kind === 'image' ? (
         <ImageEditor
           title={document.title}
-          content={document.content ?? ''}
+          content={content}
           isCurrentVersion={true}
           currentVersionIndex={0}
           status={artifact.status}

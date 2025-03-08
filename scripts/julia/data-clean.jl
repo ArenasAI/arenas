@@ -4,9 +4,6 @@ function clean_data(file_path)
     try
         # Read the CSV file
         df = CSV.read(file_path, DataFrame)
-        
-        # Basic cleaning operations
-        # 1. Remove missing values
         df_clean = dropmissing(df)
         
         # 2. Remove duplicates

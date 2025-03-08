@@ -2,15 +2,16 @@ import { Message } from "@/lib/supabase/types";
 import { generateUUID } from '@/lib/utils';
 import createClient from '@/lib/supabase/server';
 import { saveChat } from '@/lib/cached/mutations';
+import { Attachment } from 'ai';
 
-
-export type FileAttachment = {
+export interface FileAttachment extends Attachment {
   id: string;
   url: string;
   name: string;
   type: 'file' | 'image' | 'spreadsheet';
   mimeType: string;
   metadata?: Record<string, unknown>;
+  previewData?: Array<Array<string | number>>;
 };
 
 export type ChatMessage = Message & {

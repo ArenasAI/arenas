@@ -37,21 +37,3 @@ export async function generateTitleFromUserMessage({
   return 'Error generating title';
 }
 }
-
-export async function deleteTrailingMessages({ id }: { id: string }) {
-  const supabase = await createClient()
-  const [message] = await getMessageById(supabase, { id });
-
-  await deleteMessagesByChatIdAfterTimestamp( supabase, {
-    chatId: message.chat_id,
-    timestamp: message.created_at,
-  });
-}
-
-export async function analyzeData() {
-  const response = await fetch('http://localhost:3001/api/analyze');
-  if (!response.ok) {
-    throw new Error('Failed to analyze data');
-  }
-  return response.json();
-}

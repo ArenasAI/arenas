@@ -1,0 +1,25 @@
+{
+	"name": "Arenas Dev",
+	"image": "python:3.10",
+	"customizations": {
+		"vscode": {
+			"settings": {}
+		},
+		"extensions": [
+			"ms-python.python",
+			"ms-python.vscode-pylance",
+			"dbaeumer.vscode-eslint",
+			"esbenp.prettier-vscode"
+		]
+	},	
+	"forwardPorts": [4000],
+
+	"portsAttributes": {
+		"4000": {
+			"label": "Arenas PYTHON!!",
+			"onAutoForward": "notify"
+		}
+	},
+	"postCreateCommand": "pipx install -r requirements.txt"
+  }
+  

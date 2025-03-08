@@ -70,6 +70,13 @@ export function Navbar() {
                 pricing
             </Link>
             <Link 
+                href="/learn" 
+                className="text-sm text-foreground/80 hover:text-foreground transition-colors"
+                onClick={() => setIsOpen(false)}
+            >
+                learn
+            </Link>
+            <Link 
                 href="/docs" 
                 className="text-sm text-foreground/80 hover:text-foreground transition-colors"
                 onClick={() => setIsOpen(false)}
@@ -91,15 +98,6 @@ export function Navbar() {
                 onClick={() => setIsOpen(false)}
             >
                 discord
-            </a>
-            <a 
-                target='_blank' 
-                href='https://github.com/ArenasAI/arenas' 
-                rel='noreferrer noopener' 
-                className="text-sm text-foreground/80 hover:text-foreground transition-colors"
-                onClick={() => setIsOpen(false)}
-            >
-                github
             </a>
         </>
     )

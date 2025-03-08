@@ -6,14 +6,13 @@ import { memo } from 'react';
 import equal from 'fast-deep-equal';
 import { UIArtifact } from './artifact';
 import { User } from '@supabase/supabase-js';
-import { VisualizationMessage } from '../visualizations/types';
 
 type Vote = Database['public']['Tables']['votes']['Row']
 
 interface ArtifactMessagesProps {
   chatId: string;
   user: User;
-  append: (message: Message | VisualizationMessage) => void;
+  append: (message: Message) => void;
   isLoading: boolean;
   votes: Array<Vote> | undefined;
   messages: Array<Message>;

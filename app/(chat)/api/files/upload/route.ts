@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server';
 import { upload } from '@/lib/cached/storage';
 import  createClient from '@/lib/supabase/server';
-import { storeDocument } from '@/lib/pinecone';
-import { buffer } from 'stream/consumers';
+import { storeDocument } from '@/lib/rag/pinecone';
 import { generateUUID } from '@/lib/utils';
 
-import { readExcelFile } from '@/lib/excel-utils';
 function sanitizeFileName(fileName: string): string {
   return fileName.replace(/[^a-zA-Z0-9.-]/g, '_').toLowerCase();
 }
@@ -16,10 +14,12 @@ export async function POST(req: Request) {
     const file = formData.get('file') as File;
     const chatId = formData.get('chatId') as string;
     const isSpreadsheet = file.type.includes('spreadsheet') || 
-                         file.type.includes('csv') ||
+                          file.type.includes('csv') ||
                          file.name.endsWith('.xlsx') ||
                          file.name.endsWith('.xls') ||
-                         file.name.endsWith('.csv');
+                         file.name.endsWith('.csv') ||
+                         file.name.endsWith('.json') ||
+                         file.name.endsWith('.pdf');
                          
 
     const bucketId = isSpreadsheet ? 'data-files' : 'chat_attachments';
@@ -29,6 +29,7 @@ export async function POST(req: Request) {
       fileType: file?.type,
       fileSize: file?.size,
       chatId,
+      isSpreadsheet
     });
 
     if (!file) {
@@ -57,12 +58,14 @@ export async function POST(req: Request) {
     try {
       const sanitizedFileName = sanitizeFileName(file.name);
       const filePath = [user.id, chatId, sanitizedFileName];
+      const fileId = generateUUID(); // Generate a unique ID for the file
 
       console.log('Sanitized file details:', {
         originalName: file.name,
         sanitizedName: sanitizedFileName,
         path: filePath.join('/'),
         userId: user.id,
+        fileId
       });
 
       const { data: buckets, error: bucketError } =
@@ -84,7 +87,7 @@ export async function POST(req: Request) {
           {
             public: true,
             fileSizeLimit: 52428800,
-            allowedMimeTypes: ['image/*', 'application/pdf', 'csv', '.xlsx', '.xls'],
+            allowedMimeTypes: ['image/*', 'application/pdf', 'csv', '.xlsx', '.xls', '.json'],
           }
         );
         if (createError) {
@@ -104,7 +107,9 @@ export async function POST(req: Request) {
               'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
               'text/csv',                                                       
               'application/csv',                                                
-              'text/plain'                                                      
+              'text/plain',
+              'application/json',
+              'application/pdf'
             ],
           }
         );
@@ -118,14 +123,6 @@ export async function POST(req: Request) {
         bucketId,
         fileType: file.type,
         isSpreadsheet,
-        allowedTypes: [
-          'application/vnd.ms-excel',
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          'text/csv',
-          'application/csv',
-          'text/plain',
-          'application/pdf',
-        ]
       });
 
       const publicUrl = await upload(supabase, {
@@ -153,12 +150,28 @@ export async function POST(req: Request) {
         .single();
 
       if (existingFile) {
-        // Return the existing file URL
         return NextResponse.json({
           url: existingFile.url,
           path: filePath.join('/'),
-          isSpreadsheet,
+          isSpreadsheet
         });
+      }
+
+      let pineconeResult = null;
+      let parsedData = null;
+
+      if (isSpreadsheet) {
+        console.log('Processing spreadsheet for Pinecone indexing');
+        
+        pineconeResult = await storeDocument(
+          await file.arrayBuffer(),
+          sanitizedFileName,
+          file.type,
+          user.id,
+          fileId
+        );
+        
+        console.log('Pinecone indexing result:', pineconeResult);
       }
 
       const { error: dbError } = await supabase.from('file_uploads').insert({
@@ -187,24 +200,12 @@ export async function POST(req: Request) {
 
       console.log('File record created successfully');
 
-      // Generate a fileId
-      const fileId = generateUUID();
-      let parsedData = null;
-
-      const result = await storeDocument(
-        await file.arrayBuffer(),
-        sanitizedFileName,
-        file.type,
-        user.id,
-        fileId
-      );
-
       return NextResponse.json({
         url: publicUrl,
         path: filePath.join('/'),
         isSpreadsheet,
         tableData: parsedData,
-        pineconeDocumentId: fileId,
+        pineconeDocumentId: isSpreadsheet ? fileId : null,
       });
     } catch (uploadError: any) {
       console.error('Upload error details:', {
@@ -245,17 +246,3 @@ export async function POST(req: Request) {
     );
   }
 }
-
-export async function GET() {
-  try {
-    const workbookData = await readExcelFile('data/default.xlsx');
-    return NextResponse.json(workbookData);
-  } catch (error) {
-    console.error('Error loading Excel file:', error);
-    return NextResponse.json(
-      { error: 'Failed to load Excel file' },
-      { status: 500 }
-    );
-  }
-}
-

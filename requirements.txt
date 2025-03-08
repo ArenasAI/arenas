@@ -1,0 +1,13 @@
+pandas 
+numpy 
+matplotlib 
+scikit-learn 
+seaborn 
+jupyterlab 
+scipy 
+tensorflow 
+pytimetk 
+pmdarima 
+prophet 
+statsmodels 
+stumpy

@@ -225,11 +225,9 @@ type ResponseMessage = ResponseMessageWithoutId & { id: string };
 export function sanitizeResponseMessages({
   messages,
   reasoning,
-  fileUrls,
 }: {
   messages: Array<ResponseMessage>;
   reasoning: string | undefined;
-  fileUrls?: string[];
 }) {
   const toolResultIds: Array<string> = [];
 
@@ -257,17 +255,8 @@ export function sanitizeResponseMessages({
     );
 
     if (reasoning) {
-      sanitizedContent.push({ type: 'text', text: reasoning }); // this should be reasoning i think?
-    }
-    
-    // Add file URLs to the sanitized content if available
-    if (fileUrls && fileUrls.length > 0) {
-      fileUrls.forEach(url => {
-        sanitizedContent.push({ 
-          type: 'text', 
-          text: url 
-        });
-      });
+      // @ts-expect-error: reasoning message parts in sdk is wip
+      sanitizedContent.push({ type: 'reasoning', reasoning });
     }
 
     return {
@@ -314,10 +303,12 @@ export function sanitizeUIMessages(messages: Array<Message>): Array<Message> {
   );
 }
 
+
 export function getMostRecentUserMessage(messages: Array<Message>) {
   const userMessages = messages.filter((message) => message.role === 'user');
   return userMessages.at(-1);
 }
+
 
 export function getDocumentTimestampByIndex(
   documents: Array<Document>,

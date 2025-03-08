@@ -179,7 +179,6 @@ function PureMultimodalInput({
     setFileUploads(prev => prev.filter(upload => upload.id !== id));
   };
 
-  // Modify the uploadFile function to handle spreadsheet data
   const uploadFile = async (file: File) => {
     const uploadId = addFileUpload(file.name);
     

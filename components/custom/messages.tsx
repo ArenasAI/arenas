@@ -7,7 +7,6 @@ import { Database } from '@/lib/supabase/types';
 import equal from 'fast-deep-equal';
 import { TablePreview } from './table-preview';
 import { useState } from 'react';
-import { UIBlock } from './block';
 import { User } from '@supabase/supabase-js';
 
 type Vote = Database['public']['Tables']['votes']['Row']

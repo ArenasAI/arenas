@@ -4,8 +4,8 @@ export function useScrollToBottom<T extends HTMLElement>(): [
   RefObject<T>,
   RefObject<T>,
 ] {
-  const containerRef = useRef<T>(null);
-  const endRef = useRef<T>(null);
+  const containerRef = useRef<T>(null) as RefObject<T>;
+  const endRef = useRef<T>(null) as RefObject<T>;
 
   useEffect(() => {
     const container = containerRef.current;

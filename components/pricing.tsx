@@ -9,9 +9,11 @@ import { Check, X, Sparkles, Zap, BarChart } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { motion } from "framer-motion"
+import { toast } from "sonner"
 
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly')
+  const [loading, setLoading] = useState<number | null>(null)
   
   const toggleBillingCycle = () => {
     setBillingCycle(prev => prev === 'monthly' ? 'annual' : 'monthly')
@@ -23,6 +25,45 @@ export default function PricingPage() {
     <Zap className="h-12 w-12 text-amber-500" key="zap" />,
     <Sparkles className="h-12 w-12 text-purple-500" key="sparkles" />
   ]
+
+  const handleSubscribe = async (tier: string, index: number) => {
+    try {
+      setLoading(index)
+      
+      // Map tier titles to price IDs
+      const priceIdMap: Record<string, string> = {
+        'Student': process.env.NEXT_PUBLIC_STRIPE_STUDENT_PRICE_ID || '',
+        'Pro': process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID || '',
+        'Team': process.env.NEXT_PUBLIC_STRIPE_TEAM_PRICE_ID || '',
+      }
+      
+      // Add _ANNUAL suffix for annual billing
+      const priceId = billingCycle === 'annual' 
+        ? `${priceIdMap[tier]}_ANNUAL` 
+        : priceIdMap[tier]
+      
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          priceId, 
+          plan: tier 
+        }),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to create checkout session')
+      }
+      
+      const { url } = await response.json()
+      window.location.href = url
+    } catch (error) {
+      console.error('Error:', error)
+      toast.error('Something went wrong. Please try again.')
+    } finally {
+      setLoading(null)
+    }
+  }
 
   return (
     <div className={`${dela.className} min-h-screen relative overflow-hidden`}>
@@ -135,8 +176,10 @@ export default function PricingPage() {
                   }`}
                   variant={index === 1 ? "default" : "outline"}
                   size="lg"
+                  onClick={() => handleSubscribe(tier.title, index)}
+                  disabled={loading === index}
                 >
-                  {index === 1 ? 'Get Started' : 'Subscribe'}
+                  {loading === index ? 'Loading...' : index === 1 ? 'Get Started' : 'Subscribe'}
                 </Button>
               </CardFooter>
             </Card>

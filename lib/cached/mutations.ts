@@ -73,42 +73,19 @@ export async function saveMessages({
   messages,
 }: {
   chatId: string;
-  messages: Message[];
+  messages: Array<Message>;
 }) {
   await mutateQuery(
     async (client, { chatId, messages }) => {
-      const formattedMessages = messages.map((message) => {
-        // Handle tool invocations and content
-        let content = message.content;
-
-        // If message has tool invocations, save them as part of the content
-        if (message?.toolInvocations && message?.toolInvocations?.length > 0) {
-          content = JSON.stringify({
-            content: message.content,
-            toolInvocations: message.toolInvocations,
-          });
-        } else if (typeof content === 'object') {
-          content = JSON.stringify(content);
-        }
-
-        // Handle annotations if present
-        if (message.annotations && message.annotations?.length > 0) {
-          content = JSON.stringify({
-            content: content,
-            annotations: message.annotations,
-          });
-        }
-
-        return {
-          id: message.id,
+      const { error } = await client.from('messages').insert(
+        messages.map(msg => ({
           chat_id: chatId,
-          role: message.role,
-          content: content,
-          created_at: message.created_at || new Date().toISOString(),
-        };
-      });
-
-      const { error } = await client.from('messages').insert(formattedMessages);
+          id: msg.id,
+          role: msg.role,
+          content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
+          created_at: new Date().toISOString()
+        }))
+      );
       if (error) throw error;
     },
     [{ chatId, messages }],
@@ -344,23 +321,3 @@ export async function deleteDocumentsByIdAfterTimestamp({
     ]
   );
 }
-
-// export async function saveVisualization({
-//   id,
-//   chatId,
-// }: {
-//   id: string;
-//   chatId: string;
-// }) {
-//   await mutateQuery(
-//     async (client, { id, chatId }) => {
-//       const { error } = await client.from('visualizations').insert({
-//         document_id: id,
-//         chat_id: chatId,
-//       });
-//       if (error) throw error;
-//     },
-//     [{ id, chatId }],
-//     [`visualization_${id}`, `chat_${chatId}`]
-//   );
-// }

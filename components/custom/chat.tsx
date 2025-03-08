@@ -3,27 +3,16 @@
 import { Attachment, Message } from 'ai';
 import { useChat } from '@ai-sdk/react';
 import { useState, useEffect, useCallback, DragEvent } from 'react';
-import Papa from 'papaparse';
-import * as XLSX from 'xlsx';
-
 import useSWR, { useSWRConfig } from 'swr';
 import { toast } from 'sonner';
-import { useWindowSize } from 'usehooks-ts';
 import { ChatHeader } from '@/components/custom/chat-header';
-import { PreviewMessage, ThinkingMessage } from '@/components/custom/message';
-import { useScrollToBottom } from '@/components/custom/use-scroll-to-bottom';
 import { Database } from '@/lib/supabase/types';
-import { fetcher, generateUUID } from '@/lib/utils';
-import { UIBlock } from './block'
-import { BlockStreamHandler } from './block-stream-handler';
+import { fetcher } from '@/lib/utils';
 import { MultimodalInput } from './multimodal-input';
-import { TablePreview } from './table-preview';
-import { Overview } from './overview';
 import { createClient } from '@/lib/supabase/client';
 import { useArtifactSelector } from '@/hooks/use-artifact';
 import { Artifact } from '../artifacts/artifact';
 import { Messages } from './messages';
-import { RealtimeToggle } from './realtime-toggle';
 
 type PreviewData = {
   headers: string[]
@@ -58,6 +47,7 @@ export function Chat({
     isLoading,
     stop,
     reload,
+    data
   } = useChat({
     body: { id, modelId: selectedModelId },
     initialMessages,
@@ -65,7 +55,7 @@ export function Chat({
       mutate('/api/history');
     },
     onError: () => {
-      toast.error("An error occurred! please try again later.")
+      toast.error("An error occurred! Please try again later.")
     }
   });
 
@@ -74,15 +64,6 @@ export function Chat({
   const { data: votes } = useSWR<Array<Vote>>(
     `/api/vote?chatId=${id}`,
     fetcher
-  );
-
-  const hasSpreadsheetAttachment = attachments.some(
-    attachment => 
-      attachment.contentType?.includes('spreadsheet') || 
-      attachment.contentType?.includes('csv') ||
-      attachment.name?.endsWith('.xlsx') ||
-      attachment.name?.endsWith('.xls') ||
-      attachment.name?.endsWith('.csv')
   );
 
   useEffect(() => {
@@ -94,40 +75,6 @@ export function Chat({
     getUser();
   }, [supabase]);
   
-  useEffect(() => {
-    const isSpreadsheetFile = (filename: string) => { 
-      const spreadsheetExtensions = ['.xlsx', '.xls', '.csv']; 
-      return spreadsheetExtensions.some(ext => filename.toLowerCase().endsWith(ext)); 
-    };
-
-    const processAttachment = async (attachment: any) => { 
-      if (attachment && isSpreadsheetFile(attachment.name)) { 
-          try { 
-            const response = await fetch(attachment.url); 
-            const buffer = await response.arrayBuffer();
-            let parsedData: any;
-
-            if (attachment.name.toLowerCase().endsWith('.csv')) {
-              const text = new TextDecoder('utf-8').decode(buffer);
-              const result = Papa.parse(text, { header: true });
-              parsedData = result.data;
-            } else {
-              const workbook = XLSX.read(buffer, { type: 'array' });
-              const firstSheetName = workbook.SheetNames[0];
-              const worksheet = workbook.Sheets[firstSheetName];
-              parsedData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-            }
-            setTableData(parsedData);
-          } catch (error) {
-             console.error('Error processing spreadsheet:', error);
-          }
-        }}
-    if (attachments.length > 0) { 
-      processAttachment(attachments[0]); 
-    } 
-  }, [attachments]);
-  
-
   const { mutate } = useSWRConfig();
 
   const uploadFile = async (file: File, chatId: string) => {
@@ -230,6 +177,7 @@ export function Chat({
     }
   }, [id, setAttachments]);
 
+  
   return (
     <>
       <div 
@@ -244,14 +192,7 @@ export function Chat({
           selectedModelId={selectedModelId}
         />
         
-        {/* <div className="flex justify-end px-4 py-2">
-          <RealtimeToggle 
-            chatId={id} 
-            isSpreadsheetAttached={hasSpreadsheetAttachment} 
-          />
-        </div> */}
-        
-        {/* {isDragging && (
+        {isDragging && (
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm 
                          flex items-center justify-center z-50 pointer-events-none">
             <div className="p-8 rounded-xl border-2 border-dashed border-primary 
@@ -264,7 +205,7 @@ export function Chat({
               </p>
             </div>
           </div>
-        )} */}
+        )}
 
         <Messages
           chatId={id}
@@ -298,7 +239,7 @@ export function Chat({
         </form>
       </div>
 
-      {/* <Artifact
+      <Artifact
         user={user}
         chatId={id}
         input={input}
@@ -313,7 +254,7 @@ export function Chat({
         setMessages={setMessages}
         reload={reload}
         votes={votes}
-      /> */}
+      />
     </>
   );
 }

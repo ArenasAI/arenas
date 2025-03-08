@@ -6,6 +6,14 @@ export const CONTACT_EMAIL = "witharenas@gmail.com";
 
 export const MAX_MESSAGES = "15";
 
+export const isProductionEnvironment = process.env.NODE_ENV === 'production';
+
+export const isTestEnvironment = Boolean(
+  process.env.PLAYWRIGHT_TEST_BASE_URL ||
+    process.env.PLAYWRIGHT ||
+    process.env.CI_PLAYWRIGHT,
+);
+
 export const PRICING_TIERS: {
     monthly: PricingTierData[],
     annual: PricingTierData[],

@@ -33,7 +33,7 @@ export default function Hero() {
           <div className="pt-8">
             <Link
               href="/chat"
-              className="inline-flex items-center gap-2 bg-white dark:bg-zinc-900 text-black dark:text-white px-8 py-4 rounded-full text-lg font-medium transition-all hover:opacity-90"
+              className="inline-flex items-center gap-2 bg-black dark:bg-white text-white dark:text-black px-8 py-4 rounded-full text-lg font-medium transition-all hover:opacity-90"
             >
               try it now
               <ArrowRight className="w-5 h-5" />

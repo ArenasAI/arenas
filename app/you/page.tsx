@@ -1,33 +1,9 @@
 import createClient from '@/lib/supabase/server'
+import { getUserSubscription } from '@/lib/stripe'
 import { Dashboard } from '@/components/dashboard'
 import { redirect } from 'next/navigation'
 import { Navbar } from '@/components/nav'
-
-// Define the subscription status function
-async function getSubscriptionStatus(userId: string) {
-  const supabase = await createClient()
-  
-  const { data: subscription, error } = await supabase
-    .from('subscriptions')
-    .select('*')
-    .eq('user_id', userId)
-    .single()
-
-  if (error) {
-    // Return default subscription state if error
-    return {
-      status: 'inactive',
-      plan_type: 'free',
-      trial_end: null
-    }
-  }
-
-  return subscription || {
-    status: 'inactive',
-    plan_type: 'free',
-    trial_end: null
-  }
-}
+import SubscriptionStatus from '@/components/subscription-status'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -41,7 +17,7 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
-  const subscription = await getSubscriptionStatus(user.id)
+  const subscription = await getUserSubscription(user.id)
 
   // Get message count from messages table
   const { count: messageCount } = await supabase
@@ -51,14 +27,7 @@ export default async function DashboardPage() {
 
   const dashboardData = {
     user,
-    subscription: {
-      status: subscription.status,
-      plan_type: subscription.plan_type,
-      trial_end: subscription.trial_end,
-      messageCount: messageCount || 0,
-      isTrialing: subscription.status === 'trialing',
-      isActive: subscription.status === 'active'
-    }
+    subscription,
   }
 
   return (
@@ -66,9 +35,17 @@ export default async function DashboardPage() {
       <div className="flex flex-col gap-8 pb-8 pt-6 md:py-20">
         <Navbar />
         <Dashboard 
-          user={dashboardData.user} 
-          subscription={dashboardData.subscription}
-        />
+          user={dashboardData.user}
+        />  
+        <div className="max-w-md mx-auto w-full">
+          {/* Pass subscription as a serializable prop */}
+          <SubscriptionStatus subscription={subscription ? {
+            status: subscription.status,
+            price_id: subscription.price_id,
+            currentPeriodEnd: subscription.currentPeriodEnd.toISOString(),
+            cancelAtPeriodEnd: subscription.cancelAtPeriodEnd
+          } : null} />
+        </div>
       </div>
     </main>
   )

@@ -1,7 +1,7 @@
 'use client';
 
 import { User } from '@supabase/supabase-js';
-import { ChevronUp } from 'lucide-react';
+import { ChevronUp, Link } from 'lucide-react';
 import Image from 'next/image';
 import { useTheme } from 'next-themes';
 
@@ -43,11 +43,31 @@ export function SidebarUserNav({ user }: { user: User }) {
             side="top"
             className="w-[--radix-popper-anchor-width]"
           >
+            <DropdownMenuItem>
+              <a href="/pricing" className="text-sm text-foreground/80 hover:text-foreground transition-colors">
+                upgrade
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <a href="/files" className="text-sm text-foreground/80 hover:text-foreground transition-colors">
+                your files
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <a 
+                target='_blank' 
+                href='https://github.com/ArenasAI/arenas' 
+                rel='noreferrer noopener' 
+                className="text-sm text-foreground/80 hover:text-foreground transition-colors"
+              >
+                github
+              </a>
+            </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer"
               onSelect={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             >
-              {`Toggle ${theme === 'light' ? 'dark' : 'light'} mode`}
+              {`toggle ${theme === 'light' ? 'dark' : 'light'} mode`}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <LogoutButton />

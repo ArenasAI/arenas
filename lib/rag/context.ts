@@ -16,7 +16,7 @@ export async function getMatchesFromEmbeddings(embeddings: number[], fileUrl: st
                 namespace,
             }
         });
-        return results;
+        return results.matches || [];
     } catch (error) {
         console.error('Error getting matches from embeddings:', error);
         return [];

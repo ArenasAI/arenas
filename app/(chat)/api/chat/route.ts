@@ -1,6 +1,7 @@
 import {
   createDataStreamResponse,
   type Message,
+  type CoreMessage,
   smoothStream,
   streamText,
 } from 'ai';
@@ -13,18 +14,20 @@ import {
 import {
   generateUUID,
   getMostRecentUserMessage,
-  extractDocumentId,
-  sanitizeUIMessages,
   sanitizeResponseMessages,
 } from '@/lib/utils';
-import type { FileAttachment } from '@/shared/chat';
 import { NextResponse } from 'next/server';
 import { generateTitleFromUserMessage } from '../../actions';
 import { systemPrompt } from '@/ai/prompts';
 import { MessageRole } from '@/lib/supabase/types';
-import { queryDocumentContext } from '@/lib/pinecone';
 import { myProvider } from '@/ai/models';
-import { openai } from '@ai-sdk/openai';
+import { createDocument } from '@/lib/tools/create-document';
+import { updateDocument } from '@/lib/tools/update-document';
+import { generateVisualization } from '@/lib/tools/generate-visualization';
+import { isProductionEnvironment } from '@/utils/constants';
+import { cleanData } from '@/lib/tools/data-cleaning';
+import { generateReports } from '@/lib/tools/generate-reports';
+
 export const maxDuration = 60;
 
 type RequestBody = {
@@ -43,36 +46,43 @@ const ALLOWED_MIME_TYPES = [
   'image/jpeg',
 ];
 
-function validateAttachment(attachment: FileAttachment) {
-  if (!ALLOWED_MIME_TYPES.includes(attachment.mimeType)) {
-    throw new Error(`Unsupported file format: ${attachment.mimeType}`);
-  }
-}
-
-function contentToString(content: any): string {
-  if (typeof content === 'string') return content;
-  if (Array.isArray(content)) {
-    return content
-      .filter(part => part.type === 'text')
-      .map(part => part.text)
-      .join('\n');
-  }
-  return JSON.stringify(content);
-}
-
 export async function POST(request: Request) {
     const { id, messages, modelId } : RequestBody = await request.json();
-
-    if (!id || !modelId ) {
-      return NextResponse.json({ error: 'Invalid id or modelId' }, { status: 400 });
-    }
     const user = await getSession();
-
-    if (!user || !user.id) {
+    const session = await getSession();
+    
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    // Process messages to handle attachments
+    const processedMessages = messages.map(msg => {
+      if (Array.isArray(msg.content)) {
+        const content = msg.content.map(part => {
+          if ('file' in part) {
+            return {
+              type: 'file',
+              file: {
+                ...part.file,
+                contentType: ALLOWED_MIME_TYPES.includes(part.file.type) 
+                  ? part.file.type 
+                  : 'application/octet-stream'
+              }
+            };
+          }
+          return part;
+        });
+        
+        return {
+          id: msg.id,
+          role: msg.role,
+          content: JSON.stringify(content)
+        } as Message;
+      }
+      return msg;
+    });
 
-    const userMessage = getMostRecentUserMessage(messages);    
+    const userMessage = getMostRecentUserMessage(processedMessages);    
     if (!userMessage) {
       return NextResponse.json({ error: 'No user message found' }, { status: 400 });
     }
@@ -83,6 +93,7 @@ export async function POST(request: Request) {
       await saveChat({ id, userId: user.id, title });
     }
 
+    // Save the message with file data preserved
     await saveMessages({
       chatId: id,
       messages: [
@@ -90,71 +101,88 @@ export async function POST(request: Request) {
           id: generateUUID(),
           chat_id: id,
           role: userMessage.role as MessageRole,
-          content: userMessage.content,
+          content: Array.isArray(userMessage.content) 
+            ? JSON.stringify(userMessage.content)
+            : userMessage.content,
           created_at: new Date().toISOString(),
         },
       ],
     });
-    if (userMessage.content.includes('document:')) {
-      const documentId = extractDocumentId(userMessage.content);
-      if (!documentId) {
-        return NextResponse.json({ error: 'No document ID found' }, { status: 400 });
-      }
-      
-      const documentContext = await queryDocumentContext(
-        userMessage.content,
-        documentId,
-        user.id,
-        5
-      );
-      
-      const contextPrompt = `
-        Document context:
-        ${documentContext.map(ctx => ctx.text).join('\n\n')}
-        
-        User query: ${userMessage.content}
-        
-        Based on the document context above, please respond to the user's query.
-      `;
-    }
-    
+
     return createDataStreamResponse({
       execute: (dataStream) => {
+ 
+          const cleanDataTool = {
+            handler: cleanData({ session, dataStream, selectedModelId: modelId }),
+            description: "Clean and transform data",
+            parameters: {
+              type: "object",
+              properties: {
+                data: { type: "array" },
+                language: { type: "string", enum: ["python", "r", "julia"] },
+                operations: { type: "array", items: { type: "string" } }
+              },
+              required: ["data"]
+            }
+          };
+
+          const generateReportsTool = {
+            handler: generateReports({ session, dataStream, selectedModelId: modelId }),
+            description: "Generate reports from data",
+            parameters: {
+              type: "object",
+              properties: {
+                data: { type: "array" },
+                language: { type: "string", enum: ["python", "r", "julia"] },
+                reportType: { type: "string", enum: ["summary", "detailed", "visualization"] },
+                columns: { type: "array", items: { type: "string" } }
+              },
+              required: ["data"]
+            }
+          };
+
         const result = streamText({
           model: myProvider.languageModel(modelId),
           system: systemPrompt,
-          messages,
+          messages: processedMessages,
           maxSteps: 5,
           experimental_transform: smoothStream({ chunking: 'word' }),
           experimental_generateMessageId: generateUUID,
+          // tools: {
+          //   createDocument: createDocument({ session, dataStream, selectedModelId: modelId }),
+          //   updateDocument: updateDocument({ session, dataStream, selectedModelId: modelId }),
+          //   generateVisualization: generateVisualization({ session, dataStream, selectedModelId: modelId }),
+          //   generateReports: generateReportsTool,
+          //   cleanData: cleanDataTool,
+          // },
           onFinish: async ({ response, reasoning }) => {
             if (user && user.id) {
               try {
-                const responseMessagesWithoutIncompleteToolCalls = sanitizeResponseMessages({
-                messages: response.messages,
-                reasoning,
-              });
+                await saveMessages({
+                  chatId: id,
+                  messages: response.messages.map((message) => {
+                     // Transform content to match Message['content']
+                    const content = typeof message.content === 'string'
+                      ? message.content // AssistantContent as string
+                      : JSON.stringify(message.content); // ToolContent (array) to string
+                
+                    return {
+                      id: message.id ?? generateUUID(), // Handle undefined
+                      chat_id: id,
+                      role: message.role as MessageRole, // Assuming MessageRole matches SDK roles
+                      content, // Now string | Record<string, unknown>
+                      created_at: new Date().toISOString(),
+                    };
+                  }),
+                });
 
-            await saveMessages({
-              chatId: id,
-              messages: responseMessagesWithoutIncompleteToolCalls.map((message) => {
-                return {
-                    id: message.id,
-                    chat_id: id,
-                    role: message.role as MessageRole,
-                    content: contentToString(message.content),
-                    created_at: new Date().toISOString(),
-                  };
-                }
-              ),
-            });
               } catch (error) {
-                console.error('Failed to save chat', error);
+                console.error('Error processing response messages:', error);
               }
             }
           },
           experimental_telemetry: {
-            isEnabled: true,
+            isEnabled: isProductionEnvironment,
             functionId: 'stream-text',
           },
         });

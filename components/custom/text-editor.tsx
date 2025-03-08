@@ -86,7 +86,7 @@ function PureEditor({
           handleTransaction({
             transaction,
             editorRef,
-            onSaveContent,
+            saveContent: onSaveContent,
           });
         },
       });

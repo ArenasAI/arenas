@@ -4,6 +4,7 @@ import {
   LineChartIcon,
   RedoIcon,
   SparklesIcon,
+  DownloadIcon,
   UndoIcon,
 } from '@/components/icons';
 import { SpreadsheetEditor } from '@/components/custom/sheet-editor';

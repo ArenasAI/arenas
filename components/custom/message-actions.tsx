@@ -14,9 +14,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '../ui/tooltip';
-import { VisualizationMessage, VisualizationData } from '../visualizations/types';
-import { BarChart2 } from 'lucide-react';
-import { FileAttachment } from '@/shared/chat';
 
 interface MessageActionsProps {
   chatId: string;
@@ -24,7 +21,7 @@ interface MessageActionsProps {
   vote: { chat_id: string; is_upvoted: boolean; message_id: string; } | undefined;
   isLoading: boolean;
   user: User | null;
-  append: (message: Message | VisualizationMessage) => void;
+  append: (message: Message) => void;
 }
 
 export function MessageActions({
@@ -170,44 +167,6 @@ export function MessageActions({
             </Button>
           </TooltipTrigger>
           <TooltipContent>Downvote Response</TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                // Get file attachment if any
-                const attachment = message.experimental_attachments?.[0];
-                
-                // Create visualization content
-                const visualizationContent = {
-                  id: generateUUID(),
-                  fileUrl: attachment?.url,
-                  fileName: attachment?.name,
-                  fileType: attachment?.contentType,
-                  documentId: extractDocumentId(message.content as string) || 
-                              (attachment as unknown as FileAttachment)?.id || 
-                              generateUUID(),
-                  userId: user?.id,
-                  query: message.content as string
-                };
-                
-                // Add visualization message
-                append({
-                  id: generateUUID(),
-                  role: 'assistant',
-                  content: '',
-                  visualizationData: visualizationContent
-                } as VisualizationMessage);
-              }}
-              disabled={!message.experimental_attachments?.length && !message.content?.includes('document:')}
-            >
-              <BarChart2 className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Generate Visualization</TooltipContent>
         </Tooltip>
       </div>
     </TooltipProvider>

@@ -858,28 +858,12 @@ export type Client = SupabaseClient<Database>;
 
 export type MessageRole = 'user' | 'assistant' | 'system' | 'tool';
 
-// Add types for tool invocations and annotations
-export interface ToolInvocation {
-  state: 'call' | 'result';
-  toolCallId: string;
-  toolName: string;
-  args?: any;
-  result?: any;
-}
-
-export interface MessageAnnotation {
-  messageIdFromServer?: string;
-}
-
-// Update Message interface to match AI library format
 export interface Message {
   id: string;
   chat_id: string;
   role: MessageRole;
   content: string | Record<string, unknown>;
   created_at: string;
-  toolInvocations?: ToolInvocation[];
-  annotations?: MessageAnnotation[];
 }
 
 export interface PostgrestError {
@@ -916,96 +900,11 @@ export function handleDatabaseError(error: PostgrestError | null) {
   }
 }
 
-// Add Document type
 export type Document = Database['public']['Tables']['documents']['Row'];
 export type Vote = Database['public']['Tables']['votes']['Row'];
 export type Chat = Database['public']['Tables']['chats']['Row'];
 
 export type Suggestion = Database['public']['Tables']['suggestions']['Row'];
-
-// Add DatabaseMessage type to match the database schema
-export interface DatabaseMessage {
-  id: string;
-  chat_id: string;
-  role: string;
-  content: string; // Always stored as string in database
-  created_at: string;
-}
-
-// Helper function to convert between formats
-export function convertToDBMessage(message: Message): DatabaseMessage {
-  let content = message.content;
-
-  // Convert content to string if it's an object
-  if (typeof content === 'object') {
-    const messageData: any = { content };
-
-    // Add tool invocations if present
-    if (message.toolInvocations?.length) {
-      messageData.toolInvocations = message.toolInvocations;
-    }
-
-    // Add annotations if present
-    if (message.annotations?.length) {
-      messageData.annotations = message.annotations;
-    }
-
-    content = JSON.stringify(messageData);
-  }
-
-  return {
-    id: message.id,
-    chat_id: message.chat_id,
-    role: message.role,
-    content: content as string,
-    created_at: message.created_at,
-  };
-}
-
-// Helper function to parse database message
-export function parseDBMessage(dbMessage: DatabaseMessage): Message {
-  try {
-    const content = JSON.parse(dbMessage.content);
-
-    // Check if content is a message data object
-    if (content && typeof content === 'object' && 'content' in content) {
-      return {
-        ...dbMessage,
-        content: content.content,
-        toolInvocations: content.toolInvocations,
-        annotations: content.annotations,
-        role: dbMessage.role as MessageRole,
-      };
-    }
-
-    // If not a special format, return as is
-    return {
-      ...dbMessage,
-      content: dbMessage.content,
-      role: dbMessage.role as MessageRole,
-    };
-  } catch {
-    // If not valid JSON, return as plain text
-    return {
-      ...dbMessage,
-      content: dbMessage.content,
-      role: dbMessage.role as MessageRole,
-    };
-  }
-}
-
-// Add these types to your existing types file
-
-export interface FileUpload {
-  id: string;
-  created_at: string;
-  chat_id: string;
-  file_path: string;
-  file_name: string;
-  file_type: string;
-  file_size: number;
-  public_url: string;
-}
 
 export interface StorageError {
   message: string;
