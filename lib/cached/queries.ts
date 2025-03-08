@@ -1,6 +1,5 @@
 import { AuthError } from '@supabase/supabase-js';
 import type { Client, Database } from '@/lib/supabase/types';
-import { VisibilityType } from '@/components/visibility-selector';
 
 type Tables = Database['public']['Tables'];
 
@@ -367,18 +366,6 @@ export async function getMessageById(
 
   if (error) throw error;
   return message || [];
-}
-
-export async function updateChatVisiblityById(
-  client: Client,
-  { chatId, visibility }: { chatId: string; visibility: VisibilityType }
-) {
-  const { error } = await client
-    .from('chats')
-    .update({ visibility })
-    .eq('id', chatId);
-
-  if (error) throw error;
 }
 
 export async function getUserSubscriptionQuery(

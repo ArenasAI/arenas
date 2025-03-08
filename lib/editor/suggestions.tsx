@@ -1,15 +1,16 @@
-import { Node } from 'prosemirror-model';
-import { PluginKey, Plugin, EditorState } from 'prosemirror-state';
-import { Decoration, DecorationSet, EditorView } from 'prosemirror-view';
+import type { Node } from 'prosemirror-model';
+import { Plugin, PluginKey } from 'prosemirror-state';
+import {
+  type Decoration,
+  DecorationSet,
+  type EditorView,
+  type DecorationSource,
+} from 'prosemirror-view';
 import { createRoot } from 'react-dom/client';
-import { Suggestion as PreviewSuggestion } from '@/components/custom/suggestion';
-import { Suggestion } from '../supabase/types';
 
-// Define proper types for the plugin state
-interface SuggestionPluginState {
-  decorations: DecorationSet;
-  selected: string | null;
-}
+import { Suggestion as PreviewSuggestion } from '@/components/custom/suggestion';
+import type { Suggestion } from '@/lib/supabase/types';
+import { ArtifactKind } from '@/components/artifacts/artifact';
 
 export interface UISuggestion extends Suggestion {
   selectionStart: number;
@@ -22,9 +23,7 @@ interface Position {
 }
 
 function findPositionsInDoc(doc: Node, searchText: string): Position | null {
-  if (!searchText) return null;
-
-  let positions: Position | null = null;
+  let positions: { start: number; end: number } | null = null;
 
   doc.nodesBetween(0, doc.content.size, (node, pos) => {
     if (node.isText && node.text) {
@@ -36,7 +35,7 @@ function findPositionsInDoc(doc: Node, searchText: string): Position | null {
           end: pos + index + searchText.length,
         };
 
-        return false; // Stop searching once found
+        return false;
       }
     }
 
@@ -48,7 +47,7 @@ function findPositionsInDoc(doc: Node, searchText: string): Position | null {
 
 export function projectWithPositions(
   doc: Node,
-  suggestions: Array<Suggestion>
+  suggestions: Array<Suggestion>,
 ): Array<UISuggestion> {
   return suggestions.map((suggestion) => {
     const positions = findPositionsInDoc(doc, suggestion.original_text);
@@ -69,19 +68,14 @@ export function projectWithPositions(
   });
 }
 
-interface SuggestionWidgetSpec {
-  dom: HTMLElement;
-  destroy: () => void;
-}
-
 export function createSuggestionWidget(
   suggestion: UISuggestion,
-  view: EditorView
-): SuggestionWidgetSpec {
+  view: EditorView,
+  artifactKind: ArtifactKind = 'text',
+): { dom: HTMLElement; destroy: () => void } {
   const dom = document.createElement('span');
   const root = createRoot(dom);
 
-  // Prevent editor from losing focus when clicking suggestion
   dom.addEventListener('mousedown', (event) => {
     event.preventDefault();
     view.dom.blur();
@@ -90,16 +84,16 @@ export function createSuggestionWidget(
   const onApply = () => {
     const { state, dispatch } = view;
 
-    // Handle decorations
-    let decorationTransaction = state.tr;
-    const currentState = suggestionsPluginKey.getState(state) as SuggestionPluginState;
-    
-    if (currentState?.decorations) {
+    const decorationTransaction = state.tr;
+    const currentState = suggestionsPluginKey.getState(state);
+    const currentDecorations = currentState?.decorations;
+
+    if (currentDecorations) {
       const newDecorations = DecorationSet.create(
         state.doc,
-        currentState.decorations.find().filter((decoration: Decoration) => {
-          return (decoration.spec as any).suggestionId !== suggestion.id;
-        })
+        currentDecorations.find().filter((decoration: Decoration) => {
+          return decoration.spec.suggestionId !== suggestion.id;
+        }),
       );
 
       decorationTransaction.setMeta(suggestionsPluginKey, {
@@ -109,26 +103,28 @@ export function createSuggestionWidget(
       dispatch(decorationTransaction);
     }
 
-    // Apply the suggestion text
-    if (suggestion.selectionStart !== suggestion.selectionEnd) {
-      const textTransaction = view.state.tr.replaceWith(
-        suggestion.selectionStart,
-        suggestion.selectionEnd,
-        state.schema.text(suggestion.suggested_text)
-      );
+    const textTransaction = view.state.tr.replaceWith(
+      suggestion.selectionStart,
+      suggestion.selectionEnd,
+      state.schema.text(suggestion.suggested_text),
+    );
 
-      // Mark as non-debounced change
-      textTransaction.setMeta('no-debounce', true);
-      dispatch(textTransaction);
-    }
+    textTransaction.setMeta('no-debounce', true);
+
+    dispatch(textTransaction);
   };
 
-  root.render(<PreviewSuggestion suggestion={suggestion} onApply={onApply} />);
+  root.render(
+    <PreviewSuggestion
+      suggestion={suggestion}
+      onApply={onApply}
+    />,
+  );
 
   return {
     dom,
     destroy: () => {
-      // Safely unmount the React component
+      // Wrapping unmount in setTimeout to avoid synchronous unmounting during render
       setTimeout(() => {
         root.unmount();
       }, 0);
@@ -136,36 +132,27 @@ export function createSuggestionWidget(
   };
 }
 
-export const suggestionsPluginKey = new PluginKey<SuggestionPluginState>('suggestions');
-
-export const suggestionsPlugin = new Plugin<SuggestionPluginState>({
+export const suggestionsPluginKey = new PluginKey('suggestions');
+export const suggestionsPlugin = new Plugin({
   key: suggestionsPluginKey,
-
   state: {
-    init(): SuggestionPluginState {
-      return { 
-        decorations: DecorationSet.empty, 
-        selected: null 
-      };
+    init() {
+      return { decorations: DecorationSet.empty, selected: null };
     },
+    apply(tr, state) {
+      const newDecorations = tr.getMeta(suggestionsPluginKey);
+      if (newDecorations) return newDecorations;
 
-    apply(tr, pluginState: SuggestionPluginState, oldState: EditorState, newState: EditorState): SuggestionPluginState {
-      // Check for plugin-specific metadata updates
-      const meta = tr.getMeta(suggestionsPluginKey);
-      if (meta) return meta;
-
-      // Map decorations through document changes
       return {
-        decorations: pluginState.decorations.map(tr.mapping, tr.doc),
-        selected: pluginState.selected,
+        decorations: state.decorations.map(tr.mapping, tr.doc),
+        selected: state.selected,
       };
     },
   },
-
   props: {
-    decorations(state: EditorState): DecorationSet {
-      const pluginState = this.getState(state);
-      return pluginState?.decorations ?? DecorationSet.empty;
+    decorations(state) {
+      const decorations = this.getState(state)?.decorations;
+      return (decorations as any) || null;
     },
   },
 });
