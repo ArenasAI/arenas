@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkUserSubscription, stripe, getOrCreateCustomer } from '@/lib/stripe';
+import { checkUserSubscription, getOrCreateCustomer } from '@/lib/stripe';
 import { PRICING_TIERS } from '@/utils/constants';
 import { getUserSubscription } from '@/lib/stripe';
 import { getSession } from '@/lib/cached/cached-queries';
 import createClient from '@/lib/supabase/server';
+import { Stripe } from 'stripe';
+
+if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error('STRIPE_SECRET_KEY is not set');
+}
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2025-02-24.acacia',
+});
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
@@ -56,50 +65,37 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ session: stripeSession });
 }
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
     try {
-        const user = await getSession();
-        if (!user) {
-            return new Response('Unauthorized', { status: 401 });
+        const { priceId } = await request.json();
+
+        if (!priceId) {
+            return NextResponse.json(
+                { error: 'Price ID is required' },
+                { status: 400 }
+            );
         }
 
-        const { priceId, plan } = await req.json();
-
-        // Validate plan
-        if (!Object.keys(PRICING_TIERS).includes(plan)) {
-            return new Response('Invalid plan selected', { status: 400 });
-        }
-
-        const customerId = await getOrCreateCustomer(user.id, user.email!);
-
-        // Create checkout session
         const session = await stripe.checkout.sessions.create({
-            customer: customerId,
+            mode: 'subscription',
+            payment_method_types: ['card'],
             line_items: [
                 {
                     price: priceId,
                     quantity: 1,
                 },
             ],
-            mode: 'subscription',
-            success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/pricing?success=true`,
-            cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/pricing?canceled=true`,
-            metadata: {
-                userId: user.id,
-                plan
-            },
-            subscription_data: {
-                metadata: {
-                    userId: user.id,
-                    plan
-                }
-            }
+            success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/canceled`,
         });
 
-        return NextResponse.json({ url: session.url });
+        return NextResponse.json({ sessionId: session.id });
     } catch (error) {
         console.error('Error creating checkout session:', error);
-        return new Response('Error creating checkout session', { status: 500 });
+        return NextResponse.json(
+            { error: 'Error creating checkout session' },
+            { status: 500 }
+        );
     }
 }
 
