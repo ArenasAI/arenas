@@ -220,7 +220,14 @@ export function convertToUIMessages(
 }
 
 type ResponseMessageWithoutId = CoreToolMessage | CoreAssistantMessage;
-type ResponseMessage = ResponseMessageWithoutId & { id: string };
+type ResponseMessage = ResponseMessageWithoutId & { 
+  id: string;
+  experimental_attachments?: Array<{
+    url: string;
+    type: string;
+    name: string;
+  }>;
+};
 
 export function sanitizeResponseMessages({
   messages,
@@ -257,6 +264,15 @@ export function sanitizeResponseMessages({
     if (reasoning) {
       // @ts-expect-error: reasoning message parts in sdk is wip
       sanitizedContent.push({ type: 'reasoning', reasoning });
+    }
+
+    // Preserve any attachments from the original message
+    if (message.experimental_attachments) {
+      return {
+        ...message,
+        content: sanitizedContent,
+        experimental_attachments: message.experimental_attachments,
+      };
     }
 
     return {

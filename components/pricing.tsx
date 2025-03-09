@@ -66,7 +66,7 @@ export default function PricingPage() {
   }
 
   return (
-    <div className={`${dela.className} min-h-screen relative overflow-hidden`}>
+    <div className={`min-h-screen relative overflow-hidden`}>
       {/* Decorative background elements */}
       <div className="absolute top-0 left-0 w-full h-full -z-10" />
       
@@ -143,7 +143,7 @@ export default function PricingPage() {
               <CardContent className="pt-6 pb-4 flex-grow flex flex-col">
                 <div className="text-center mb-6">
                   <span className="text-5xl font-bold">${tier.price}</span>
-                  <span className="text-muted-foreground">/{billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
+                  <span className="text-muted-foreground">/{billingCycle === 'monthly' ? 'mo' : 'mo'}</span>
                   
                   {billingCycle === 'annual' && (
                     <div className="text-sm text-primary mt-2">

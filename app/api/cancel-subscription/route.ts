@@ -1,16 +1,26 @@
-import { NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe';
+import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/cached/cached-queries';
 import createClient from '@/lib/supabase/server';
+import { User } from '@supabase/supabase-js';
+import { TEST_MODE_ENABLED } from '@/utils/constants';
+import Stripe from 'stripe';
 
-export async function POST(req: Request) {
+if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error('STRIPE_SECRET_KEY is not set');
+}
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2025-02-24.acacia',
+});
+
+export async function cancelSubscription(request: NextRequest & { user: User }) {
+    const supabase = await createClient();
     try {
         const user = await getSession();
         if (!user) {
             return new Response('Unauthorized', { status: 401 });
         }
 
-        const supabase = await createClient();
         const { data: subscription } = await supabase
             .from('user_subscriptions')
             .select('stripe_subscription_id')

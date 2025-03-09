@@ -70,25 +70,11 @@ export function Navbar() {
                 pricing
             </Link>
             <Link 
-                href="/learn" 
-                className="text-sm text-foreground/80 hover:text-foreground transition-colors"
-                onClick={() => setIsOpen(false)}
-            >
-                learn
-            </Link>
-            <Link 
                 href="/docs" 
                 className="text-sm text-foreground/80 hover:text-foreground transition-colors"
                 onClick={() => setIsOpen(false)}
             >
                 docs
-            </Link>
-            <Link 
-                href="/files" 
-                className="text-sm text-foreground/80 hover:text-foreground transition-colors"
-                onClick={() => setIsOpen(false)}
-            >
-                files
             </Link>
             <a 
                 target='_blank' 

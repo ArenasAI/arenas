@@ -238,23 +238,6 @@ export function Chat({
           )}
         </form>
       </div>
-
-      <Artifact
-        user={user}
-        chatId={id}
-        input={input}
-        setInput={setInput}
-        handleSubmit={handleSubmit}
-        isLoading={isLoading}
-        stop={stop}
-        attachments={attachments}
-        setAttachments={setAttachments}
-        append={append}
-        messages={messages}
-        setMessages={setMessages}
-        reload={reload}
-        votes={votes}
-      />
     </>
   );
 }

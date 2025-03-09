@@ -16,10 +16,8 @@ export async function saveModelId(model: string) {
 
 export async function generateTitleFromUserMessage({
   message,
-  selectedModelId,
 }: {
   message: Message;
-  selectedModelId: string;
 }) {
   try {
   const { text: title } = await generateText({

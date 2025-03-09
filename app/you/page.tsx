@@ -19,7 +19,6 @@ export default async function DashboardPage() {
 
   const subscription = await getUserSubscription(user.id)
 
-  // Get message count from messages table
   const { count: messageCount } = await supabase
     .from('messages')
     .select('*', { count: 'exact', head: true })

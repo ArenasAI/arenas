@@ -4,11 +4,11 @@ import { experimental_generateImage } from 'ai';
 
 export const imageDocumentHandler = createDocumentHandler<'image'>({
   kind: 'image',
-  onCreateDocument: async ({ title, dataStream }) => {
+  onCreateDocument: async ({ title, dataStream, modelId }) => {
     let draftContent = '';
 
     const { image } = await experimental_generateImage({
-      model: myProvider.imageModel('small-model'),
+      model: myProvider.imageModel(modelId),
       prompt: title,
       n: 1,
     });
@@ -22,11 +22,11 @@ export const imageDocumentHandler = createDocumentHandler<'image'>({
 
     return draftContent;
   },
-  onUpdateDocument: async ({ description, dataStream }) => {
+  onUpdateDocument: async ({ description, dataStream, modelId }) => {
     let draftContent = '';
 
     const { image } = await experimental_generateImage({
-      model: myProvider.imageModel('small-model'),
+      model: myProvider.imageModel(modelId),
       prompt: description,
       n: 1,
     });

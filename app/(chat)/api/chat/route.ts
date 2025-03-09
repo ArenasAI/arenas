@@ -1,8 +1,9 @@
 import {
   createDataStreamResponse,
   type Message,
-  type CoreMessage,
   smoothStream,
+  convertToCoreMessages,
+  CoreMessage,
   streamText,
 } from 'ai';
 import { getChatById, getSession } from '@/lib/cached/cached-queries';
@@ -21,12 +22,7 @@ import { generateTitleFromUserMessage } from '../../actions';
 import { systemPrompt } from '@/ai/prompts';
 import { MessageRole } from '@/lib/supabase/types';
 import { myProvider } from '@/ai/models';
-import { createDocument } from '@/lib/tools/create-document';
-import { updateDocument } from '@/lib/tools/update-document';
-import { generateVisualization } from '@/lib/tools/generate-visualization';
 import { isProductionEnvironment } from '@/utils/constants';
-import { cleanData } from '@/lib/tools/data-cleaning';
-import { generateReports } from '@/lib/tools/generate-reports';
 
 export const maxDuration = 60;
 
@@ -46,6 +42,53 @@ const ALLOWED_MIME_TYPES = [
   'image/jpeg',
 ];
 
+function formatMessageContent(message: CoreMessage): string {
+  // For user messages, store as plain text
+  if (message.role === 'user') {
+    return typeof message.content === 'string'
+      ? message.content
+      : JSON.stringify(message.content);
+  }
+
+  // For tool messages, format as array of tool results
+  if (message.role === 'tool') {
+    return JSON.stringify(
+      message.content.map((content) => ({
+        type: content.type || 'tool-result',
+        toolCallId: content.toolCallId,
+        toolName: content.toolName,
+        result: content.result,
+      }))
+    );
+  }
+
+  // For assistant messages, format as array of text and tool calls
+  if (message.role === 'assistant') {
+    if (typeof message.content === 'string') {
+      return JSON.stringify([{ type: 'text', text: message.content }]);
+    }
+
+    return JSON.stringify(
+      message.content.map((content) => {
+        if (content.type === 'text') {
+          return {
+            type: 'text',
+            text: content.text,
+          };
+        }
+        return {
+          type: 'tool-call',
+          toolCallId: content.toolCallId,
+          toolName: content.toolName,
+          args: content.args,
+        };
+      })
+    );
+  }
+
+  return '';
+}
+
 export async function POST(request: Request) {
     const { id, messages, modelId } : RequestBody = await request.json();
     const user = await getSession();
@@ -54,8 +97,6 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
-    // Process messages to handle attachments
     const processedMessages = messages.map(msg => {
       if (Array.isArray(msg.content)) {
         const content = msg.content.map(part => {
@@ -82,18 +123,17 @@ export async function POST(request: Request) {
       return msg;
     });
 
-    const userMessage = getMostRecentUserMessage(processedMessages);    
+    const userMessage = getMostRecentUserMessage(processedMessages);
     if (!userMessage) {
       return NextResponse.json({ error: 'No user message found' }, { status: 400 });
     }
 
     const chat = await getChatById(id);
     if (!chat) {
-      const title = await generateTitleFromUserMessage({ message: userMessage, selectedModelId: modelId });
+      const title = await generateTitleFromUserMessage({ message: userMessage });
       await saveChat({ id, userId: user.id, title });
     }
 
-    // Save the message with file data preserved
     await saveMessages({
       chatId: id,
       messages: [
@@ -111,69 +151,37 @@ export async function POST(request: Request) {
 
     return createDataStreamResponse({
       execute: (dataStream) => {
- 
-          const cleanDataTool = {
-            handler: cleanData({ session, dataStream, selectedModelId: modelId }),
-            description: "Clean and transform data",
-            parameters: {
-              type: "object",
-              properties: {
-                data: { type: "array" },
-                language: { type: "string", enum: ["python", "r", "julia"] },
-                operations: { type: "array", items: { type: "string" } }
-              },
-              required: ["data"]
-            }
-          };
-
-          const generateReportsTool = {
-            handler: generateReports({ session, dataStream, selectedModelId: modelId }),
-            description: "Generate reports from data",
-            parameters: {
-              type: "object",
-              properties: {
-                data: { type: "array" },
-                language: { type: "string", enum: ["python", "r", "julia"] },
-                reportType: { type: "string", enum: ["summary", "detailed", "visualization"] },
-                columns: { type: "array", items: { type: "string" } }
-              },
-              required: ["data"]
-            }
-          };
 
         const result = streamText({
           model: myProvider.languageModel(modelId),
-          system: systemPrompt,
-          messages: processedMessages,
+          messages,
           maxSteps: 5,
-          experimental_transform: smoothStream({ chunking: 'word' }),
+          temperature: 1,
+          system: systemPrompt,
+          experimental_transform: smoothStream({ chunking: 'word', delayInMs: 15 }),
           experimental_generateMessageId: generateUUID,
-          // tools: {
-          //   createDocument: createDocument({ session, dataStream, selectedModelId: modelId }),
-          //   updateDocument: updateDocument({ session, dataStream, selectedModelId: modelId }),
-          //   generateVisualization: generateVisualization({ session, dataStream, selectedModelId: modelId }),
-          //   generateReports: generateReportsTool,
-          //   cleanData: cleanDataTool,
-          // },
+          onChunk: (event) => {
+            if (event.chunk.type === 'tool-call'){
+              console.log('Called tool:', event.chunk.toolCallId);
+            }
+          },
           onFinish: async ({ response, reasoning }) => {
             if (user && user.id) {
               try {
+                const sanitizedResponseMessages = sanitizeResponseMessages({
+                  messages: response.messages,
+                  reasoning,
+                });
+
                 await saveMessages({
                   chatId: id,
-                  messages: response.messages.map((message) => {
-                     // Transform content to match Message['content']
-                    const content = typeof message.content === 'string'
-                      ? message.content // AssistantContent as string
-                      : JSON.stringify(message.content); // ToolContent (array) to string
-                
-                    return {
-                      id: message.id ?? generateUUID(), // Handle undefined
-                      chat_id: id,
-                      role: message.role as MessageRole, // Assuming MessageRole matches SDK roles
-                      content, // Now string | Record<string, unknown>
-                      created_at: new Date().toISOString(),
-                    };
-                  }),
+                  messages: sanitizedResponseMessages.map((message) => ({
+                    id: message.id ?? generateUUID(),
+                    chat_id: id,
+                    role: message.role as MessageRole,
+                    content: formatMessageContent(message),
+                    created_at: new Date().toISOString(),
+                  })),
                 });
 
               } catch (error) {

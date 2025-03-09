@@ -48,7 +48,7 @@ export const models: Array<Model> = [
   {
     id: 'gpt-4.5',
     label: 'GPT-4.5',
-    apiIdentifier: 'gpt-4.5',
+    apiIdentifier: 'gpt-4.5-preview',
     streaming: true,
     disabled: true
   },
@@ -60,7 +60,7 @@ export const models: Array<Model> = [
   }
 ] as const;
 
-export const DEFAULT_MODEL_NAME = 'deepseek-chat';
+export const DEFAULT_MODEL_NAME = 'gpt-4o';
 
 export function getModelById(id: string): Model | undefined {
   return models.find(model => model.id === id);
@@ -84,6 +84,10 @@ export const myProvider = customProvider({
       model: fireworks('accounts/fireworks/models/deepseek-r1'),
       middleware: extractReasoningMiddleware({ tagName: 'think'}),
     }),
-    'gpt-4.5': openai('gpt-4.5'),
+    'gpt-4.5': openai('gpt-4.5-preview'),
+  },
+  imageModels: {
+    'dall-e-3': openai.image('dall-e-3', { maxImagesPerCall: 1 }),
+    'dall-e-2': openai.image('dall-e-2', { maxImagesPerCall: 1 }),
   }
 })
