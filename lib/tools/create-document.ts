@@ -109,6 +109,7 @@ export const createDocument = ({ session, dataStream, selectedModelId }: CreateD
             title,
             dataStream,
             session,
+            modelId: selectedModelId,
           });
           
           // Make sure the final document has content saved to the database

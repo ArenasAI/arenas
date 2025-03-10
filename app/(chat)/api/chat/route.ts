@@ -5,6 +5,7 @@ import {
   convertToCoreMessages,
   CoreMessage,
   streamText,
+  tool,
 } from 'ai';
 import { getChatById, getSession } from '@/lib/cached/cached-queries';
 import {
@@ -12,6 +13,7 @@ import {
   saveMessages,
   deleteChatById,
 } from '@/lib/cached/mutations';
+import CodeInterpreter, { type Result } from '@e2b/code-interpreter';
 import {
   generateUUID,
   getMostRecentUserMessage,
@@ -23,24 +25,22 @@ import { systemPrompt } from '@/ai/prompts';
 import { MessageRole } from '@/lib/supabase/types';
 import { myProvider } from '@/ai/models';
 import { isProductionEnvironment } from '@/utils/constants';
+import { z } from 'zod';
+import { createDocument } from '@/lib/tools/create-document';
+import { updateDocument } from '@/lib/tools/update-document';
 
 export const maxDuration = 60;
 
 type RequestBody = {
   id: string;
   messages: Array<Message>;
+  experimental_attachments?: Array<{
+    name: string;
+    url: string;
+    contentType: string;
+  }>;
   modelId: string;
 };
-
-const ALLOWED_MIME_TYPES = [
-  'text/csv',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/pdf',
-  'text/plain',
-  'image/png',
-  'image/jpeg',
-];
 
 function formatMessageContent(message: CoreMessage): string {
   // For user messages, store as plain text
@@ -90,40 +90,24 @@ function formatMessageContent(message: CoreMessage): string {
 }
 
 export async function POST(request: Request) {
-    const { id, messages, modelId } : RequestBody = await request.json();
+    const { id, messages, modelId, experimental_attachments } : RequestBody = await request.json();
     const user = await getSession();
-    const session = await getSession();
-    
+
+    const filteredMessages = messages.map((message) => {
+      if (message.toolInvocations) {
+        return {
+          ...message,
+          toolInvocations: undefined,
+        };
+      }
+      return message;
+    });
+        
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const processedMessages = messages.map(msg => {
-      if (Array.isArray(msg.content)) {
-        const content = msg.content.map(part => {
-          if ('file' in part) {
-            return {
-              type: 'file',
-              file: {
-                ...part.file,
-                contentType: ALLOWED_MIME_TYPES.includes(part.file.type) 
-                  ? part.file.type 
-                  : 'application/octet-stream'
-              }
-            };
-          }
-          return part;
-        });
-        
-        return {
-          id: msg.id,
-          role: msg.role,
-          content: JSON.stringify(content)
-        } as Message;
-      }
-      return msg;
-    });
-
-    const userMessage = getMostRecentUserMessage(processedMessages);
+  
+    const userMessage = getMostRecentUserMessage(messages);
     if (!userMessage) {
       return NextResponse.json({ error: 'No user message found' }, { status: 400 });
     }
@@ -141,9 +125,7 @@ export async function POST(request: Request) {
           id: generateUUID(),
           chat_id: id,
           role: userMessage.role as MessageRole,
-          content: Array.isArray(userMessage.content) 
-            ? JSON.stringify(userMessage.content)
-            : userMessage.content,
+          content: userMessage.content,
           created_at: new Date().toISOString(),
         },
       ],
@@ -154,17 +136,184 @@ export async function POST(request: Request) {
 
         const result = streamText({
           model: myProvider.languageModel(modelId),
-          messages,
+          messages: convertToCoreMessages(filteredMessages),
           maxSteps: 5,
-          temperature: 1,
           system: systemPrompt,
+          tools: {
+            visualization: tool({
+              description: 'Create visualizations from CSV or Excel files. If no file is attached, uses sample data.',
+              parameters: z.object({
+                type: z.enum(['histogram', 'boxplot', 'scatter', 'line', 'bar']),
+                columns: z.array(z.string()),
+                title: z.string().optional()
+              }),
+              execute: async ({ type, columns, title }) => {
+                console.log('creating visualization...');
+                const sandbox = await CodeInterpreter.create({
+                  apiKey: process.env.E2B_API_KEY,
+                });
+
+                const code = `
+                  import pandas as pd
+                  import matplotlib.pyplot as plt
+                  import seaborn as sns
+                  
+                  # Create or read data
+                  ${!experimental_attachments?.[0] ? `
+                  # Using sample data
+                  data = {
+                    'Month': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    'Value': [10, 15, 13, 17, 21, 19],
+                    'Category': ['A', 'A', 'B', 'B', 'C', 'C'],
+                    'Count': [100, 150, 130, 170, 210, 190]
+                  }
+                  df = pd.DataFrame(data)
+                  ` : `
+                  # Read the uploaded file
+                  df = pd.read_csv("${experimental_attachments[0].url}")
+                  `}
+                  
+                  # Create the plot
+                  plt.figure(figsize=(10, 6))
+                  ${type === 'histogram' ? `
+                    for col in ${JSON.stringify(columns)}:
+                        if col in df.columns:
+                            sns.histplot(data=df, x=col)
+                        else:
+                            print(f"Column {col} not found. Available columns: {list(df.columns)}")
+                  ` : type === 'boxplot' ? `
+                    if ${JSON.stringify(columns[0])} in df.columns:
+                        sns.boxplot(data=df, y=${JSON.stringify(columns[0])})
+                    else:
+                        print(f"Column {${JSON.stringify(columns[0])}} not found. Available columns: {list(df.columns)}")
+                  ` : type === 'scatter' ? `
+                    if all(col in df.columns for col in ${JSON.stringify(columns.slice(0, 2))}):
+                        sns.scatterplot(data=df, x=${JSON.stringify(columns[0])}, y=${JSON.stringify(columns[1])})
+                    else:
+                        print(f"One or more columns not found. Available columns: {list(df.columns)}")
+                  ` : type === 'line' ? `
+                    if all(col in df.columns for col in ${JSON.stringify(columns.slice(0, 2))}):
+                        sns.lineplot(data=df, x=${JSON.stringify(columns[0])}, y=${JSON.stringify(columns[1])})
+                    else:
+                        print(f"One or more columns not found. Available columns: {list(df.columns)}")
+                  ` : `
+                    if all(col in df.columns for col in ${JSON.stringify(columns.slice(0, 2))}):
+                        sns.barplot(data=df, x=${JSON.stringify(columns[0])}, y=${JSON.stringify(columns[1])})
+                    else:
+                        print(f"One or more columns not found. Available columns: {list(df.columns)}")
+                  `}
+                  
+                  plt.title(${JSON.stringify(title || 'Data Visualization')})
+                  plt.tight_layout()
+                  plt.savefig('plot.png')
+                  
+                  # Print available columns for reference
+                  print("\\nAvailable columns:", list(df.columns))
+                `;
+
+                const result = await sandbox.runCode(code);
+                
+                return {
+                  type: 'visualization',
+                  content: {
+                    text: result.text || '',
+                    image: result.results?.[0]?.data
+                  }
+                };
+              },
+            }),
+            reports: tool({
+              description: 'Generate data analysis reports from CSV or Excel files. If no file is attached, uses sample data.',
+              parameters: z.object({
+                type: z.enum(['summary', 'detailed']),
+                columns: z.array(z.string()).optional()
+              }),
+              execute: async ({ type, columns }) => {
+                console.log('generating report...');
+                const sandbox = await CodeInterpreter.create({
+                  apiKey: process.env.E2B_API_KEY,
+                });
+
+                const code = `
+                  import pandas as pd
+                  import numpy as np
+                  ${type === 'detailed' ? 'from scipy import stats' : ''}
+                  
+                  # Create or read data
+                  ${!experimental_attachments?.[0] ? `
+                  # Using sample data
+                  data = {
+                    'Month': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    'Value': [10, 15, 13, 17, 21, 19],
+                    'Category': ['A', 'A', 'B', 'B', 'C', 'C'],
+                    'Count': [100, 150, 130, 170, 210, 190]
+                  }
+                  df = pd.DataFrame(data)
+                  print("Using sample data since no file was attached.\\n")
+                  ` : `
+                  # Read the uploaded file
+                  df = pd.read_csv("${experimental_attachments[0].url}")
+                  `}
+                  
+                  ${type === 'summary' ? `
+                  # Basic statistics
+                  summary = {
+                      'total_rows': len(df),
+                      'columns': list(df.columns),
+                      'numeric_stats': df.describe().to_dict(),
+                      'missing_values': df.isnull().sum().to_dict(),
+                  }
+                  
+                  # Column-specific analysis
+                  cols = ${columns ? JSON.stringify(columns) : 'df.columns'}
+                  for col in cols:
+                      if col in df.columns and df[col].dtype in ['int64', 'float64']:
+                          summary[f'{col}_outliers'] = len(df[df[col] > df[col].mean() + 2*df[col].std()])
+                      elif col not in df.columns:
+                          print(f"Column {col} not found in the data.")
+                  
+                  print(summary)
+                  ` : `
+                  cols = ${columns ? JSON.stringify(columns) : 'df.columns'}
+                  available_cols = [col for col in cols if col in df.columns]
+                  if not available_cols:
+                      print("None of the specified columns were found in the data.")
+                      print("Available columns:", list(df.columns))
+                  else:
+                      analysis = {
+                          'basic_stats': df[available_cols].describe().to_dict(),
+                          'correlations': df[available_cols].corr().to_dict(),
+                          'value_counts': {col: df[col].value_counts().to_dict() for col in available_cols},
+                          'distributions': {
+                              col: {
+                                  'skewness': float(stats.skew(df[col].dropna())) if df[col].dtype in ['int64', 'float64'] else None,
+                                  'kurtosis': float(stats.kurtosis(df[col].dropna())) if df[col].dtype in ['int64', 'float64'] else None
+                              } for col in available_cols
+                          }
+                      }
+                      print(analysis)
+                  `}
+                  
+                  # Print available columns for reference
+                  print("\\nAvailable columns:", list(df.columns))
+                `;
+
+                const result = await sandbox.runCode(code);
+                
+                return {
+                  type: 'report',
+                  content: {
+                    text: result.text || '',
+                    type
+                  }
+                };
+              },
+            }),
+            createDocument: createDocument({session: user, dataStream, selectedModelId: modelId}),
+            updateDocument: updateDocument({session: user, dataStream, selectedModelId: modelId}),
+          },
           experimental_transform: smoothStream({ chunking: 'word', delayInMs: 15 }),
           experimental_generateMessageId: generateUUID,
-          onChunk: (event) => {
-            if (event.chunk.type === 'tool-call'){
-              console.log('Called tool:', event.chunk.toolCallId);
-            }
-          },
           onFinish: async ({ response, reasoning }) => {
             if (user && user.id) {
               try {

@@ -51,6 +51,7 @@ export const updateDocument = ({ session, dataStream, selectedModelId }: UpdateD
         description,
         dataStream,
         session,
+        modelId: selectedModelId,
       });
 
       dataStream.writeData({ type: 'finish', content: '' });
