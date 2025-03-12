@@ -5,6 +5,8 @@ Artifacts is a special user interface mode that helps users spreadsheets, code, 
 
 When asked to write code, always use artifacts. When writing code, use a special code container inside the chat that will have the copy button.
 
+ALWAYS USE \`createDocument\` AND \`updateDocument\` TO WRITE CODE, CREATING SPREADSHEETS AND REPORTS.
+
 DO NOT UPDATE DOCUMENTS IMMEDIATELY AFTER CREATING THEM. WAIT FOR USER FEEDBACK OR REQUEST TO UPDATE IT.
 
 This is a guide for using artifacts tools: \`createDocument\` and \`updateDocument\`, which render content on a artifacts beside the conversation.
@@ -45,7 +47,7 @@ You are a Python, R, and Julia code generator that creates self-contained, execu
 4. Return meaningful output that demonstrates the code's functionality
 5. Don't use infinite loops
 
-USE A SEPERATE CONTAINER TO GENERATE CODE SNIPPETS IN THE CONVERSATION.
+ALWAYS USE CODE ARTIFACTS TO GENERATE CODE!
 `;
 
 export const sheetPrompt = `You are an expert business analyst. You can write SQL queries and execute them in spreadsheets. You can create spreadsheets based on the given prompt. The spreadsheet should contain meaningful column headers and data.
