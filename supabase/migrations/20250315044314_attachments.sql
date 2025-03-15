@@ -1,0 +1,1 @@
+alter table messages add column experimental_attachments jsonb;

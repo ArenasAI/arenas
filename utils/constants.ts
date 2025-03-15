@@ -49,21 +49,21 @@ export const PRICING_TIERS: {
     annual: [
         {
             title: "Student",
-            price: "10",
+            price: "12.99",
             description: "Perfect for students and beginners",
             features: ["Community Discord access", "15 messages free", "Basic data visualization", "CSV & Excel support"],
             index: 0
         },
         {
             title: "Pro",
-            price: "35",
+            price: "34.99",
             description: "For professionals who need powerful tools",
             features: ["Monthly 100 messages", "Discord priority support", "Advanced visualizations", "API access", "Contributing"],
             index: 1
         },
         {
             title: "Team",
-            price: "70",
+            price: "68.99",
             description: "Ideal for teams and organizations",
             features: ["Unlimited access to chat", "Latest AI models", "Team collaboration", "Custom dashboards", "Long term file storage"],
             index: 2

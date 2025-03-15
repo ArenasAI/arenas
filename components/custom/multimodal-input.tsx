@@ -31,12 +31,13 @@ import { Textarea } from '../ui/textarea';
 import equal from 'fast-deep-equal';
 import { UploadStatus } from './upload-status';
 import { DataTablePreview } from './data-preview';
-import { FileAttachment } from '@/shared/chat';
+import { UseChatHelpers } from 'ai/react';
+
 function PureMultimodalInput({
   chatId,
   input,
   setInput,
-  isLoading,
+  status,
   stop,
   attachments,
   setAttachments,
@@ -48,25 +49,20 @@ function PureMultimodalInput({
   isDragging,
 }: {  
   chatId: string;
-  input: string;
-  setInput: (value: string) => void;
-  isLoading: boolean;
+  input: UseChatHelpers['input'];
+  setInput: UseChatHelpers['setInput'];
+  status: UseChatHelpers['status'];
   stop: () => void;
   attachments: Array<Attachment>;
   setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
   messages: Array<Message>;
   setMessages: Dispatch<SetStateAction<Array<Message>>>;
-  append: (
-    message: Message | CreateMessage,
-    chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
-  handleSubmit: (
-    event?: React.FormEvent<HTMLFormElement> | { preventDefault?: () => void },
-    chatRequestOptions?: ChatRequestOptions
-  ) => void;
+  append: UseChatHelpers['append'];
+  handleSubmit: UseChatHelpers['handleSubmit'];
   className?: string;
   isDragging: boolean;
 }) {
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
   useEffect(() => {
@@ -116,7 +112,7 @@ function PureMultimodalInput({
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
+  const [files, setFiles] = useState<FileList | undefined>(undefined);
 
   // Add file upload tracking state
   const [fileUploads, setFileUploads] = useState<Array<{
@@ -134,27 +130,18 @@ function PureMultimodalInput({
   } | null>(null);
 
   const submitForm = useCallback(() => {
-    window.history.replaceState({}, '', `/chat/${chatId}`);
-
     handleSubmit(undefined, {
-      experimental_attachments: attachments,
+      experimental_attachments: attachments
     });
 
-    setAttachments([]);
+    setFiles(undefined);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    setAttachments([]); // Clear attachments after sending
     setLocalStorageInput('');
     resetHeight();
-
-    if (width && width > 768) {
-      textareaRef.current?.focus();
-    }
-  }, [
-    attachments,
-    handleSubmit,
-    setAttachments,
-    setLocalStorageInput,
-    width,
-    chatId,
-  ]);
+  }, [attachments, handleSubmit, setLocalStorageInput]);
 
   const addFileUpload = (fileName: string) => {
     const id = uuidv4();
@@ -201,41 +188,29 @@ function PureMultimodalInput({
       });
 
       if (response.ok) {
-        // Update to processing state
-        updateFileUpload(uploadId, { progress: 60, status: 'processing' });
-        
         const data = await response.json();
-        const { url, pathname, contentType } = data;
+        
+        updateFileUpload(uploadId, { progress: 60, status: 'processing' });
+
+        const cleanedData = {
+          url: data.url,
+          name: data.path,
+          contentType: file.type,
+          ...(isSpreadsheet && data.tableData ? { 
+            tableData: data.tableData,
+            previewData: data.tableData 
+          } : {})
+          };
 
         // Update to complete state
         updateFileUpload(uploadId, { progress: 100, status: 'complete' });
         
         // Remove the status after a delay
-        setTimeout(() => {
-          removeFileUpload(uploadId);
-        }, 2000);
+        setTimeout(() => removeFileUpload(uploadId), 2000);
 
-        if (isSpreadsheet && data.tableData) {
-          // If it's a spreadsheet, show the preview
-          setPreviewData({
-            fileName: file.name,
-            data: data.tableData
-          });
-          
-          return {
-            url: data.url,
-            name: data.path,
-            contentType: file.type,
-            tableData: data.tableData,
-          };
-        }
-
-        return {
-          url,
-          name: pathname,
-          contentType: contentType,
-        };
+        return cleanedData;
       }
+      
       const { error } = await response.json();
       updateFileUpload(uploadId, { 
         status: 'error', 
@@ -255,40 +230,36 @@ function PureMultimodalInput({
     }
   };
 
-  // Add a function to show preview for an existing attachment
-  const showSpreadsheetPreview = useCallback((attachment: FileAttachment) => {
-    if (attachment.previewData) {
-      setPreviewData({
-        fileName: attachment.name?.split('/').pop() || 'Spreadsheet',
-        data: attachment.previewData
-      });
-    }
-  }, []);
-
   const handleFileChange = useCallback(
     async (event: ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(event.target.files || []);
+      if (event.target.files) {
+        const newFiles = Array.from(event.target.files);
+        setFiles(event.target.files);
+        
+        const uploadPromises = newFiles.map(async (file) => {
+          try {
+            const result = await uploadFile(file);
+            if (result) {
+              return result;
+            }
+            return null;
+          } catch (error) {
+            console.error('Error uploading file:', error);
+            toast.error(`Failed to upload ${file.name}`);
+            return null;
+          }
+        });
 
-      setUploadQueue(files.map((file) => file.name));
-
-      try {
-        const uploadPromises = files.map((file) => uploadFile(file));
-        const uploadedAttachments = await Promise.all(uploadPromises);
-        const successfullyUploadedAttachments = uploadedAttachments.filter(
-          (attachment) => attachment !== undefined,
-        );
-
-        setAttachments((currentAttachments) => [
-          ...currentAttachments,
-          ...successfullyUploadedAttachments,
-        ]);
-      } catch (error) {
-        console.error('Error uploading files!', error);
-      } finally {
-        setUploadQueue([]);
+        const results = await Promise.all(uploadPromises);
+        const successfulUploads = results.filter((result): result is NonNullable<typeof result> => result !== null);
+        
+        if (successfulUploads.length > 0) {
+          setAttachments(prev => [...prev, ...successfulUploads]);
+          toast.success(`Successfully uploaded ${successfulUploads.length} file(s)`);
+        }
       }
     },
-    [setAttachments],
+    [chatId],
   );
 
   const removeAttachment = useCallback(async (attachment: Attachment) => {
@@ -346,7 +317,7 @@ function PureMultimodalInput({
         />
       )}
 
-      {(attachments.length > 0 || uploadQueue.length > 0) && (
+      {(attachments.length > 0 || files) && (
         <div className={cn(
           "flex flex-row gap-2 overflow-x-scroll items-end",
           isDragging && "opacity-50"
@@ -360,13 +331,13 @@ function PureMultimodalInput({
             />
           ))}
 
-          {uploadQueue.map((filename) => (
+          {files && Array.from(files).map((file) => (
             <PreviewAttachment
-              key={filename}
+              key={file.name}
               attachment={{
                 url: '',
-                name: filename,
-                contentType: '',
+                name: file.name,
+                contentType: file.type,
               }}
               isUploading={true}
             />
@@ -390,7 +361,7 @@ function PureMultimodalInput({
           if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
 
-            if (isLoading) {
+            if (status !== 'ready') {
               toast.error('Please wait for the model to finish its response!');
             } else {
               submitForm();
@@ -400,17 +371,17 @@ function PureMultimodalInput({
       />
 
       <div className="absolute bottom-0 p-2 w-fit flex flex-row justify-start">
-        <AttachmentsButton fileInputRef={fileInputRef} isLoading={isLoading} />
+          <AttachmentsButton fileInputRef={fileInputRef} status={status} />
       </div>
 
       <div className="absolute bottom-0 right-0 p-2 w-fit flex flex-row justify-end">
-        {isLoading ? (
+        {status === 'submitted' ? (
           <StopButton stop={stop} setMessages={setMessages} />
         ) : (
-          <SendButton
+          <SendButton 
             input={input}
             submitForm={submitForm}
-            uploadQueue={uploadQueue}
+            uploadQueue={fileUploads.map(upload => upload.id)}
           />
         )}
       </div>
@@ -422,7 +393,7 @@ export const MultimodalInput = memo(
   PureMultimodalInput,
   (prevProps, nextProps) => {
     if (prevProps.input !== nextProps.input) return false;
-    if (prevProps.isLoading !== nextProps.isLoading) return false;
+    if (prevProps.status !== nextProps.status) return false;
     if (!equal(prevProps.attachments, nextProps.attachments)) return false;
 
     return true;
@@ -431,10 +402,10 @@ export const MultimodalInput = memo(
 
 function PureAttachmentsButton({
   fileInputRef,
-  isLoading,
+  status,
 }: {
   fileInputRef: React.MutableRefObject<HTMLInputElement | null>;
-  isLoading: boolean;
+  status: UseChatHelpers['status'];
 }) {
   return (
     <Button
@@ -443,7 +414,7 @@ function PureAttachmentsButton({
         event.preventDefault();
         fileInputRef.current?.click();
       }}
-      disabled={isLoading}
+      disabled={status !== 'ready'}
       variant="ghost"
     >
       <PaperclipIcon size={14} />
@@ -487,6 +458,7 @@ function PureSendButton({
 }) {
   return (
     <Button
+      data-testid="send-button"
       className="rounded-full p-1.5 h-fit border dark:border-zinc-600"
       onClick={(event) => {
         event.preventDefault();

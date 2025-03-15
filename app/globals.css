@@ -140,3 +140,9 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+.chart-container {
+  max-width: 100%;
+  height: 100%;
+  overflow-x: auto;
+}

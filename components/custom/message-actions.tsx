@@ -20,8 +20,6 @@ interface MessageActionsProps {
   message: Message;
   vote: { chat_id: string; is_upvoted: boolean; message_id: string; } | undefined;
   isLoading: boolean;
-  user: User | null;
-  append: (message: Message) => void;
 }
 
 export function MessageActions({
@@ -29,8 +27,6 @@ export function MessageActions({
   message,
   vote,
   isLoading,
-  user,
-  append,
 }: MessageActionsProps) {
   const { mutate } = useSWRConfig();
   const [_, copyToClipboard] = useCopyToClipboard();

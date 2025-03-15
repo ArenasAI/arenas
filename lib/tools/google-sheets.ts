@@ -1,4 +1,4 @@
-import { GoogleSheetsService } from '../services/google-sheets';
+import { GoogleSheetsService } from '../../services/google-sheets';
 import { z } from 'zod';
 import { Tool, ToolExecutionOptions } from 'ai';
 

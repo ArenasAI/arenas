@@ -133,7 +133,7 @@ export async function storeDocument(
         });
         
         const client = await createPineconeClient();
-        const indexName = process.env.PINECONE_INDEX_NAME || 'default-index';
+        const indexName = 'default-index';
         const index = await createPineconeIndex(client, indexName);
             
         // Create vectors with enhanced metadata
@@ -204,7 +204,7 @@ export const queryDocumentContext = async (
         const queryEmbedding = await embeddings.embedQuery(query);
         
         const client = await createPineconeClient();
-        const indexName = process.env.PINECONE_INDEX_NAME || 'default-index';
+        const indexName = 'default-index';
         const index = await createPineconeIndex(client, indexName);
         
         // Build filter based on options
@@ -243,7 +243,7 @@ export const queryDocumentContext = async (
 export const deleteDocumentFromPinecone = async (documentId: string) => {
     try {
         const client = await createPineconeClient();
-        const indexName = process.env.PINECONE_INDEX_NAME || 'default-index';
+        const indexName = 'default-index';
         const index = await createPineconeIndex(client, indexName);
         
         // Delete all vectors with the matching documentId

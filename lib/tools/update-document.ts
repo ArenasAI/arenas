@@ -2,9 +2,10 @@ import { DataStreamWriter, tool } from 'ai';
 import { z } from 'zod';
 import { getDocumentById, getSession } from '@/lib/cached/cached-queries';
 import { documentHandlersByArtifactKind } from '@/lib/artifacts/server';
+import { User } from '@supabase/supabase-js';
 
 interface UpdateDocumentProps {
-  session: any;
+  session: User;
   dataStream: DataStreamWriter;
   selectedModelId: string;
 }

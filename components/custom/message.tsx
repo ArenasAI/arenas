@@ -3,7 +3,7 @@
 import type { ChatRequestOptions, Message } from 'ai';
 import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
-import { memo, useMemo, useState } from 'react';
+import { memo, useMemo, useRef, useState } from 'react';
 
 import type { Vote } from '@/lib/supabase/types';
 
@@ -24,15 +24,14 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { MessageEditor } from './message-editor';
 import { DocumentPreview } from './document-preview';
 import { MessageReasoning } from './message-reasoning';
-import { User } from '@supabase/supabase-js';
+import Chart from './chart-container';
+import { CodeEditor } from '@/components/code-editor';
 
 const PurePreviewMessage = ({
   chatId,
   message,
   vote,
   isLoading,
-  user,
-  append,
   setMessages,
   reload,
 }: {
@@ -40,8 +39,6 @@ const PurePreviewMessage = ({
   message: Message;
   vote: Vote | undefined;
   isLoading: boolean;
-  user: User | null;
-  append: (message: Message) => void;
   setMessages: (
     messages: Message[] | ((messages: Message[]) => Message[]),
   ) => void;
@@ -148,20 +145,27 @@ const PurePreviewMessage = ({
                     const { result } = toolInvocation;
 
                     return (
-                      <div key={toolCallId}>
+                      <div key={`result-${toolCallId}`}>
                         {toolName === 'createDocument' ? (
-                          <DocumentPreview
-                            result={result}
-                          />
+                          <DocumentPreview result={result} />
                         ) : toolName === 'updateDocument' ? (
-                          <DocumentToolResult
-                            type="update"
-                            result={result}
-                          />
+                          <DocumentToolResult type="update" result={result} />
                         ) : toolName === 'requestSuggestions' ? (
-                          <DocumentToolResult
-                            type="request-suggestions"
-                            result={result}
+                          <DocumentToolResult type="request-suggestions" result={result} />
+                        ) : toolName === 'visualization' ? (
+                          <Chart
+                            data={result.data || []}
+                            layout={result.layout || { title: 'Chart' }}
+                          />
+                        ) : toolName === 'code' ? (
+                          <CodeEditor
+                            content={result.content}
+                            onSaveContent={() => {}}
+                            status="idle"
+                            isCurrentVersion={true}
+                            currentVersionIndex={0}
+                            suggestions={[]}
+                            language={result.language || 'python'}
                           />
                         ) : (
                           <pre>{JSON.stringify(result, null, 2)}</pre>
@@ -169,9 +173,10 @@ const PurePreviewMessage = ({
                       </div>
                     );
                   }
+
                   return (
                     <div
-                      key={toolCallId}
+                      key={`call-${toolCallId}`}
                       className={cx({
                         skeleton: ['createDocument'].includes(toolName),
                       })}
@@ -188,6 +193,21 @@ const PurePreviewMessage = ({
                           type="request-suggestions"
                           args={args}
                         />
+                      ) : toolName === 'visualization' ? (
+                        <Chart
+                          data={args.data}
+                          layout={args.layout}
+                        />
+                      ) : toolName === 'clean' ? (
+                        <DocumentToolCall
+                          type="update"
+                          args={args}
+                        />
+                      ) : toolName === 'reports' ? (
+                        <DocumentToolCall
+                          type="update"
+                          args={args}
+                        />
                       ) : null}
                     </div>
                   );
@@ -201,8 +221,6 @@ const PurePreviewMessage = ({
                 message={message}
                 vote={vote}
                 isLoading={isLoading}
-                user={user}
-                append={append}
               />
             )}
           </div>

@@ -6,7 +6,7 @@ import { ArtifactKind } from '@/components/artifacts/artifact';
 import { DataStreamWriter } from 'ai';
 import { Database } from '../supabase/types';
 import { saveDocument } from '../cached/mutations';
-import { Session } from '@supabase/supabase-js';
+import { User } from '@supabase/supabase-js';
 
 type Document = Database['public']['Tables']['documents']['Row']
 
@@ -22,7 +22,7 @@ export interface CreateDocumentCallbackProps {
   id: string;
   title: string;
   dataStream: DataStreamWriter;
-  session: Session;
+  session: User;
   modelId: string;
 }
 
@@ -30,7 +30,7 @@ export interface UpdateDocumentCallbackProps {
   document: Document;
   description: string;
   dataStream: DataStreamWriter;
-  session: Session;
+  session: User;
   modelId: string;
 }
 
@@ -56,13 +56,13 @@ export function createDocumentHandler<T extends ArtifactKind>(config: {
         modelId: args.modelId,
       });
 
-      if (args.session?.user?.id) {
+      if (args.session?.id) {
         await saveDocument({
           id: args.id,
           title: args.title,
           content: draftContent,
           kind: config.kind,
-          userId: args.session.user.id,
+          userId: args.session.id,
         });
       }
 
@@ -77,13 +77,13 @@ export function createDocumentHandler<T extends ArtifactKind>(config: {
         modelId: args.modelId,
       });
 
-      if (args.session?.user?.id) {
+      if (args.session?.id) {
         await saveDocument({
           id: args.document.id,
           title: args.document.title,
           content: draftContent,
           kind: config.kind,
-          userId: args.session.user.id,
+          userId: args.session.id,
         });
       }
 

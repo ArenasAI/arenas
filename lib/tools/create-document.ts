@@ -6,13 +6,13 @@ import {
   artifactKinds,
   documentHandlersByArtifactKind,
 } from '@/lib/artifacts/server';
-import { Session } from '@supabase/supabase-js';
+import { User } from "@supabase/supabase-js";
 import { saveDocument } from '@/lib/cached/mutations';
 import { myProvider } from '@/ai/models';
 import { sheetPrompt } from '@/ai/prompts';
 
 interface CreateDocumentProps {
-  session: any,
+  session: User,
   dataStream: DataStreamWriter,
   selectedModelId: string;
 }

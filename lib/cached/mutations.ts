@@ -6,7 +6,6 @@ import {
   type Client,
   type Message,
 } from '@/lib/supabase/types';
-import { FileAttachment } from '@/shared/chat';
 
 const getSupabase = async () => createClient();
 
@@ -71,24 +70,31 @@ export async function deleteChatById(chatId: string, userId: string) {
 export async function saveMessages({
   chatId,
   messages,
+  experimental_attachments,
 }: {
   chatId: string;
   messages: Array<Message>;
+  experimental_attachments?: Array<{
+    url: string;
+    name: string;
+    contentType: string;
+  }>;
 }) {
   await mutateQuery(
-    async (client, { chatId, messages }) => {
+    async (client, { chatId, messages, experimental_attachments }) => {
       const { error } = await client.from('messages').insert(
         messages.map(msg => ({
           chat_id: chatId,
           id: msg.id,
           role: msg.role,
           content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
+          experimental_attachments: experimental_attachments,
           created_at: new Date().toISOString()
         }))
       );
       if (error) throw error;
     },
-    [{ chatId, messages }],
+    [{ chatId, messages, experimental_attachments }],
     [`chat_${chatId}_messages`, `chat_${chatId}`]
   );
 }

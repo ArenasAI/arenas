@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useArtifactSelector } from '@/hooks/use-artifact';
 import { Artifact } from '../artifacts/artifact';
 import { Messages } from './messages';
+import { codeArtifact } from '@/artifacts/code/client';
 
 type PreviewData = {
   headers: string[]
@@ -32,7 +33,6 @@ export function Chat({
 }) {
   const [user, setUser] = useState<any>(null);
   const supabase = createClient();
-  const [tableData, setTableData] = useState<PreviewData | null>(null);
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
@@ -44,6 +44,7 @@ export function Chat({
     input,
     setInput,
     append,
+    status,
     isLoading,
     stop,
     reload,
@@ -51,6 +52,56 @@ export function Chat({
   } = useChat({
     body: { id, modelId: selectedModelId },
     initialMessages,
+    onToolCall: async ({ toolCall }) => {
+      if (toolCall.toolName === 'visualization') {
+        return {
+          type: 'visualization',
+          content: toolCall.args
+        };
+      }
+
+      const runId = Math.random().toString(36).substring(7);
+      const metadata = {
+        outputs: [{
+          id: runId,
+          contents: [],
+          status: 'in_progress' as const
+        }]
+      };
+
+      if (toolCall.toolName === 'reports') {
+        const result = await codeArtifact.actions[0].onClick({
+          content: JSON.stringify(toolCall.args),
+          metadata,
+          setMetadata: (updater) => {
+            const newMetadata = typeof updater === 'function' ? updater(metadata) : updater;
+            Object.assign(metadata, newMetadata);
+            return metadata;
+          },
+          handleVersionChange: () => {},
+          currentVersionIndex: 0,
+          isCurrentVersion: true,
+          mode: 'edit'
+        });
+        return result?.[0];
+      }
+      if (toolCall.toolName === 'createDocument' || toolCall.toolName === 'updateDocument') {
+        const result = await codeArtifact.actions[0].onClick({
+          content: JSON.stringify(toolCall.args),
+          metadata,
+          setMetadata: (updater) => {
+            const newMetadata = typeof updater === 'function' ? updater(metadata) : updater;
+            Object.assign(metadata, newMetadata);
+            return metadata;
+          },
+          handleVersionChange: () => {},
+          currentVersionIndex: 0,
+          isCurrentVersion: true,
+          mode: 'edit'
+        });
+        return result?.[0];
+      }
+    },
     onFinish: () => {
       mutate('/api/history');
     },
@@ -93,31 +144,34 @@ export function Chat({
         body: formData,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (isSpreadsheet) {
-          return {
-            url: data.url,
-            name: data.path,
-            contentType: file.type,
-            tableData: data.tableData,
-          };
-        }
+      if (!response.ok) {
+        const { error } = await response.json();
+        throw new Error(error || 'Upload failed');
+      }
+
+      const data = await response.json();
+      
+      if (isSpreadsheet) {
         return {
           url: data.url,
           name: data.path,
           contentType: file.type,
+          tableData: data.tableData,
         };
-      } else {
-        const { error, details } = await response.json();
-        console.error('Upload error:', { error, details });
-        toast.error(error);
       }
+      
+      return {
+        url: data.url,
+        name: data.path,
+        contentType: file.type,
+      };
     } catch (error) {
-      console.error('Upload failed:', error);
-      toast.error('Failed to upload file, please try again!');
+      console.error('Upload error:', error);
+      toast.error(`Failed to upload ${file.name}`);
+      return undefined;
     }
   };
+  
 
   const handleDragEnter = useCallback((e: DragEvent) => {
     e.preventDefault();
@@ -165,10 +219,14 @@ export function Chat({
           attachment !== undefined
       );
 
-      setAttachments((currentAttachments) => [
-        ...currentAttachments,
-        ...successfullyUploadedAttachments,
-      ]);
+      if (successfullyUploadedAttachments.length > 0) {
+        setAttachments((currentAttachments) => [
+          ...currentAttachments,
+          ...successfullyUploadedAttachments,
+        ]);
+        
+        toast.success(`Successfully uploaded ${successfullyUploadedAttachments.length} file(s)`);
+      }
     } catch (error) {
       console.error('Error uploading files:', error);
       toast.error('Failed to upload one or more files');
@@ -209,14 +267,13 @@ export function Chat({
 
         <Messages
           chatId={id}
+          status={status}
           isLoading={isLoading}
           votes={votes}
           messages={messages}
           setMessages={setMessages}
           reload={reload}
-          isArtifact={false}
-          user={user}
-          append={append}
+          isArtifactVisible={isArtifactVisible}
         />
 
         <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
@@ -226,7 +283,7 @@ export function Chat({
             input={input}
             setInput={setInput}
             handleSubmit={handleSubmit}
-            isLoading={isLoading}
+            status={status}
             stop={stop}
             attachments={attachments}
             setAttachments={setAttachments}
@@ -238,6 +295,22 @@ export function Chat({
           )}
         </form>
       </div>
+
+      <Artifact
+        chatId={id}
+        input={input}
+        setInput={setInput}
+        handleSubmit={handleSubmit}
+        status={status}
+        stop={stop}
+        attachments={attachments}
+        setAttachments={setAttachments}
+        append={append}
+        messages={messages}
+        setMessages={setMessages}
+        reload={reload}
+        votes={votes}
+      />
     </>
   );
 }
