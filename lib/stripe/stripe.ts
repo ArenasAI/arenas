@@ -2,10 +2,6 @@ import Stripe from 'stripe';
 import { getUserById } from '../cached/cached-queries';
 import createClient from '@/lib/supabase/server';
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-    apiVersion: '2025-02-24.acacia',
-});
-
 // Map pricing tiers to Stripe price IDs
 export const STRIPE_PRICE_IDS = {
     'Student': {
@@ -23,6 +19,10 @@ export const STRIPE_PRICE_IDS = {
 };
 
 export async function getUserSubscription(userId: string) {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+        apiVersion: '2025-02-24.acacia',
+    });
+    
     try {
         const supabase = await createClient();
         const { data: subscriptionData } = await supabase
@@ -50,12 +50,20 @@ export async function getUserSubscription(userId: string) {
 }
 
 export async function checkUserSubscription(userId: string) {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+        apiVersion: '2025-02-24.acacia',
+    });
+
     const user = await getUserById(userId);
     const subscription = await stripe.subscriptions.retrieve(user.id);
     return subscription;
 }
 
 export async function getOrCreateCustomer(userId: string, email: string) {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+        apiVersion: '2025-02-24.acacia',
+    });
+    
     const supabase = await createClient();
     
     const { data: userData } = await supabase
