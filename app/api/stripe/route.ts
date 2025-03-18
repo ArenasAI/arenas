@@ -3,17 +3,20 @@ import { Stripe } from 'stripe';
 import { getSession } from '@/lib/cached/cached-queries';
 import createClient from '@/lib/supabase/server';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-    throw new Error('STRIPE_SECRET_KEY is not set');
+function getStripeClient() {
+    if (!process.env.STRIPE_SECRET_KEY) {
+        throw new Error('STRIPE_SECRET_KEY is not set');
+    }
+    return new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: '2025-02-24.acacia',
+    });
 }
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2025-02-24.acacia',
-});
 
 // Create checkout session
 export async function POST(req: NextRequest) {
     try {
+        const stripe = getStripeClient();
+        
         // Get user and price ID
         const user = await getSession();
         const { priceId } = await req.json();
@@ -79,6 +82,7 @@ export async function POST(req: NextRequest) {
 // Cancel subscription
 export async function DELETE() {
     try {
+        const stripe = getStripeClient();
         const user = await getSession();
         if (!user?.id) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
