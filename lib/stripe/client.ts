@@ -1,27 +1,22 @@
-import Stripe from 'stripe';
-import { getUserById } from '../cached/cached-queries';
+import { Stripe } from 'stripe';
 import createClient from '@/lib/supabase/server';
 
-// Map pricing tiers to Stripe price IDs
-export const STRIPE_PRICE_IDS = {
-    'Student': {
-        monthly: process.env.STRIPE_STUDENT_PRICE_ID,
-        annual: process.env.STRIPE_STUDENT_ANNUAL_PRICE_ID,
-    },
-    'Pro': {
-        monthly: process.env.STRIPE_PRO_PRICE_ID,
-        annual: process.env.STRIPE_PRO_ANNUAL_PRICE_ID,
-    },
-    'Team': {
-        monthly: process.env.STRIPE_TEAM_PRICE_ID,
-        annual: process.env.STRIPE_TEAM_ANNUAL_PRICE_ID,
+let stripeClient: Stripe | null = null;
+
+export function getStripeClient() {
+    if (!process.env.STRIPE_SECRET_KEY) {
+        throw new Error('STRIPE_SECRET_KEY is not set');
     }
-};
+    if (!stripeClient) {
+        stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
+            apiVersion: '2025-02-24.acacia'
+        });
+    }
+    return stripeClient;
+}
 
 export async function getUserSubscription(userId: string) {
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-        apiVersion: '2025-02-24.acacia',
-    });
+    const stripe = getStripeClient();
     
     try {
         const supabase = await createClient();
@@ -49,20 +44,8 @@ export async function getUserSubscription(userId: string) {
     }
 }
 
-export async function checkUserSubscription(userId: string) {
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-        apiVersion: '2025-02-24.acacia',
-    });
-
-    const user = await getUserById(userId);
-    const subscription = await stripe.subscriptions.retrieve(user.id);
-    return subscription;
-}
-
 export async function getOrCreateCustomer(userId: string, email: string) {
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-        apiVersion: '2025-02-24.acacia',
-    });
+    const stripe = getStripeClient();
     
     const supabase = await createClient();
     
@@ -106,30 +89,29 @@ export async function checkSubscriptionFeatures(userId: string) {
     };
 }
 
-// Add this function to check message limits
 export async function checkMessageLimit(userId: string) {
-  const subscription = await getUserSubscription(userId);
-  
-  // Pro users have unlimited messages
-  if (subscription?.status === 'active') {
-    return { canSendMessage: true, remainingMessages: Infinity };
-  }
+    const subscription = await getUserSubscription(userId);
+    
+    // Pro users have unlimited messages
+    if (subscription?.status === 'active') {
+        return { canSendMessage: true, remainingMessages: Infinity };
+    }
 
-  // Check free tier message count
-  const supabase = await createClient();
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
+    // Check free tier message count
+    const supabase = await createClient();
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
 
-  const { count } = await supabase
-    .from('messages')
-    .select('*', { count: 'exact' })
-    .eq('user_id', userId)
-    .gte('created_at', startOfMonth.toISOString());
+    const { count } = await supabase
+        .from('messages')
+        .select('*', { count: 'exact' })
+        .eq('user_id', userId)
+        .gte('created_at', startOfMonth.toISOString());
 
-  const remainingMessages = 10 - (count || 0);
-  return {
-    canSendMessage: remainingMessages > 0,
-    remainingMessages
-  };
-}
+    const remainingMessages = 10 - (count || 0);
+    return {
+        canSendMessage: remainingMessages > 0,
+        remainingMessages
+    };
+} 

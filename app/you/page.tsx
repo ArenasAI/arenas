@@ -1,5 +1,5 @@
 import createClient from '@/lib/supabase/server'
-import { getUserSubscription } from '@/lib/stripe/stripe'
+import { getUserSubscription } from '@/lib/stripe/client'
 import { Dashboard } from '@/components/dashboard'
 import { redirect } from 'next/navigation'
 import { Navbar } from '@/components/nav'

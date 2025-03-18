@@ -1,16 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Stripe } from 'stripe';
 import { getSession } from '@/lib/cached/cached-queries';
 import createClient from '@/lib/supabase/server';
-
-function getStripeClient() {
-    if (!process.env.STRIPE_SECRET_KEY) {
-        throw new Error('STRIPE_SECRET_KEY is not set');
-    }
-    return new Stripe(process.env.STRIPE_SECRET_KEY, {
-        apiVersion: '2025-02-24.acacia',
-    });
-}
+import { getStripeClient, getOrCreateCustomer } from '@/lib/stripe/client';
 
 // Create checkout session
 export async function POST(req: NextRequest) {
@@ -42,20 +33,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Get or create Stripe customer
-        let customerId: string;
-        const searchResult = await stripe.customers.search({
-            query: `metadata['user_id']:'${user.id}'`,
-        });
-        
-        if (!searchResult.data.length) {
-            const newCustomer = await stripe.customers.create({
-                email: user.email,
-                metadata: { user_id: user.id },
-            });
-            customerId = newCustomer.id;
-        } else {
-            customerId = searchResult.data[0].id;
-        }
+        const customerId = await getOrCreateCustomer(user.id, user.email);
 
         // Create checkout session
         const session = await stripe.checkout.sessions.create({
