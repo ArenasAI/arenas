@@ -1,4 +1,4 @@
-import { ChatRequestOptions, Message, UIMessage } from 'ai';
+import { Message } from 'ai';
 import { PreviewMessage, ThinkingMessage } from './message';
 import { useScrollToBottom } from './use-scroll-to-bottom';
 import { Overview } from './overview';
@@ -16,7 +16,6 @@ interface MessagesProps {
   messages: Array<Message>;
   setMessages: UseChatHelpers['setMessages'];
   reload: UseChatHelpers['reload'];
-  isArtifactVisible: boolean;
 }
 
 function PureMessages({
@@ -65,8 +64,6 @@ function PureMessages({
 
 
 export const Messages = memo(PureMessages, (prevProps, nextProps) => {
-  if (prevProps.isArtifactVisible && nextProps.isArtifactVisible) return true;
-
   if (prevProps.status !== nextProps.status) return false;
   if (prevProps.status && nextProps.status) return false;
   if (prevProps.messages.length !== nextProps.messages.length) return false;

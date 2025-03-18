@@ -4,8 +4,7 @@ import { useSWRConfig } from 'swr';
 import { useCopyToClipboard } from 'usehooks-ts';
 
 import { Vote } from '@/lib/supabase/types';
-import { extractDocumentId, generateUUID, getMessageIdFromAnnotations } from '@/lib/utils';
-import { User } from '@supabase/supabase-js';
+import { getMessageIdFromAnnotations } from '@/lib/utils';
 import { CopyIcon, ThumbDownIcon, ThumbUpIcon } from './icons';
 import { Button } from '../ui/button';
 import {
@@ -29,7 +28,7 @@ export function MessageActions({
   isLoading,
 }: MessageActionsProps) {
   const { mutate } = useSWRConfig();
-  const [_, copyToClipboard] = useCopyToClipboard();
+  const [, copyToClipboard] = useCopyToClipboard();
 
   if (isLoading) return null;
   if (message.role === 'user') return null;

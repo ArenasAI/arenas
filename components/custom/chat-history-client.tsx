@@ -5,7 +5,6 @@ import { memo } from 'react';
 import useSWR from 'swr';
 
 import { useSidebar } from '@/components/ui/sidebar';
-import { Database } from '@/lib/supabase/types';
 
 import { GroupedChatList } from './chat-history-grouped-list';
 import { Chat } from '@/lib/supabase/types';
@@ -42,7 +41,6 @@ export function ChatHistoryClient({
     />
   );
 }
-
 // Memoized chat list component
 const ChatList = memo(function ChatList({
   chats,
@@ -61,3 +59,4 @@ const ChatList = memo(function ChatList({
     />
   );
 });
+

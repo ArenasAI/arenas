@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
 }
 
 // Cancel subscription
-export async function DELETE(req: NextRequest) {
+export async function DELETE() {
     try {
         const user = await getSession();
         if (!user?.id) {

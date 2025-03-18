@@ -1,6 +1,5 @@
 import { Message } from "@/lib/supabase/types";
 import { generateUUID } from '@/lib/utils';
-import createClient from '@/lib/supabase/server';
 import { saveChat } from '@/lib/cached/mutations';
 import { Attachment } from 'ai';
 

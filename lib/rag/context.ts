@@ -1,4 +1,3 @@
-import { Pinecone } from "@pinecone-database/pinecone";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { createPineconeClient } from "./pinecone";
 

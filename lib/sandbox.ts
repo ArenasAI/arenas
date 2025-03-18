@@ -1,9 +1,4 @@
 import { Sandbox } from '@e2b/code-interpreter';
-import BarChart from '@e2b/code-interpreter';
-import LineChart from '@e2b/code-interpreter';
-import PieChart from '@e2b/code-interpreter';
-import ScatterPlot from '@e2b/code-interpreter';
-
 
 export type ChartType = 'bar' | 'line' | 'scatter' | 'pie' | 'box' | 'violin' | 'bubble' | 'heatmap' | 'choropleth' | 'treemap' | 'funnel' | 'waterfall' | 'candlestick' | 'area' | 'histogram' | 'pie';
 
@@ -38,7 +33,6 @@ export async function createSandbox(language: 'python' | 'r' | 'julia') {
 export async function runVisualizationCode(
   sandbox: Sandbox,
   code: string,
-  language: 'python' | 'r' | 'julia',
 ): Promise<ChartResult[]> {
   const execution = await sandbox.runCode(code);
   

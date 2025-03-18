@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import createClient from './server'
 
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
+  const supabaseResponse = NextResponse.next({
     request,
   })
 

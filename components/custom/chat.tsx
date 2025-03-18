@@ -2,19 +2,14 @@
 
 import { Attachment, Message } from 'ai';
 import { useChat } from '@ai-sdk/react';
-import { useState, useEffect, useCallback, DragEvent } from 'react';
+import { useState, useCallback, DragEvent } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { toast } from 'sonner';
 import { ChatHeader } from '@/components/custom/chat-header';
 import { Database } from '@/lib/supabase/types';
 import { fetcher } from '@/lib/utils';
 import { MultimodalInput } from './multimodal-input';
-import { createClient } from '@/lib/supabase/client';
-import { useArtifactSelector } from '@/hooks/use-artifact';
-import { Artifact } from '../artifacts/artifact';
 import { Messages } from './messages';
-import { codeArtifact } from '@/artifacts/code/client';
-import { sheetArtifact } from '@/artifacts/sheet/client';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChartResult } from '@/lib/sandbox';
 
@@ -29,11 +24,8 @@ export function Chat({
   initialMessages: Array<Message>;
   selectedModelId: string;
 }) {
-  const [user, setUser] = useState<any>(null);
-  const supabase = createClient();
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
 
   const {
     messages,
@@ -45,7 +37,6 @@ export function Chat({
     status,
     stop,
     reload,
-    data
   } = useChat({
     body: { id, modelId: selectedModelId },
     initialMessages,
@@ -105,26 +96,6 @@ export function Chat({
             }
           ];
 
-        case 'code':
-          return codeArtifact.actions[0].onClick({
-            content: JSON.stringify(toolCall.args),
-            metadata: {
-              outputs: [{
-                id: runId,
-                contents: [],
-                status: 'in_progress' as const
-              }]
-            },
-            setMetadata: (updater: any) => {
-              const newMetadata = typeof updater === 'function' ? updater({}) : updater;
-              return newMetadata;
-            },
-            handleVersionChange: () => {},
-            currentVersionIndex: 0,
-            isCurrentVersion: true,
-            mode: 'edit'
-          });
-
         default:
           console.warn(`Unknown tool called: ${toolCall.toolName}`);
           return null;
@@ -138,21 +109,10 @@ export function Chat({
     }
   });
 
-  const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
-
   const { data: votes } = useSWR<Array<Vote>>(
     `/api/vote?chatId=${id}`,
     fetcher
   );
-
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    };
-    
-    getUser();
-  }, [supabase]);
   
   const { mutate } = useSWRConfig();
 
@@ -177,20 +137,20 @@ export function Chat({
         throw new Error(error || 'Upload failed');
       }
 
-      const data = await response.json();
+      const responseData = await response.json();
       
       if (isSpreadsheet) {
         return {
-          url: data.url,
-          name: data.path,
+          url: responseData.url,
+          name: responseData.path,
           contentType: file.type,
-          tableData: data.tableData,
+          tableData: responseData.tableData,
         };
       }
       
       return {
-        url: data.url,
-        name: data.path,
+        url: responseData.url,
+        name: responseData.path,
         contentType: file.type,
       };
     } catch (error) {
@@ -199,7 +159,6 @@ export function Chat({
       return undefined;
     }
   };
-  
 
   const handleDragEnter = useCallback((e: DragEvent) => {
     e.preventDefault();
@@ -237,7 +196,6 @@ export function Chat({
 
     const files = Array.from(e.dataTransfer.files);
     if (files.length === 0) return;
-    setUploadQueue(files.map((file) => file.name));
 
     try {
       const uploadPromises = files.map((file) => uploadFile(file, id));
@@ -258,12 +216,9 @@ export function Chat({
     } catch (error) {
       console.error('Error uploading files:', error);
       toast.error('Failed to upload one or more files');
-    } finally {
-      setUploadQueue([]);
     }
   }, [id, setAttachments]);
 
-  
   return (
     <>
       <div 
@@ -274,7 +229,6 @@ export function Chat({
         onDrop={handleDrop}
       >
         <ChatHeader 
-          chatId={id}
           selectedModelId={selectedModelId}
         />
         <AnimatePresence>
@@ -286,46 +240,37 @@ export function Chat({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-            <div className="p-8 rounded-xl border-2 border-dashed border-primary 
-                          bg-background/50 shadow-lg">
-              <div className="text-2xl font-medium text-primary text-center">
-                Drop files here
+              <div className="p-8 rounded-xl border-2 border-dashed border-primary 
+                            bg-background/50 backdrop-blur-sm">
+                <p className="text-lg font-medium text-primary">
+                  Drop files here to upload
+                </p>
               </div>
-              <p className="text-muted-foreground text-sm mt-2">
-                Upload files to chat
-              </p>
-            </div>
-          </motion.div>
-        )}
+            </motion.div>
+          )}
         </AnimatePresence>
-        <Messages
+        <Messages 
+          messages={messages}
           chatId={id}
           status={status}
           votes={votes}
-          messages={messages}
           setMessages={setMessages}
           reload={reload}
-          isArtifactVisible={isArtifactVisible}
         />
-
-        <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
-          {( 
-            <MultimodalInput
-            chatId={id}
-            input={input}
-            setInput={setInput}
-            handleSubmit={handleSubmit}
-            status={status}
-            stop={stop}
-            attachments={attachments}
-            setAttachments={setAttachments}
-            messages={messages}
-            setMessages={setMessages}
-            append={append}
-            isDragging={isDragging}
-          />
-          )}
-        </form>
+        <MultimodalInput
+          chatId={id}
+          input={input}
+          setInput={setInput}
+          status={status}
+          stop={stop}
+          attachments={attachments}
+          setAttachments={setAttachments}
+          messages={messages}
+          setMessages={setMessages}
+          append={append}
+          handleSubmit={handleSubmit}
+          isDragging={isDragging}
+        />
       </div>
     </>
   );

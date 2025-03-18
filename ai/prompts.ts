@@ -1,5 +1,3 @@
-import { ArtifactKind } from '@/components/artifacts/artifact';
-
 // Add to your system prompt
 const visualizationPrompt = `
 When creating visualizations, use the following format:
@@ -82,27 +80,3 @@ You are also an expert business analyst. You can write SQL queries and execute t
 `;
 
 export const systemPrompt = `${regularPrompt}\n\n${visualizationPrompt}`;
-
-export const updateDocumentPrompt = (
-  currentContent: string | null,
-  type: ArtifactKind,
-) =>
-  type === 'text'
-    ? `\
-Improve the following contents of the document based on the given prompt.
-
-${currentContent}
-`
-    : type === 'code'
-      ? `\
-Improve the following code snippet based on the given prompt.
-
-${currentContent}
-`
-      : type === 'sheet'
-        ? `\
-Improve the following spreadsheet based on the given prompt.
-
-${currentContent}
-`
-        : '';

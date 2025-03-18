@@ -1,6 +1,6 @@
 import { Attachment } from 'ai';
-import { LoaderIcon, XIcon } from './icons';
-import { X, FileText, Image, FileSpreadsheet, Eye } from 'lucide-react';
+import { X, FileText, FileSpreadsheet, Eye } from 'lucide-react';
+import Image from 'next/image';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
 
@@ -64,7 +64,7 @@ export function PreviewAttachment({
       
       <div className="flex items-center justify-center h-10 w-10 mb-2">
         {isImage ? (
-          <Image size={24} />
+          <Image src={attachment.url} alt={filename} width={24} height={24} />
         ) : isSpreadsheet ? (
           <FileSpreadsheet size={24} />
         ) : (

@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import createClient from "@/lib/supabase/server";
-import { Session, User, Provider, SignInWithPasswordCredentials } from "@supabase/supabase-js";
+import { Provider, SignInWithPasswordCredentials } from "@supabase/supabase-js";
 import { getURL } from "@/lib/utils";
 import { redirect } from "next/navigation";
 import { registerFormData, loginFormData } from "@/utils/form-schema";
@@ -16,7 +16,7 @@ export async function login(formData: loginFormData) {
         email: formData.email as string,
         password: formData.password as string,
     };
-    const { data: res, error } = await supabase.auth.signInWithPassword(data);
+    const { error } = await supabase.auth.signInWithPassword(data);
     if (error) {
         return { error: error.message };
     }
@@ -61,16 +61,6 @@ export async function resetPassword(formData: FormData) {
     }
 }
 
-export async function checkUserExists(data: {
-    user: User | null;
-    session: Session | null;
-}) {
-        const supabase = await createClient();
-    return {
-        exists: data.user && data.user?.email
-    };
-}
-
 export async function signOut() {
     try {
         const supabase = await createClient();
@@ -93,17 +83,17 @@ export async function register(formData: registerFormData) {
             password: formData.password,
         };    
 
-        const userExists = await supabase.auth.getUser();
+        const { data: { user } } = await supabase.auth.getUser();
 
-        if (userExists) {
+        if (user) {
             redirect("/login");
-}
+        }
     
         const { error } = await supabase.auth.signUp({
             email: data.email,
             password: data.password,
             options: {
-                emailRedirectTo: `${location.origin}/auth/callback`,
+                emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
             },
         });
     

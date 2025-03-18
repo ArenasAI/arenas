@@ -9,7 +9,7 @@ import {
 
 const getSupabase = async () => createClient();
 
-async function mutateQuery<T extends any[]>(
+async function mutateQuery<T extends unknown[]>(
   queryFn: (client: Client, ...args: T) => Promise<void>,
   args: T,
   tags: string[]
@@ -147,13 +147,11 @@ export async function saveDocument({
   title,
   content,
   userId,
-  kind,
 }: {
   id: string;
   title: string;
   content?: string;
   userId: string;
-  kind: string;
 }) {
   await mutateQuery(
     async (client, { id, title, content, userId }) => {

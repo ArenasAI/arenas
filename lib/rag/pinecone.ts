@@ -1,20 +1,20 @@
 import { Pinecone } from '@pinecone-database/pinecone'
-import { Document, RecursiveCharacterTextSplitter } from '@pinecone-database/doc-splitter'
+import { RecursiveCharacterTextSplitter } from '@pinecone-database/doc-splitter'
 import { OpenAIEmbeddings } from '@langchain/openai'
 import * as XLSX from 'xlsx'
 import Papa from 'papaparse'
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf"
 import { OpenAI } from 'openai'
-
-// Initialize OpenAI for vision tasks
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-})
-
+import type { Document } from '@langchain/core/documents'
+import type { ScoredPineconeRecord, RecordMetadata } from '@pinecone-database/pinecone'
 // Function to extract text from images using selected model
 async function extractTextFromImage(imageBuffer: ArrayBuffer, modelId: string = 'gpt-4-vision-preview'): Promise<string> {
     const base64Image = Buffer.from(imageBuffer).toString('base64')
-    
+    // Initialize OpenAI for vision tasks
+    const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY || '',
+    })
+
     const response = await openai.chat.completions.create({
         model: modelId,
         messages: [
@@ -46,7 +46,7 @@ async function extractTextFromPDF(pdfBuffer: ArrayBuffer): Promise<string> {
     const blob = new Blob([uint8Array], { type: 'application/pdf' })
     const loader = new PDFLoader(blob)
     const docs = await loader.load()
-    return docs.map((doc: any) => doc.pageContent).join(' ')
+    return docs.map((doc: Document) => doc.pageContent).join(' ')
 }
 
 // Enhanced text splitter for better chunking
@@ -121,6 +121,7 @@ export async function storeDocument(
             try {
                 content = new TextDecoder('utf-8').decode(fileBuffer);
             } catch (e) {
+                console.error('Error decoding file buffer:', e);
                 throw new Error('Unsupported file type');
             }
         }
@@ -129,7 +130,7 @@ export async function storeDocument(
         const docs = await textSplitter.createDocuments([content]);
         
         const embeddings = new OpenAIEmbeddings({
-            openAIApiKey: process.env.OPENAI_API_KEY,
+            openAIApiKey: process.env.OPENAI_API_KEY || '',
         });
         
         const client = await createPineconeClient();
@@ -198,7 +199,7 @@ export const queryDocumentContext = async (
         const { topK = 5, fileType, dateRange } = options;
         
         const embeddings = new OpenAIEmbeddings({
-            openAIApiKey: process.env.OPENAI_API_KEY,
+            openAIApiKey: process.env.OPENAI_API_KEY || '',
         });
         
         const queryEmbedding = await embeddings.embedQuery(query);
@@ -208,7 +209,7 @@ export const queryDocumentContext = async (
         const index = await createPineconeIndex(client, indexName);
         
         // Build filter based on options
-        const filter: any = { documentId, userId };
+        const filter: Record<string, unknown> = { documentId, userId };
         if (fileType) filter.fileType = fileType;
         if (dateRange) {
             filter.timestamp = {
@@ -224,9 +225,9 @@ export const queryDocumentContext = async (
             includeMetadata: true,
         });
         
-        return queryResponse.matches.map((match: any) => ({
+        return queryResponse.matches.map((match: ScoredPineconeRecord<RecordMetadata>) => ({
             text: match.metadata?.text || '',
-            score: match.score,
+            score: match.score || 0,
             metadata: {
                 fileName: match.metadata?.fileName,
                 fileType: match.metadata?.fileType,
@@ -253,32 +254,32 @@ export const deleteDocumentFromPinecone = async (documentId: string) => {
         console.error('Error deleting document from Pinecone:', error);
         throw error;
     }
-}
-
-// Improved function to split text into chunks
-function splitTextIntoChunks(text: string, chunkSize: number): string[] {
-    const chunks: string[] = [];
-    try {
-        const data = JSON.parse(text);
-        if (Array.isArray(data)) {
-            // For arrays (like CSV data), chunk by rows
-            for (let i = 0; i < data.length; i += 20) {
-                const chunk = data.slice(i, i + 20);
-                chunks.push(JSON.stringify(chunk));
-            }
-        } else if (typeof data === 'object') {
-            // For objects, stringify the whole object
-            chunks.push(text);
-        } else {
-            // For simple values, just use the text
-            chunks.push(text);
-        }
-    } catch (e) {
-        // If not valid JSON, split by character count
-        for (let i = 0; i < text.length; i += chunkSize) {
-            chunks.push(text.substring(i, i + chunkSize));
-        }
-    }
+}// // Improved function to split text into chunks
+// function splitTextIntoChunks(text: string, chunkSize: number): string[] {
+//     const chunks: string[] = [];
+//     try {
+//         const data = JSON.parse(text);
+//         if (Array.isArray(data)) {
+//             // For arrays (like CSV data), chunk by rows
+//             for (let i = 0; i < data.length; i += 20) {
+//                 const chunk = data.slice(i, i + 20);
+//                 chunks.push(JSON.stringify(chunk));
+//             }
+//         } else if (typeof data === 'object') {
+//             // For objects, stringify the whole object
+//             chunks.push(text);
+//         } else {
+//             // For simple values, just use the text
+//             chunks.push(text);
+//         }
+//     } catch (e) {
+//         console.error('Error splitting text into chunks:', e);
+//         // If not valid JSON, split by character count
+//         for (let i = 0; i < text.length; i += chunkSize) {
+//             chunks.push(text.substring(i, i + chunkSize));
+//         }
+//     }
     
-    return chunks;
-}
+//     return chunks;
+// }
+

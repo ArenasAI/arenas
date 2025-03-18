@@ -42,6 +42,7 @@ export default function SubscriptionStatus({ subscription }: SubscriptionStatusP
             // Refresh the page to show updated status
             window.location.reload();
         } catch (error) {
+            console.error('Failed to upgrade subscription:', error);
             toast.error('Failed to upgrade subscription');
         } finally {
             setLoading(false);
@@ -61,6 +62,7 @@ export default function SubscriptionStatus({ subscription }: SubscriptionStatusP
             
             window.location.reload();
         } catch (error) {
+            console.error('Failed to cancel subscription:', error);
             toast.error('Failed to cancel subscription');
         } finally {
             setLoading(false);

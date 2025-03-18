@@ -3,7 +3,7 @@ import { User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
-export const useCheckout = async (user: User | null) => {
+export const useCheckout = (user: User | null) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();
 

@@ -4,7 +4,6 @@ import { ChatRequestOptions, Message } from 'ai';
 import { Button } from '../ui/button';
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import { Textarea } from '../ui/textarea';
-import { toast } from 'sonner';
 
 export type MessageEditorProps = {
   message: Message;

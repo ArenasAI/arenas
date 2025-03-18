@@ -3,14 +3,12 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import { dela } from "./ui/fonts"
 import { CONTACT_EMAIL, PRICING_TIERS } from "@/utils/constants"
 import { Check, X, Sparkles, Zap, BarChart, Mail } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { motion } from "framer-motion"
 import { toast } from "sonner"
-import { loadStripe } from "@stripe/stripe-js"
 
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly')
@@ -205,7 +203,7 @@ export default function PricingPage() {
         <div className="bg-card border rounded-3xl p-8 shadow-lg">
           <h2 className="text-2xl font-semibold mb-4">Need a custom plan for your team?</h2>
           <p className="text-muted-foreground mb-6">
-            Contact us for enterprise solutions and custom pricing tailored to your organization's needs.
+            Contact us for enterprise solutions and custom pricing tailored to your organization&apos;s needs.
           </p>
           <Button variant="outline" size="lg" className="hover:bg-primary hover:text-white transition-colors">
             <Mail className="h-5 w-5 mr-2"/>

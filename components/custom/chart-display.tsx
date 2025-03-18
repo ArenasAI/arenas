@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { ChartResult } from '@/lib/sandbox';
 import {
   BarChart as RechartsBarChart,
@@ -16,6 +15,7 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
+import Image from 'next/image';
 
 interface ChartDisplayProps {
   charts: ChartResult[];
@@ -29,9 +29,11 @@ export function ChartDisplay({ charts }: ChartDisplayProps) {
           <ResponsiveContainer width="100%" height="100%">
             <div>
               {chart.type === 'heatmap' && chart.image ? (
-                <img 
+                <Image 
                   src={chart.image} 
                   alt={chart.title} 
+                  width={1000}
+                  height={1000}
                   style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                 />
               ) : chart.type === 'bar' ? (

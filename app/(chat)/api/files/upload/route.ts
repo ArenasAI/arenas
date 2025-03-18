@@ -158,7 +158,7 @@ export async function POST(req: Request) {
       }
 
       let pineconeResult = null;
-      let parsedData = null;
+      const parsedData = null;
 
       if (isSpreadsheet) {
         console.log('Processing spreadsheet for Pinecone indexing');
@@ -207,17 +207,17 @@ export async function POST(req: Request) {
         tableData: parsedData,
         pineconeDocumentId: isSpreadsheet ? fileId : null,
       });
-    } catch (uploadError: any) {
+    } catch (uploadError: unknown) {
       console.error('Upload error details:', {
         error: uploadError,
-        message: uploadError.message,
-        status: uploadError.status,
-        statusCode: uploadError.statusCode,
-        name: uploadError.name,
-        stack: uploadError.stack,
+        message: uploadError instanceof Error ? uploadError.message : 'Unknown error',
+        status: uploadError instanceof Error && 'status' in uploadError ? uploadError.status : undefined,
+        statusCode: uploadError instanceof Error && 'statusCode' in uploadError ? uploadError.statusCode : undefined,
+        name: uploadError instanceof Error ? uploadError.name : 'Unknown',
+        stack: uploadError instanceof Error ? uploadError.stack : undefined,
       });
 
-      if (uploadError.message?.includes('row-level security')) {
+      if (uploadError instanceof Error && uploadError.message?.includes('row-level security')) {
         console.error('RLS policy violation. Current user:', user);
         const { data: policies } = await supabase
           .from('postgres_policies')
@@ -229,19 +229,19 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error: 'File upload failed',
-          details: uploadError.message,
+          details: uploadError instanceof Error ? uploadError.message : 'Unknown error',
         },
         { status: 500 }
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Request handler error:', {
       error,
-      message: error.message,
-      stack: error.stack,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
     });
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

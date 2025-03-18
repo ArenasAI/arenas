@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     await voteMessage({ chatId, messageId, type });
 
     return new Response('Vote recorded', { status: 200 });
-  } catch (error) {
+  } catch {
     return new Response('An error occurred', { status: 500 });
   }
 }

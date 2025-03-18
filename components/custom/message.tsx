@@ -6,11 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { memo, useState } from 'react';
 
 import type { Vote } from '@/lib/supabase/types';
-
-import { DocumentToolCall } from './document';
 import {
-  ChevronDownIcon,
-  LoaderIcon,
   PencilEditIcon,
   SparklesIcon,
 } from './icons';
@@ -163,15 +159,7 @@ const PurePreviewMessage = ({
                       {toolName === 'visualization' ? (
                         <ChartDisplay charts={args.charts || []} />
                       ) : toolName === 'clean' ? (
-                        <DocumentToolCall
-                          type="update"
-                          args={args}
-                        />
-                      ) : toolName === 'reports' ? (
-                        <DocumentToolCall
-                          type="update"
-                          args={args}
-                        />
+                        <pre>{JSON.stringify(args, null, 2)}</pre>
                       ) : null}
                     </div>
                   );

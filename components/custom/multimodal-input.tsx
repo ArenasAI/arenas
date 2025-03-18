@@ -17,7 +17,6 @@ import {
   memo,
 } from 'react';
 import { toast } from 'sonner';
-import { useLocalStorage, useWindowSize } from 'usehooks-ts';
 import { v4 as uuidv4 } from 'uuid';
 
 import { cn, sanitizeUIMessages } from '@/lib/utils';
@@ -28,7 +27,6 @@ import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import equal from 'fast-deep-equal';
 import { UploadStatus } from './upload-status';
-import { DataTablePreview } from './data-preview';
 import { UseChatHelpers } from 'ai/react';
 
 interface MultimodalInputProps {
@@ -56,9 +54,7 @@ function PureMultimodalInput({
   stop,
   attachments,
   setAttachments,
-  messages,
   setMessages,
-  append,
   handleSubmit,
   className,
   isDragging,
@@ -68,7 +64,7 @@ function PureMultimodalInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<FileList | undefined>(undefined);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { width } = useWindowSize();
+
   useEffect(() => {
     if (textareaRef.current) {
       adjustHeight();
@@ -144,9 +140,9 @@ function PureMultimodalInput({
     }
     setAttachments([]);
     resetHeight();
-  }, [attachments, handleSubmit]);
+  }, [attachments, handleSubmit, setAttachments]);
 
-  const addFileUpload = (fileName: string) => {
+  const addFileUpload = useCallback((fileName: string) => {
     const id = uuidv4();
     setFileUploads(prev => [...prev, {
       id,
@@ -155,21 +151,21 @@ function PureMultimodalInput({
       status: 'uploading'
     }]);
     return id;
-  };
+  }, []);
 
-  const updateFileUpload = (id: string, updates: Partial<typeof fileUploads[0]>) => {
+  const updateFileUpload = useCallback((id: string, updates: Partial<typeof fileUploads[0]>) => {
     setFileUploads(prev => 
       prev.map(upload => 
         upload.id === id ? { ...upload, ...updates } : upload
       )
     );
-  };
+  }, []);
 
-  const removeFileUpload = (id: string) => {
+  const removeFileUpload = useCallback((id: string) => {
     setFileUploads(prev => prev.filter(upload => upload.id !== id));
-  };
+  }, []);
 
-  const uploadFile = async (file: File) => {
+  const uploadFile = useCallback(async (file: File) => {
     const uploadId = addFileUpload(file.name);
     
     const formData = new FormData();
@@ -211,7 +207,7 @@ function PureMultimodalInput({
       });
       throw error;
     }
-  };
+  }, [chatId, addFileUpload, updateFileUpload, removeFileUpload]);
 
   const handleFileChange = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files?.length) return;
@@ -230,11 +226,11 @@ function PureMultimodalInput({
       console.error('Upload error:', error);
       toast.error('Failed to upload one or more files');
     }
-  }, [chatId]);
+  }, [setAttachments, uploadFile]);
 
   const removeAttachment = useCallback(async (attachment: Attachment) => {
-  try {
-      const response = await fetch(`/api/files/remove`, {
+    try {
+      await fetch(`/api/files/remove`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

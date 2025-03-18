@@ -1,175 +1,96 @@
 'use client';
 
-import { EditorView } from '@codemirror/view';
-import { EditorState, StateEffect, Compartment } from '@codemirror/state';
-import { Transaction } from '@codemirror/state';
-import { oneDark } from '@codemirror/theme-one-dark';
-import { basicSetup } from 'codemirror';
-import { python } from '@codemirror/lang-python';
-import { javascript } from '@codemirror/lang-javascript';
-import { Extension } from '@codemirror/state';
-import React, { memo, useEffect, useRef, useMemo } from 'react';
-import { Suggestion } from '@/lib/supabase/types';
+import { useCallback, useRef, useState } from 'react'
+import { Editor, OnValidate, OnMount } from '@monaco-editor/react'
+import { editor } from 'monaco-editor'
+import { Button } from './ui/button'
+import { toast } from 'sonner'
 
-type EditorProps = {
-  content: string;
-  onSaveContent: (updatedContent: string, debounce: boolean) => void;
-  status: 'streaming' | 'idle';
-  isCurrentVersion: boolean;
-  currentVersionIndex: number;
-  suggestions: Array<Suggestion>;
-  language?: string;
-};
-
-// Create a custom remote annotation
-const remoteAnnotation = StateEffect.define<boolean>();
-
-// Helper to determine language based on file extension or content
-function getLanguageExtension(language?: string): Extension {
-  if (!language) return [];
-  
-  switch (language.toLowerCase()) {
-    case 'javascript':
-    case 'js':
-    case 'jsx':
-    case 'typescript':
-    case 'ts':
-    case 'tsx':
-      return javascript();
-    case 'python':
-    case 'py':
-      return python();
-    default:
-      // Default to Python if unknown
-      return python();
-  }
+interface CodeEditorProps {
+  initialValue: string;
+  language: string;
+  onChange?: (value: string) => void;
+  readOnly?: boolean;
 }
 
-function PureCodeEditor({ content, onSaveContent, status, language }: EditorProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<EditorView | null>(null);
-  
-  const languageCompartment = useMemo(() => new Compartment(), []);
-  const languageExtension = useMemo(() => getLanguageExtension(language), [language]);
+interface EditorError {
+  message: string;
+  lineNumber: number;
+  column: number;
+}
 
-  useEffect(() => {
-    if (containerRef.current && !editorRef.current) {
-      try {
-        const extensions = [
-          basicSetup,
-          languageCompartment.of(languageExtension),
-          oneDark
-        ].filter(Boolean);
+export function CodeEditor({
+  initialValue,
+  language,
+  onChange,
+  readOnly = false,
+}: CodeEditorProps) {
+  const [value, setValue] = useState(initialValue)
+  const [errors, setErrors] = useState<EditorError[]>([])
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
 
-        const startState = EditorState.create({
-          doc: content,
-          extensions
-        });
+  const handleEditorDidMount: OnMount = useCallback((editor) => {
+    editorRef.current = editor
+  }, [])
 
-        editorRef.current = new EditorView({
-          state: startState as any,
-          parent: containerRef.current,
-        });
-      } catch (error) {
-        console.error("Error creating editor:", error);
-      }
+  const handleEditorChange = useCallback((value: string | undefined) => {
+    if (value !== undefined) {
+      setValue(value)
+      onChange?.(value)
     }
+  }, [onChange])
 
-    return () => {
-      if (editorRef.current) {
-        editorRef.current.destroy();
-        editorRef.current = null;
-      }
-    };
-    // NOTE: we only want to run this effect once when the component mounts
-    // eslint-disable-next-line
-  }, []);
+  const handleEditorValidation: OnValidate = useCallback((markers) => {
+    setErrors(markers.map(marker => ({
+      message: marker.message,
+      lineNumber: marker.startLineNumber,
+      column: marker.startColumn
+    })))
+  }, [])
 
-  useEffect(() => {
+  const handleFormat = useCallback(() => {
     if (editorRef.current) {
-      try {
-        const updateListener = EditorView.updateListener.of((update) => {
-          if (update.docChanged) {
-            // Check if any transaction has the remote annotation
-            let isRemoteChange = false;
-            for (const tr of update.transactions) {
-              // Using a try-catch to handle potential version compatibility issues
-              try {
-                // Check for effects that might indicate a remote change
-                const hasRemoteEffect = tr.effects.some(e => e.is(remoteAnnotation));
-                if (hasRemoteEffect) {
-                  isRemoteChange = true;
-                  break;
-                }
-              } catch (e) {
-                // Fallback for compatibility
-                console.error("Error checking transaction:", e);
-              }
-            }
-
-            if (!isRemoteChange) {
-              const newContent = update.state.doc.toString();
-              onSaveContent(newContent, true);
-            }
-          }
-        });
-
-        const extensions = [basicSetup, languageExtension, oneDark, updateListener];
-        const newState = EditorState.create({
-          doc: editorRef.current.state.doc,
-          extensions,
-        });
-
-        // Type cast to avoid version mismatch errors
-        editorRef.current.setState(newState as any);
-      } catch (error) {
-        console.error("Error updating editor state:", error);
-      }
+      editorRef.current.getAction('editor.action.formatDocument')?.run()
+      toast.success('Code formatted successfully')
     }
-  }, [onSaveContent, languageExtension]);
-
-  useEffect(() => {
-    if (editorRef.current && content) {
-      try {
-        const currentContent = editorRef.current.state.doc.toString();
-
-        if (status === 'streaming' || currentContent !== content) {
-          const transaction = editorRef.current.state.update({
-            changes: {
-              from: 0,
-              to: currentContent.length,
-              insert: content,
-            },
-            effects: [remoteAnnotation.of(true)]
-          });
-
-          editorRef.current.dispatch(transaction);
-        }
-      } catch (error) {
-        console.error("Error updating content:", error);
-      }
-    }
-  }, [content, status]);
+  }, [])
 
   return (
-    <div
-      className="relative not-prose w-full pb-[calc(80dvh)] text-sm"
-      ref={containerRef}
-    />
-  );
+    <div className="relative w-full">
+      <div className="absolute right-2 top-2 z-10">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleFormat}
+          disabled={readOnly}
+        >
+          Format
+        </Button>
+      </div>
+      <Editor
+        height="500px"
+        defaultLanguage={language}
+        defaultValue={initialValue}
+        value={value}
+        onChange={handleEditorChange}
+        onMount={handleEditorDidMount}
+        onValidate={handleEditorValidation}
+        options={{
+          minimap: { enabled: false },
+          fontSize: 14,
+          readOnly,
+          automaticLayout: true,
+        }}
+      />
+      {errors.length > 0 && (
+        <div className="mt-2 text-sm text-red-500">
+          {errors.map((error, index) => (
+            <div key={index}>
+              Line {error.lineNumber}: {error.message}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
-
-function areEqual(prevProps: EditorProps, nextProps: EditorProps) {
-  if (prevProps.suggestions !== nextProps.suggestions) return false;
-  if (prevProps.currentVersionIndex !== nextProps.currentVersionIndex)
-    return false;
-  if (prevProps.isCurrentVersion !== nextProps.isCurrentVersion) return false;
-  if (prevProps.status === 'streaming' && nextProps.status === 'streaming')
-    return false;
-  if (prevProps.content !== nextProps.content) return false;
-  if (prevProps.language !== nextProps.language) return false;
-
-  return true;
-}
-
-export const CodeEditor = memo(PureCodeEditor, areEqual);

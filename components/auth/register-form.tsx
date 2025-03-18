@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { login, signInWithOAuth } from '@/app/(auth)/actions'
+// import { login, signInWithOAuth } from '@/app/(auth)/actions'
 import { Button } from "@/components/ui/button"
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AdminUserAttributes, Provider } from "@supabase/supabase-js";
@@ -77,6 +77,13 @@ export function Register() {
             redirectTo: `${window.location.origin}/auth/callback`
           }
         });
+        if (error) {
+          console.error(error)
+          toast.error("An unexpected error occured, please try again")
+        }
+        if (data) {
+          console.log(data)
+        }
       } catch (error) {
         console.error(error)
         toast.error("An unexpected error occured, please try again")

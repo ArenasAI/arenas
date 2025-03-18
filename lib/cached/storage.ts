@@ -24,8 +24,8 @@ type UploadParams = {
   path: string[];
   bucket?: string;
   options?: {
-    contentType?: string,
-    [key: string]: any;
+    contentType?: string;
+    [key: string]: unknown;
   }
 };
 
@@ -36,9 +36,7 @@ export async function upload(
   // Ensure bucket exists before upload
   await ensureBucketExists(client);
 
-  const storage = client.storage.from(BUCKET_NAME);
-
-  const { data, error } = await client.storage
+  const { error } = await client.storage
     .from(bucket)
     .upload(path.join('/'), file, {
       upsert: true,

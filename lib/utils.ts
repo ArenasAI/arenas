@@ -75,7 +75,12 @@ export function generateUUID(): string {
 function parseToolContent(content: string): ToolContent {
   try {
     const parsed = JSON.parse(content);
-    return parsed.map((item: any) => ({
+    return parsed.map((item: { 
+      type?: string;
+      toolCallId: string;
+      toolName: string;
+      result: unknown;
+    }) => ({
       type: item.type || 'tool-result',
       toolCallId: item.toolCallId,
       toolName: item.toolName,
@@ -124,8 +129,7 @@ function addToolMessageToChat({
   });
 }
 
-// Add fetcher function for SWR
-export async function fetcher<T = any>(
+export async function fetcher<T>(
   input: RequestInfo | URL,
   init?: RequestInit
 ): Promise<T> {
@@ -180,7 +184,7 @@ export function convertToUIMessages(
     }
 
     let textContent = '';
-    let toolInvocations: Array<ToolInvocation> = [];
+    const toolInvocations: Array<ToolInvocation> = [];
 
     try {
       const parsedContent = JSON.parse(message.content?.toString() ?? '');
@@ -227,6 +231,13 @@ type ResponseMessage = ResponseMessageWithoutId & {
   }>;
 };
 
+type MessageContent = {
+  type: string;
+  text?: string;
+  toolCallId?: string;
+  reasoning?: string;
+}
+
 export function sanitizeResponseMessages({
   messages,
   reasoning,
@@ -251,20 +262,18 @@ export function sanitizeResponseMessages({
 
     if (typeof message.content === 'string') return message;
 
-    const sanitizedContent = message.content.filter((content) =>
+    const sanitizedContent = message.content.filter((content: MessageContent) =>
       content.type === 'tool-call'
-        ? toolResultIds.includes(content.toolCallId)
+        ? toolResultIds.includes(content.toolCallId!)
         : content.type === 'text'
-          ? content.text.length > 0
+          ? content.text!.length > 0
           : true,
     );
 
     if (reasoning) {
-      // @ts-expect-error: reasoning message parts in sdk is wip
-      sanitizedContent.push({ type: 'reasoning', reasoning });
+      sanitizedContent.push({ type: 'text', text: reasoning });
     }
 
-    // Preserve any attachments from the original message
     if (message.experimental_attachments) {
       return {
         ...message,

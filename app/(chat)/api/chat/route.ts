@@ -6,6 +6,7 @@ import {
   CoreMessage,
   streamText,
   tool,
+  ToolInvocation,
 } from 'ai';
 import fs from 'fs';
 import { Sandbox } from '@e2b/code-interpreter'
@@ -29,8 +30,6 @@ import { getUserSubscription } from '@/lib/stripe/stripe';
 import { checkMessageLimit } from '@/lib/stripe/stripe';
 import { createSandbox } from '@/lib/sandbox';
 import { runVisualizationCode } from '@/lib/sandbox';
-import { ChartResult } from '@/lib/sandbox';
-import { ChartType } from '@/lib/sandbox';
 import { storeDocument } from '@/lib/rag/pinecone';
 
 export const maxDuration = 60;
@@ -117,7 +116,7 @@ export async function POST(request: Request) {
     const filteredMessages = messages.filter((message: Message) => {
       if (!message.toolInvocations) return true;
       return message.toolInvocations.every(
-        (invocation: any) => invocation.state === 'result' && invocation.result
+        (invocation: ToolInvocation) => invocation.state === 'result' && invocation.result
       );
     });
 
@@ -206,11 +205,11 @@ export async function POST(request: Request) {
                 code: z.string().describe("The code to execute"),
                 language: z.enum(["python", "r", "julia"]).default("python").describe("Programming language to use")
               }),
-              execute: async ({ code, language }) => {
+              execute: async ({ code: codeToExecute }) => {
                 const sandbox = await Sandbox.create(process.env.SANDBOX_TEMPLATE_ID!);
 
                 try {
-                  const execution = await sandbox.runCode(code);
+                  const execution = await sandbox.runCode(codeToExecute);
                   
                   if (execution.error) {
                     return `Error executing code:\n${execution.error.toString()}`;
@@ -243,7 +242,7 @@ export async function POST(request: Request) {
                 type: z.enum(["bar", "line", "scatter", "pie", "histogram", "box", "violin", "bubble", "heatmap", "choropleth", "treemap", "funnel", "waterfall", "candlestick", "area"]).default("bar"),
                 title: z.string().default("Chart")
               }),
-              execute: async ({ code, language, data, type, title }) => {
+              execute: async ({ code, language, data, title }) => {
                 const sandbox = await createSandbox(language);
                 
                 const finalCode = code || `
@@ -282,20 +281,18 @@ result = {
 print(result)
 `;
 
-                const charts = await runVisualizationCode(sandbox, finalCode, language);
+                const charts = await runVisualizationCode(sandbox, finalCode);
                 return { charts };
               }
             }),
             reports: tool({
               description: 'Generate data analysis reports from CSV or Excel files using Python. Creates downloadable reports with statistical analysis, visualizations, and insights.',
               parameters: z.object({
-                code: z.string().describe("The code to generate the report. If not provided, will generate code based on other parameters"),
-                language: z.enum(["python", "r", "julia"]).default("python"),
                 type: z.enum(['summary', 'detailed']),
                 columns: z.array(z.string()).optional(),
                 format: z.enum(['text', 'markdown', 'html']).default('markdown')
               }),
-              execute: async ({ code, language, type, columns, format }) => {
+              execute: async ({ type, format }) => {
                 const sandbox = await Sandbox.create(process.env.SANDBOX_TEMPLATE_ID!);
                 try {
                   // if file exists, read in sandbox

@@ -3,11 +3,6 @@
 import { generateText, Message } from 'ai';
 import { cookies } from 'next/headers';
 import { myProvider } from '@/ai/models';
-import createClient from '@/lib/supabase/server';
-import {
-  deleteMessagesByChatIdAfterTimestamp,
-  getMessageById,
-} from '@/lib/cached/queries';
 
 export async function saveModelId(model: string) {
   const cookieStore = await cookies();

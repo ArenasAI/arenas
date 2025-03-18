@@ -1,108 +1,123 @@
 "use client"
 
 import { useState } from 'react'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { updatePasswordSchema, updatePasswordFormData } from '@/utils/form-schema'
-import { Button } from '../ui/button'
-import { Input } from '../ui/input'
 import { useForm } from 'react-hook-form'
-import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
+import { Button } from "@/components/ui/button"
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Input } from "@/components/ui/input"
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '../ui/form'
+import { updatePasswordSchema, updatePasswordFormData } from '@/utils/form-schema'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+
+interface UpdatePasswordError {
+  message: string;
+  code?: string;
+}
 
 export function UpdatePasswordForm() {
   const [isLoading, setIsLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset
-  } = useForm<updatePasswordFormData>({
-    resolver: zodResolver(updatePasswordSchema)
+  const form = useForm<updatePasswordFormData>({
+    resolver: zodResolver(updatePasswordSchema),
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
+    },
   })
 
-  const onSubmit = async (data: updatePasswordFormData) => {
+  const handleUpdatePassword = async (data: updatePasswordFormData) => {
+    if (isLoading) return
+    setIsLoading(true)
+    setErrorMessage(null)
+
     try {
-      setIsLoading(true)
-      
       const { error } = await supabase.auth.updateUser({
         password: data.password
       })
 
       if (error) {
-        throw error
+        setErrorMessage(error.message)
+      } else {
+        toast.success('Password updated successfully')
+        router.push('/login')
       }
-
-      toast.success('Password updated successfully')
-      reset()
-      router.push('/login')
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update password')
-      console.error(error)
+    } catch (error: unknown) {
+      const updateError = error as UpdatePasswordError
+      setErrorMessage(updateError.message)
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="flex flex-col space-y-6 w-full sm:w-[350px] mx-auto">
-      <div className="flex flex-col space-y-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Update Password
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Enter your new password below
-        </p>
+    <section className="flex min-h-screen items-center justify-center">
+      <div className="w-full max-w-md px-4 py-8 sm:px-6">
+        <div className="text-center">
+          <h1 className="mb-6 text-3xl font-bold tracking-tight">Update Password</h1>
+        </div>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleUpdatePassword)} className="space-y-4">
+            <FormField
+              name="password"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel htmlFor="password">New Password</FormLabel>
+                  <FormControl>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="********"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              name="confirmPassword"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel htmlFor="confirmPassword">Confirm New Password</FormLabel>
+                  <FormControl>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      placeholder="********"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full rounded-md"
+              disabled={isLoading}
+              isLoading={isLoading}
+            >
+              Update Password
+            </Button>
+
+            {errorMessage && (
+              <p className="text-center text-red-500">{errorMessage}</p>
+            )}
+          </form>
+        </Form>
       </div>
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <div className="space-y-2">
-          <Input
-            {...register('password')}
-            type="password"
-            placeholder="New password"
-            disabled={isLoading}
-            className={errors.password ? 'border-red-500' : ''}
-          />
-          {errors.password && (
-            <p className="text-sm text-red-500">
-              {errors.password.message}
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Input
-            {...register('confirmPassword')}
-            type="password"
-            placeholder="Confirm new password"
-            disabled={isLoading}
-            className={errors.confirmPassword ? 'border-red-500' : ''}
-          />
-          {errors.confirmPassword && (
-            <p className="text-sm text-red-500">
-              {errors.confirmPassword.message}
-            </p>
-          )}
-        </div>
-
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isLoading}
-        >
-          {isLoading ? 'Updating...' : 'Update Password'}
-        </Button>
-      </form>
-
-      {/* Optional security notice */}
-      <p className="text-xs text-muted-foreground text-center">
-        Make sure your new password is at least 6 characters long and contains a mix of characters
-      </p>
-    </div>
+    </section>
   )
 }
 

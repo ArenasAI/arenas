@@ -3,7 +3,7 @@ import createClient from '@/lib/supabase/server';
 
 export async function DELETE(req: Request) {
   try {
-    const { chatId, path, url } = await req.json();
+    const { chatId, path } = await req.json();
     
     if (!chatId || !path) {
       return NextResponse.json(

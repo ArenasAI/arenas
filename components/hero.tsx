@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Footer from '@/components/footer'
-import FeatureCards from './custom/feature-cards'
 
 export default function Hero() {
   return (

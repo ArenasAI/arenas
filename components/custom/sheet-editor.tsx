@@ -19,11 +19,17 @@ type SheetEditorProps = {
 const MIN_ROWS = 100;
 const MIN_COLS = 100;
 
+interface RowData {
+  id: number;
+  rowNumber: number;
+  [key: string]: string | number;
+}
+
 const PureSpreadsheetEditor = ({
   content,
   saveContent,
-  status,
-  isCurrentVersion,
+  // status,
+  // isCurrentVersion,
 }: SheetEditorProps) => {
   const { theme } = useTheme();
 
@@ -75,7 +81,7 @@ const PureSpreadsheetEditor = ({
 
   const initialRows = useMemo(() => {
     return parseData.map((row, rowIndex) => {
-      const rowData: any = {
+      const rowData: RowData = {
         id: rowIndex,
         rowNumber: rowIndex + 1,
       };
@@ -88,21 +94,21 @@ const PureSpreadsheetEditor = ({
     });
   }, [parseData, columns]);
 
-  const [localRows, setLocalRows] = useState(initialRows);
+  const [localRows, setLocalRows] = useState<RowData[]>(initialRows);
 
   useEffect(() => {
     setLocalRows(initialRows);
   }, [initialRows]);
 
-  const generateCsv = (data: any[][]) => {
+  const generateCsv = (data: string[][]) => {
     return unparse(data);
   };
 
-  const handleRowsChange = (newRows: any[]) => {
+  const handleRowsChange = (newRows: RowData[]) => {
     setLocalRows(newRows);
 
     const updatedData = newRows.map((row) => {
-      return columns.slice(1).map((col) => row[col.key] || '');
+      return columns.slice(1).map((col) => String(row[col.key] || ''));
     });
 
     const newCsvContent = generateCsv(updatedData);

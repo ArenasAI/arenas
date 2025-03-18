@@ -10,7 +10,11 @@ import {
 } from '@/lib/cached/cached-queries';
 import { convertToUIMessages } from '@/lib/utils';
 
-export default async function Page(props: { params: Promise<any> }) {
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function Page(props: PageProps) {
   const params = await props.params;
   const { id } = params;
   const chat = await getChatById(id);

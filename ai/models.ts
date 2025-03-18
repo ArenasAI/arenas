@@ -1,5 +1,4 @@
 import { openai } from '@ai-sdk/openai';
-import { deepseek } from '@ai-sdk/deepseek';
 import { anthropic } from '@ai-sdk/anthropic';
 import { fireworks } from '@ai-sdk/fireworks';
 import { google } from '@ai-sdk/google';

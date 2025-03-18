@@ -1,5 +1,4 @@
 import { cn } from '@/lib/utils';
-import { ReactElement } from 'react';
 
 export const BotIcon = () => {
   return (
@@ -87,7 +86,7 @@ export const RobotWithBookwormHatIcon = () => (
 );
 
 
-export const ChatIcon = (props: any) => (
+export const ChatIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24"
