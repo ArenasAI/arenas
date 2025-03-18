@@ -3,15 +3,20 @@ import { NextResponse } from 'next/server';
 import { Stripe } from 'stripe';
 import createClient from '@/lib/supabase/server';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-02-24.acacia'
-});
-
 const relevantEvents = new Set([
   'checkout.session.completed',
   'customer.subscription.updated',
   'customer.subscription.deleted'
 ]);
+
+function getStripeClient() {
+    if (!process.env.STRIPE_SECRET_KEY) {
+        throw new Error('STRIPE_SECRET_KEY is not set');
+    }
+    return new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: '2025-02-24.acacia'
+    });
+}
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -21,6 +26,7 @@ export async function POST(req: Request) {
   let event: Stripe.Event;
 
   try {
+    const stripe = getStripeClient();
     event = stripe.webhooks.constructEvent(
       body,
       signature,
@@ -35,6 +41,7 @@ export async function POST(req: Request) {
 
   if (relevantEvents.has(event.type)) {
     try {
+      const stripe = getStripeClient();
       switch (event.type) {
         case 'checkout.session.completed': {
           const session = event.data.object as Stripe.Checkout.Session;
