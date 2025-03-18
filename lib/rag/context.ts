@@ -2,11 +2,11 @@ import { Pinecone } from "@pinecone-database/pinecone";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { createPineconeClient } from "./pinecone";
 
-export async function getMatchesFromEmbeddings(embeddings: number[], fileUrl: string) {
+export async function getMatchesFromEmbeddings(embeddings: number[], fileRef: string) {
     const pinecone = await createPineconeClient();
-    const index = pinecone.Index(process.env.PINECONE_INDEX_NAME!);
+    const index = pinecone.Index('default-index');
     try {
-        const namespace = fileUrl.split('/').pop()!;
+        const namespace = fileRef.split('/').pop()!;
         const results = await index.query({
             topK: 5,
             vector: embeddings,
@@ -36,10 +36,10 @@ async function getEmbeddings(text: string): Promise<number[]> {
   }
 }
 
-export async function getContext(query: string, fileUrl: string) {
+export async function getContext(query: string, fileRef: string): Promise<string> {
     try {
         const queryEmbedding = await getEmbeddings(query);
-        const matches = await getMatchesFromEmbeddings(queryEmbedding, fileUrl);
+        const matches = await getMatchesFromEmbeddings(queryEmbedding, fileRef);
         
         // Filter for high-quality matches (score >= 0.7)
         const qualifyingDocs = matches.filter((match) => match.score && match.score >= 0.7);
@@ -55,7 +55,7 @@ export async function getContext(query: string, fileUrl: string) {
             
         return context;
     } catch (error) {
-        console.error("Error retrieving context:", error);
-        return ""; // Return empty context in case of error
+        console.error('Error getting context:', error);
+        return ''; // Return empty string instead of failing
     }
 }

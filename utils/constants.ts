@@ -8,16 +8,6 @@ export const MAX_MESSAGES = "15";
 
 export const isProductionEnvironment = process.env.NODE_ENV === 'production';
 
-export const TEST_MODE_ENABLED = ["true", "True", "TRUE"].includes(
-    process.env.NEXT_PUBLIC_TEST_MODE_ENABLED ?? "",
-  );
-
-export const isTestEnvironment = Boolean(
-  process.env.PLAYWRIGHT_TEST_BASE_URL ||
-    process.env.PLAYWRIGHT ||
-    process.env.CI_PLAYWRIGHT,
-);
-
 export const PRICING_TIERS: {
     monthly: PricingTierData[],
     annual: PricingTierData[],
@@ -27,47 +17,53 @@ export const PRICING_TIERS: {
             title: "Student",
             price: "15",
             description: "Perfect for students and beginners",
-            features: ["Community Discord access", "15 messages free", "Basic data visualization", "CSV & Excel support"],
+            priceId: process.env.NEXT_PUBLIC_STRIPE_STUDENT_PRICE_ID,
+            features: ["15 messages free","Community Discord access", "Basic data visualization", "R and Julia (incoming)"],
             index: 0,
         },
         {
             title: "Pro",
             price: "40",
             description: "For professionals who need powerful tools",
-            features: ["Monthly 100 messages", "Discord priority support", "Advanced visualizations", "API access", "Contributing"],
+            priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
+            features: ["Unlimited messages", "Discord priority support", "Advanced visualizations", "Unlimited MCP Access"],
             index: 1,
         },
-        {
-            title: "Team",
-            price: "80",
-            description: "Ideal for teams and organizations",
-            features: ["Unlimited access to chat", "Latest AI models", "Team collaboration", "Custom dashboards", "Long term file storage"],
-            index: 2,
-        }
+        // {
+        //     title: "Team",
+        //     price: "80",
+        //     description: "Ideal for teams and organizations",
+        //     priceId: process.env.NEXT_PUBLIC_STRIPE_TEAM_PRICE_ID,
+        //     features: ["Unlimited access to chat", "Access to latest models", "Single Sign On - SSO", "Custom dashboards", "Direct customer support from team", "Long term file storage"],
+        //     index: 2,
+        // }
     ],
 
     annual: [
         {
             title: "Student",
-            price: "12.99",
+            price: "10",
             description: "Perfect for students and beginners",
-            features: ["Community Discord access", "15 messages free", "Basic data visualization", "CSV & Excel support"],
+            priceId: process.env.NEXT_PUBLIC_STRIPE_STUDENT_ANNUAL_PRICE_ID,
+            features: ["100 monthly messages", "Community Discord access" , "Basic data visualization", "R and Julia (incoming)"],
             index: 0
         },
         {
             title: "Pro",
-            price: "34.99",
+            price: "34",
             description: "For professionals who need powerful tools",
-            features: ["Monthly 100 messages", "Discord priority support", "Advanced visualizations", "API access", "Contributing"],
+            priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_ANNUAL_PRICE_ID,
+            features: ["Unlimited messages", "Discord priority support", "Advanced visualizations", "Unlimited MCP Access"],
             index: 1
         },
-        {
-            title: "Team",
-            price: "68.99",
-            description: "Ideal for teams and organizations",
-            features: ["Unlimited access to chat", "Latest AI models", "Team collaboration", "Custom dashboards", "Long term file storage"],
-            index: 2
-        }, 
+        // {
+        //     title: "Team",
+        //     price: "68",
+        //     description: "Ideal for teams and organizations",
+        //     priceId: process.env.NEXT_PUBLIC_STRIPE_TEAM_ANNUAL_PRICE_ID,
+        //     features: ["Unlimited access to chat", "Access to latest models", "Single Sign On - SSO", "Custom dashboards", "Direct customer support from team", "Long term file storage"],
+        //     index: 2
+        // }, 
     ]
 }
 

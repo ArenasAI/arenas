@@ -2,35 +2,27 @@ import { PreviewMessage } from '../custom/message';
 import { useScrollToBottom } from '../custom/use-scroll-to-bottom';
 import { Database } from '@/lib/supabase/types';
 import { ChatRequestOptions, Message } from 'ai';
+import { UseChatHelpers } from 'ai/react';
 import { memo } from 'react';
 import equal from 'fast-deep-equal';
 import { UIArtifact } from './artifact';
-import { User } from '@supabase/supabase-js';
 
 type Vote = Database['public']['Tables']['votes']['Row']
 
 interface ArtifactMessagesProps {
   chatId: string;
-  user: User;
-  append: (message: Message) => void;
-  isLoading: boolean;
+  status: UseChatHelpers['status'];
   votes: Array<Vote> | undefined;
   messages: Array<Message>;
-  setMessages: (
-    messages: Message[] | ((messages: Message[]) => Message[]),
-  ) => void;
-  reload: (
-    chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
+  setMessages: UseChatHelpers['setMessages'];
+  reload: UseChatHelpers['reload'];
   artifactStatus: UIArtifact['status'];
 }
 
 function PureArtifactMessages({
   chatId,
-  isLoading,
+  status,
   votes,
-  user,
-  append,
   messages,
   setMessages,
   reload,
@@ -46,11 +38,9 @@ function PureArtifactMessages({
       {messages.map((message, index) => (
         <PreviewMessage
           chatId={chatId}
-          user={user}
-          append={append}
           key={message.id}
           message={message}
-          isLoading={isLoading && index === messages.length - 1}
+          isLoading={status === 'streaming' && index === messages.length - 1}
           vote={
             votes
               ? votes.find((vote) => vote.message_id === message.id)
@@ -79,8 +69,8 @@ function areEqual(
   )
     return true;
 
-  if (prevProps.isLoading !== nextProps.isLoading) return false;
-  if (prevProps.isLoading && nextProps.isLoading) return false;
+  if (prevProps.status !== nextProps.status) return false;
+  if (prevProps.status && nextProps.status) return false;
   if (prevProps.messages.length !== nextProps.messages.length) return false;
   if (!equal(prevProps.votes, nextProps.votes)) return false;
 

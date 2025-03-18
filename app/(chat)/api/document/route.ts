@@ -13,7 +13,7 @@ export async function GET(req: Request) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  }
 
     const { data: document, error } = await supabase.rpc(
       'get_latest_document',

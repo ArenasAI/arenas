@@ -4,12 +4,13 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { dela } from "./ui/fonts"
-import { PRICING_TIERS } from "@/utils/constants"
-import { Check, X, Sparkles, Zap, BarChart } from "lucide-react"
+import { CONTACT_EMAIL, PRICING_TIERS } from "@/utils/constants"
+import { Check, X, Sparkles, Zap, BarChart, Mail } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { motion } from "framer-motion"
 import { toast } from "sonner"
+import { loadStripe } from "@stripe/stripe-js"
 
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly')
@@ -30,36 +31,40 @@ export default function PricingPage() {
     try {
       setLoading(index)
       
-      // Map tier titles to price IDs
+      // Map tier titles to price IDs - use actual price IDs from Stripe
       const priceIdMap: Record<string, string> = {
         'Student': process.env.NEXT_PUBLIC_STRIPE_STUDENT_PRICE_ID || '',
         'Pro': process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID || '',
-        'Team': process.env.NEXT_PUBLIC_STRIPE_TEAM_PRICE_ID || '',
       }
       
-      // Add _ANNUAL suffix for annual billing
-      const priceId = billingCycle === 'annual' 
-        ? `${priceIdMap[tier]}_ANNUAL` 
-        : priceIdMap[tier]
-      
+      const priceId = priceIdMap[tier]
+      if (!priceId) {
+        throw new Error(`No price ID found for tier: ${tier}`)
+      }
+
+      console.log('Submitting with:', { priceId, plan: tier.toLowerCase() }) // Debug log
+
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ 
-          priceId, 
-          plan: tier 
+          priceId,
+          plan: tier.toLowerCase()
         }),
       })
       
       if (!response.ok) {
-        throw new Error('Failed to create checkout session')
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to create checkout session')
       }
       
-      const { url } = await response.json()
-      window.location.href = url
+      const { sessionId } = await response.json()
+      window.location.href = `/checkout?session_id=${sessionId}`
+      
     } catch (error) {
       console.error('Error:', error)
-      toast.error('Something went wrong. Please try again.')
+      toast.error(error instanceof Error ? error.message : 'Something went wrong. Please try again.')
     } finally {
       setLoading(null)
     }
@@ -76,12 +81,12 @@ export default function PricingPage() {
       
       <div className="max-w-4xl mx-auto text-center pt-20 px-4">
         <motion.h1 
-          className="text-2xl md:text-6xl font-bold mb-6 leading-tight bg-clip-text text-transparent bg-blue-400"
+          className="text-2xl md:text-6xl font-bold mb-6 leading-tight bg-clip-text"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          need a data analysis expert?
+          ditch boring excel sheets, leave it to us
         </motion.h1>
         
         {/* Billing toggle with animation */}
@@ -124,13 +129,6 @@ export default function PricingPage() {
                   : 'border-muted shadow-md hover:shadow-lg transition-shadow'
               }`}
             >
-              {index === 1 && (
-                <>
-                  <div className="absolute -right-10 top-6 bg-amber-500 text-white text-xs px-4 py-1 rotate-45 transform shadow-sm font-semibold">
-                    BEST VALUE
-                  </div>
-                </>
-              )}
               
               <CardHeader className="py-8 text-center">
                 <div className="mx-auto mb-4">
@@ -176,10 +174,20 @@ export default function PricingPage() {
                   }`}
                   variant={index === 1 ? "default" : "outline"}
                   size="lg"
-                  onClick={() => handleSubscribe(tier.title, index)}
+                  onClick={() => tier.title === 'Team' 
+                    ? window.location.href = `mailto:${CONTACT_EMAIL}`
+                    : handleSubscribe(tier.title, index)
+                  }
                   disabled={loading === index}
                 >
-                  {loading === index ? 'Loading...' : index === 1 ? 'Get Started' : 'Subscribe'}
+                  {loading === index 
+                    ? 'Loading...' 
+                    : tier.title === 'Team' 
+                      ? 'Contact Sales' 
+                      : index === 1 
+                        ? 'Get Started' 
+                        : 'Subscribe'
+                  }
                 </Button>
               </CardFooter>
             </Card>
@@ -200,39 +208,12 @@ export default function PricingPage() {
             Contact us for enterprise solutions and custom pricing tailored to your organization's needs.
           </p>
           <Button variant="outline" size="lg" className="hover:bg-primary hover:text-white transition-colors">
+            <Mail className="h-5 w-5 mr-2"/>
             Contact Sales
           </Button>
         </div>
       </motion.div>
       
-      {/* Testimonial section for social proof */}
-      <div className="max-w-6xl mx-auto px-4 pb-20">
-        <h2 className="text-2xl font-bold text-center mb-12">Trusted by data analysts worldwide</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {[
-            { name: "Sara L.", title: "Data Scientist", quote: "Arenas has transformed how I analyze datasets. What used to take hours now takes minutes." },
-            { name: "Mark T.", title: "Business Analyst", quote: "The visualizations are incredible. My presentations have never looked better." },
-            { name: "James K.", title: "Research Lead", quote: "Our entire team relies on Arenas daily. It's become an essential part of our workflow." }
-          ].map((testimonial, i) => (
-            <motion.div 
-              key={i}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.2 * i + 1 }}
-              className="bg-card p-6 rounded-2xl border shadow-sm"
-            >
-              <div className="flex flex-col h-full">
-                <div className="text-primary mb-4">★★★★★</div>
-                <p className="text-md mb-4 flex-grow">"{testimonial.quote}"</p>
-                <div>
-                  <p className="font-semibold">{testimonial.name}</p>
-                  <p className="text-sm text-muted-foreground">{testimonial.title}</p>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
     </div>
   )
 }

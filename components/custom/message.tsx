@@ -3,11 +3,11 @@
 import type { ChatRequestOptions, Message } from 'ai';
 import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
-import { memo, useMemo, useRef, useState } from 'react';
+import { memo, useState } from 'react';
 
 import type { Vote } from '@/lib/supabase/types';
 
-import { DocumentToolCall, DocumentToolResult } from './document';
+import { DocumentToolCall } from './document';
 import {
   ChevronDownIcon,
   LoaderIcon,
@@ -22,10 +22,8 @@ import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { MessageEditor } from './message-editor';
-import { DocumentPreview } from './document-preview';
 import { MessageReasoning } from './message-reasoning';
-import Chart from './chart-container';
-import { CodeEditor } from '@/components/code-editor';
+import { ChartDisplay } from './chart-display';
 
 const PurePreviewMessage = ({
   chatId,
@@ -146,27 +144,8 @@ const PurePreviewMessage = ({
 
                     return (
                       <div key={`result-${toolCallId}`}>
-                        {toolName === 'createDocument' ? (
-                          <DocumentPreview result={result} />
-                        ) : toolName === 'updateDocument' ? (
-                          <DocumentToolResult type="update" result={result} />
-                        ) : toolName === 'requestSuggestions' ? (
-                          <DocumentToolResult type="request-suggestions" result={result} />
-                        ) : toolName === 'visualization' ? (
-                          <Chart
-                            data={result.data || []}
-                            layout={result.layout || { title: 'Chart' }}
-                          />
-                        ) : toolName === 'code' ? (
-                          <CodeEditor
-                            content={result.content}
-                            onSaveContent={() => {}}
-                            status="idle"
-                            isCurrentVersion={true}
-                            currentVersionIndex={0}
-                            suggestions={[]}
-                            language={result.language || 'python'}
-                          />
+                        {toolName === 'visualization' ? (
+                          <ChartDisplay charts={result.charts || []} />
                         ) : (
                           <pre>{JSON.stringify(result, null, 2)}</pre>
                         )}
@@ -178,26 +157,11 @@ const PurePreviewMessage = ({
                     <div
                       key={`call-${toolCallId}`}
                       className={cx({
-                        skeleton: ['createDocument'].includes(toolName),
+                        skeleton: ['visualization'].includes(toolName),
                       })}
                     >
-                      {toolName === 'createDocument' ? (
-                        <DocumentPreview args={args} />
-                      ) : toolName === 'updateDocument' ? (
-                        <DocumentToolCall
-                          type="update"
-                          args={args}
-                        />
-                      ) : toolName === 'requestSuggestions' ? (
-                        <DocumentToolCall
-                          type="request-suggestions"
-                          args={args}
-                        />
-                      ) : toolName === 'visualization' ? (
-                        <Chart
-                          data={args.data}
-                          layout={args.layout}
-                        />
+                      {toolName === 'visualization' ? (
+                        <ChartDisplay charts={args.charts || []} />
                       ) : toolName === 'clean' ? (
                         <DocumentToolCall
                           type="update"

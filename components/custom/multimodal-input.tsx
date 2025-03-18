@@ -2,8 +2,6 @@
 
 import type {
   Attachment,
-  ChatRequestOptions,
-  CreateMessage,
   Message,
 } from 'ai';
 import cx from 'classnames';
@@ -33,6 +31,23 @@ import { UploadStatus } from './upload-status';
 import { DataTablePreview } from './data-preview';
 import { UseChatHelpers } from 'ai/react';
 
+interface MultimodalInputProps {
+  chatId: string;
+  input: UseChatHelpers['input'];
+  setInput: UseChatHelpers['setInput'];
+  status: UseChatHelpers['status'];
+  stop: () => void;
+  attachments: Array<Attachment>;
+  setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
+  messages: Array<Message>;
+  setMessages: Dispatch<SetStateAction<Array<Message>>>;
+  append: UseChatHelpers['append'];
+  handleSubmit: UseChatHelpers['handleSubmit'];
+  className?: string;
+  isDragging: boolean;
+  remainingMessages?: number;
+}
+
 function PureMultimodalInput({
   chatId,
   input,
@@ -47,22 +62,11 @@ function PureMultimodalInput({
   handleSubmit,
   className,
   isDragging,
-}: {  
-  chatId: string;
-  input: UseChatHelpers['input'];
-  setInput: UseChatHelpers['setInput'];
-  status: UseChatHelpers['status'];
-  stop: () => void;
-  attachments: Array<Attachment>;
-  setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
-  messages: Array<Message>;
-  setMessages: Dispatch<SetStateAction<Array<Message>>>;
-  append: UseChatHelpers['append'];
-  handleSubmit: UseChatHelpers['handleSubmit'];
-  className?: string;
-  isDragging: boolean;
-}) {
+  remainingMessages,
+}: MultimodalInputProps) {
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [files, setFiles] = useState<FileList | undefined>(undefined);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
   useEffect(() => {
@@ -85,36 +89,33 @@ function PureMultimodalInput({
     }
   };
 
-  const [localStorageInput, setLocalStorageInput] = useLocalStorage(
-    'input',
-    '',
-  );
+  const handlePaste = (event: React.ClipboardEvent) => {
+    const items = event.clipboardData?.items;
+    if (items) {
+      const files = Array.from(items).map((item) => item.getAsFile()).filter((file) => file !== null);
+      if (files.length > 0) {
+        const validFiles = files.filter(
+          (file) => file.type.startsWith('image/') || file.type.startsWith('text/csv') || file.type.startsWith('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        );
 
-  useEffect(() => {
-    if (textareaRef.current) {
-      const domValue = textareaRef.current.value;
-      // Prefer DOM value over localStorage to handle hydration
-      const finalValue = domValue || localStorageInput || '';
-      setInput(finalValue);
-      adjustHeight();
+        if (validFiles.length === files.length) {
+          const dataTransfer = new DataTransfer();
+          validFiles.forEach((file) => dataTransfer.items.add(file));
+          event.preventDefault();
+          fileInputRef.current?.click();
+          setTimeout(() => {
+            fileInputRef.current?.dispatchEvent(new Event('change', { bubbles: true }));
+          }, 0);
+        }
+      }
     }
-    // Only run once after hydration
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    setLocalStorageInput(input);
-  }, [input, setLocalStorageInput]);
+  };
 
   const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(event.target.value);
     adjustHeight();
   };
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [files, setFiles] = useState<FileList | undefined>(undefined);
-
-  // Add file upload tracking state
   const [fileUploads, setFileUploads] = useState<Array<{
     id: string;
     fileName: string;
@@ -123,25 +124,27 @@ function PureMultimodalInput({
     error?: string;
   }>>([]);
 
-  // Add state to track which spreadsheet is being previewed
-  const [previewData, setPreviewData] = useState<{
-    fileName: string;
-    data: Array<Array<string | number>>;
-  } | null>(null);
-
   const submitForm = useCallback(() => {
-    handleSubmit(undefined, {
-      experimental_attachments: attachments
-    });
+    if (attachments.length > 0) {
+      handleSubmit(undefined, {
+        experimental_attachments: attachments.map(att => ({
+          url: att.url,
+          name: att.name,
+          contentType: att.contentType
+        }))
+      });
+    } else {
+      handleSubmit();
+    }
 
+    // Clear state after submission
     setFiles(undefined);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-    setAttachments([]); // Clear attachments after sending
-    setLocalStorageInput('');
+    setAttachments([]);
     resetHeight();
-  }, [attachments, handleSubmit, setLocalStorageInput]);
+  }, [attachments, handleSubmit]);
 
   const addFileUpload = (fileName: string) => {
     const id = uuidv4();
@@ -173,13 +176,7 @@ function PureMultimodalInput({
     formData.append('file', file);
     formData.append('chatId', chatId);
 
-    const isSpreadsheet = file.type.includes('spreadsheet') ||
-      file.name.includes('.csv') ||
-      file.name.includes('.xlsx') ||
-      file.name.includes('.xls');
-
     try {
-      // Update to uploading state
       updateFileUpload(uploadId, { progress: 20 });
       
       const response = await fetch('/api/files/upload', {
@@ -187,80 +184,53 @@ function PureMultimodalInput({
         body: formData,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        
-        updateFileUpload(uploadId, { progress: 60, status: 'processing' });
-
-        const cleanedData = {
-          url: data.url,
-          name: data.path,
-          contentType: file.type,
-          ...(isSpreadsheet && data.tableData ? { 
-            tableData: data.tableData,
-            previewData: data.tableData 
-          } : {})
-          };
-
-        // Update to complete state
-        updateFileUpload(uploadId, { progress: 100, status: 'complete' });
-        
-        // Remove the status after a delay
-        setTimeout(() => removeFileUpload(uploadId), 2000);
-
-        return cleanedData;
+      if (!response.ok) {
+        const { error } = await response.json();
+        throw new Error(error || 'Upload failed');
       }
-      
-      const { error } = await response.json();
-      updateFileUpload(uploadId, { 
-        status: 'error', 
-        progress: 100,
-        error: error || 'Upload failed'
-      });
-      toast.error(error);
-      return undefined;
+
+      const data = await response.json();
+      updateFileUpload(uploadId, { progress: 60, status: 'processing' });
+
+      // Ensure consistent attachment structure
+      const attachment = {
+        url: data.url,
+        name: data.path,
+        contentType: file.type
+      };
+
+      updateFileUpload(uploadId, { progress: 100, status: 'complete' });
+      setTimeout(() => removeFileUpload(uploadId), 2000);
+
+      return attachment;
     } catch (error) {
       updateFileUpload(uploadId, { 
         status: 'error', 
         progress: 100,
-        error: 'Failed to upload file'
+        error: error instanceof Error ? error.message : 'Failed to upload file'
       });
-      toast.error('Failed to upload file, please try again!');
-      return undefined;
+      throw error;
     }
   };
 
-  const handleFileChange = useCallback(
-    async (event: ChangeEvent<HTMLInputElement>) => {
-      if (event.target.files) {
-        const newFiles = Array.from(event.target.files);
-        setFiles(event.target.files);
-        
-        const uploadPromises = newFiles.map(async (file) => {
-          try {
-            const result = await uploadFile(file);
-            if (result) {
-              return result;
-            }
-            return null;
-          } catch (error) {
-            console.error('Error uploading file:', error);
-            toast.error(`Failed to upload ${file.name}`);
-            return null;
-          }
-        });
+  const handleFileChange = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files?.length) return;
 
-        const results = await Promise.all(uploadPromises);
-        const successfulUploads = results.filter((result): result is NonNullable<typeof result> => result !== null);
-        
-        if (successfulUploads.length > 0) {
-          setAttachments(prev => [...prev, ...successfulUploads]);
-          toast.success(`Successfully uploaded ${successfulUploads.length} file(s)`);
-        }
-      }
-    },
-    [chatId],
-  );
+    const newFiles = Array.from(event.target.files);
+    setFiles(event.target.files);
+    
+    try {
+      const uploadedAttachments = await Promise.all(
+        newFiles.map(file => uploadFile(file))
+      );
+
+      setAttachments(prev => [...prev, ...uploadedAttachments]);
+      toast.success(`Successfully uploaded ${uploadedAttachments.length} file(s)`);
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload one or more files');
+    }
+  }, [chatId]);
 
   const removeAttachment = useCallback(async (attachment: Attachment) => {
   try {
@@ -308,15 +278,6 @@ function PureMultimodalInput({
         </div>
       )}
 
-      {/* Add the data preview component */}
-      {previewData && (
-        <DataTablePreview
-          data={previewData.data}
-          fileName={previewData.fileName}
-          onClose={() => setPreviewData(null)}
-        />
-      )}
-
       {(attachments.length > 0 || files) && (
         <div className={cn(
           "flex flex-row gap-2 overflow-x-scroll items-end",
@@ -327,7 +288,6 @@ function PureMultimodalInput({
               key={attachment.url} 
               attachment={attachment} 
               onRemove={() => removeAttachment(attachment)}
-              // onPreview={attachment.tableData ? () => showSpreadsheetPreview(attachment) : undefined}
             />
           ))}
 
@@ -345,11 +305,18 @@ function PureMultimodalInput({
         </div>
       )}
 
+      {typeof remainingMessages === 'number' && remainingMessages < Infinity && (
+        <div className="absolute top-2 right-2 text-xs text-muted-foreground">
+          {remainingMessages} messages remaining
+        </div>
+      )}
+
       <Textarea
         ref={textareaRef}
         placeholder="Say somethin..."
         value={input}
         onChange={handleInput}
+        onPaste={handlePaste}
         className={cx(
           'min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-2xl !text-base bg-muted pb-10 dark:border-zinc-700',
           isDragging && 'scale-102 border-primary',
@@ -378,7 +345,7 @@ function PureMultimodalInput({
         {status === 'submitted' ? (
           <StopButton stop={stop} setMessages={setMessages} />
         ) : (
-          <SendButton 
+          <SendButton
             input={input}
             submitForm={submitForm}
             uploadQueue={fileUploads.map(upload => upload.id)}
@@ -395,7 +362,7 @@ export const MultimodalInput = memo(
     if (prevProps.input !== nextProps.input) return false;
     if (prevProps.status !== nextProps.status) return false;
     if (!equal(prevProps.attachments, nextProps.attachments)) return false;
-
+    if (prevProps.remainingMessages !== nextProps.remainingMessages) return false;
     return true;
   },
 );

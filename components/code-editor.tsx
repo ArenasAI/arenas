@@ -1,7 +1,7 @@
 'use client';
 
 import { EditorView } from '@codemirror/view';
-import { EditorState, StateEffect } from '@codemirror/state';
+import { EditorState, StateEffect, Compartment } from '@codemirror/state';
 import { Transaction } from '@codemirror/state';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { basicSetup } from 'codemirror';
@@ -49,20 +49,25 @@ function PureCodeEditor({ content, onSaveContent, status, language }: EditorProp
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<EditorView | null>(null);
   
-  // Determine the language extension to use
+  const languageCompartment = useMemo(() => new Compartment(), []);
   const languageExtension = useMemo(() => getLanguageExtension(language), [language]);
 
   useEffect(() => {
     if (containerRef.current && !editorRef.current) {
       try {
-        const extensions = [basicSetup, languageExtension, oneDark];
+        const extensions = [
+          basicSetup,
+          languageCompartment.of(languageExtension),
+          oneDark
+        ].filter(Boolean);
+
         const startState = EditorState.create({
           doc: content,
-          extensions,
+          extensions
         });
 
         editorRef.current = new EditorView({
-          state: startState as any, // Type cast to avoid version mismatch errors
+          state: startState as any,
           parent: containerRef.current,
         });
       } catch (error) {

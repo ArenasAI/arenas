@@ -1,6 +1,5 @@
 import {
   CoreAssistantMessage,
-  CoreMessage,
   CoreToolMessage,
   Message,
   ToolInvocation,
@@ -8,7 +7,6 @@ import {
 } from 'ai';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-
 import { Database } from './supabase/types';
 
 type DBMessage = Database['public']['Tables']['messages']['Row'];
@@ -343,4 +341,26 @@ export function getDocumentTimestampByIndex(
 export function extractDocumentId(message: string): string | null {
   const match = message.match(/document:([a-zA-Z0-9-_]+)/);
   return match ? match[1] : null;
+}
+
+export const actionGroups = [
+  {
+    id: 'excel' as const,
+    name: 'Excel Realtime',
+    description: 'Use Excel to create realtime reports',
+    icon: 'excel',
+    color: 'blue',
+    show: true,
+  },
+
+] as const;
+
+export type ActionGroups = (typeof actionGroups)[number];
+
+export function formatDate(date: Date): string {
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }).format(date);
 }

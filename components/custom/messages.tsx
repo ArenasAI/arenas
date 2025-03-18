@@ -12,7 +12,6 @@ type Vote = Database['public']['Tables']['votes']['Row'];
 interface MessagesProps {
   chatId: string;
   status: UseChatHelpers['status'];
-  isLoading: boolean;
   votes: Array<Vote> | undefined;
   messages: Array<Message>;
   setMessages: UseChatHelpers['setMessages'];
@@ -23,7 +22,6 @@ interface MessagesProps {
 function PureMessages({
   chatId,
   status,
-  isLoading,
   votes,
   messages,
   setMessages,
@@ -42,7 +40,7 @@ function PureMessages({
           key={message.id}
           chatId={chatId}
           message={message}
-          isLoading={status === 'submitted' && messages.length - 1 === index}
+          isLoading={status === 'streaming' && messages.length - 1 === index}
           vote={
             votes
               ? votes.find((vote) => vote.message_id === message.id)

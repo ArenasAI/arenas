@@ -44,23 +44,13 @@ export function SidebarUserNav({ user }: { user: User }) {
             className="w-[--radix-popper-anchor-width]"
           >
             <DropdownMenuItem>
-              <a href="/pricing" className="text-sm text-foreground/80 hover:text-foreground transition-colors">
-                upgrade
-              </a>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
               <a href="/files" className="text-sm text-foreground/80 hover:text-foreground transition-colors">
                 your files
               </a>
             </DropdownMenuItem>
             <DropdownMenuItem>
-              <a 
-                target='_blank' 
-                href='https://github.com/ArenasAI/arenas' 
-                rel='noreferrer noopener' 
-                className="text-sm text-foreground/80 hover:text-foreground transition-colors"
-              >
-                github
+              <a href="/pricing" className="text-sm text-foreground/80 hover:text-foreground transition-colors">
+                upgrade to pro!
               </a>
             </DropdownMenuItem>
             <DropdownMenuItem

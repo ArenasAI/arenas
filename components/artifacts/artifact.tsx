@@ -32,6 +32,7 @@ import { sheetArtifact } from '@/artifacts/sheet/client';
 import { textArtifact } from '@/artifacts/text/client';
 import equal from 'fast-deep-equal';
 import { User } from '@supabase/supabase-js';
+import { UseChatHelpers } from 'ai/react';
 type Vote = Database['public']['Tables']['votes']['Row'];
 type Document = Database['public']['Tables']['documents']['Row']
 
@@ -60,10 +61,10 @@ export interface UIArtifact {
 
 function PureArtifact({
   chatId,
+  status,
   input,
   setInput,
   handleSubmit,
-  isLoading,
   stop,
   attachments,
   setAttachments,
@@ -72,32 +73,20 @@ function PureArtifact({
   setMessages,
   reload,
   votes,
-  user,
 }: {
   chatId: string;
+  status: UseChatHelpers['status'];
   input: string;
-  setInput: (input: string) => void;
-  isLoading: boolean;
+  setInput: UseChatHelpers['setInput'];
   stop: () => void;
   attachments: Array<Attachment>;
   setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
   messages: Array<Message>;
   setMessages: Dispatch<SetStateAction<Array<Message>>>;
   votes: Array<Vote> | undefined;
-  append: (
-    message: Message | CreateMessage,
-    chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
-  handleSubmit: (
-    event?: {
-      preventDefault?: () => void;
-    },
-    chatRequestOptions?: ChatRequestOptions,
-  ) => void;
-  reload: (
-    chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
-  user: User;
+  append: UseChatHelpers['append'];
+  handleSubmit: UseChatHelpers['handleSubmit'];
+  reload: UseChatHelpers['reload'];
 }) {
   const { artifact, setArtifact, metadata, setMetadata } = useArtifact();
 
@@ -328,13 +317,11 @@ function PureArtifact({
               <div className="flex flex-col h-full justify-between items-center gap-4">
                 <ArtifactMessages
                   chatId={chatId}
-                  isLoading={isLoading}
+                  status={status}
                   votes={votes}
                   messages={messages}
                   setMessages={setMessages}
                   reload={reload}
-                  user={user}
-                  append={append}
                   artifactStatus={artifact.status}
                 />
 
@@ -344,7 +331,7 @@ function PureArtifact({
                     input={input}
                     setInput={setInput}
                     handleSubmit={handleSubmit}
-                    isLoading={isLoading}
+                    status={status}
                     stop={stop}
                     attachments={attachments}
                     setAttachments={setAttachments}
@@ -491,7 +478,7 @@ function PureArtifact({
                     isToolbarVisible={isToolbarVisible}
                     setIsToolbarVisible={setIsToolbarVisible}
                     append={append}
-                    isLoading={isLoading}
+                    status={status}
                     stop={stop}
                     setMessages={setMessages}
                     artifactKind={artifact.kind}
@@ -517,7 +504,7 @@ function PureArtifact({
 }
 
 export const Artifact = memo(PureArtifact, (prevProps, nextProps) => {
-  if (prevProps.isLoading !== nextProps.isLoading) return false;
+  if (prevProps.status !== nextProps.status) return false;
   if (!equal(prevProps.votes, nextProps.votes)) return false;
   if (prevProps.input !== nextProps.input) return false;
   if (!equal(prevProps.messages, nextProps.messages.length)) return false;

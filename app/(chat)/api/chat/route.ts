@@ -7,18 +7,15 @@ import {
   streamText,
   tool,
 } from 'ai';
+import fs from 'fs';
+import { Sandbox } from '@e2b/code-interpreter'
 import { getChatById, getSession } from '@/lib/cached/cached-queries';
 import {
   saveChat,
   saveMessages,
   deleteChatById,
 } from '@/lib/cached/mutations';
-import CodeInterpreter, { type Result } from '@e2b/code-interpreter';
-import {
-  generateUUID,
-  getMostRecentUserMessage,
-  sanitizeResponseMessages,
-} from '@/lib/utils';
+import { generateUUID, getMostRecentUserMessage, sanitizeResponseMessages } from '@/lib/utils';
 import { NextResponse } from 'next/server';
 import { generateTitleFromUserMessage } from '../../actions';
 import { systemPrompt } from '@/ai/prompts';
@@ -26,21 +23,17 @@ import { MessageRole } from '@/lib/supabase/types';
 import { myProvider } from '@/ai/models';
 import { isProductionEnvironment } from '@/utils/constants';
 import { z } from 'zod';
-import { createDocument } from '@/lib/tools/create-document';
-import { updateDocument } from '@/lib/tools/update-document';
+import { getContext } from '@/lib/rag/context';
+import { getModelById } from '@/ai/models';
+import { getUserSubscription } from '@/lib/stripe/stripe';
+import { checkMessageLimit } from '@/lib/stripe/stripe';
+import { createSandbox } from '@/lib/sandbox';
+import { runVisualizationCode } from '@/lib/sandbox';
+import { ChartResult } from '@/lib/sandbox';
+import { ChartType } from '@/lib/sandbox';
+import { storeDocument } from '@/lib/rag/pinecone';
 
 export const maxDuration = 60;
-
-type RequestBody = {
-  id: string;
-  messages: Array<Message>;
-  experimental_attachments?: Array<{
-    name: string;
-    url: string;
-    contentType: string;
-  }>;
-  modelId: string;
-};
 
 function formatMessageContent(message: CoreMessage): string {
   // For user messages, store as plain text
@@ -90,27 +83,60 @@ function formatMessageContent(message: CoreMessage): string {
 }
 
 export async function POST(request: Request) {
-    const { id, messages, modelId, experimental_attachments } : RequestBody = await request.json();
+    const { id, messages, modelId } = await request.json();
     const user = await getSession();
 
-    const filteredMessages = messages.map((message) => {
-      if (message.toolInvocations) {
-        return {
-          ...message,
-          toolInvocations: undefined,
-        };
-      }
-      return message;
-    });
-        
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-  
-    const userMessage = getMostRecentUserMessage(messages);
+
+    // Check if model requires pro
+    const model = getModelById(modelId);
+    if (model?.requiresPro) {
+      const subscription = await getUserSubscription(user.id);
+      if (subscription?.status !== 'active') {
+        return NextResponse.json({ 
+          error: `${model.label} is only available with Pro subscription`, 
+          requiresUpgrade: true,
+          upgradeMessage: `Upgrade to Pro to use ${model.label} and get unlimited messages`,
+          modelName: model.label
+        }, { status: 403 });
+      }
+    }
+
+    const { canSendMessage, remainingMessages } = await checkMessageLimit(user.id);
+    if (!canSendMessage) {
+      return NextResponse.json({ 
+        error: 'Message limit reached. Upgrade to Pro for unlimited messages', 
+        requiresUpgrade: true,
+        remainingMessages
+      }, { status: 403 });
+    }
+
+    //filter out incomplete tool invocations
+    const filteredMessages = messages.filter((message: Message) => {
+      if (!message.toolInvocations) return true;
+      return message.toolInvocations.every(
+        (invocation: any) => invocation.state === 'result' && invocation.result
+      );
+    });
+
+    const userMessage = getMostRecentUserMessage(filteredMessages);
     if (!userMessage) {
       return NextResponse.json({ error: 'No user message found' }, { status: 400 });
     }
+
+    await saveMessages({
+      chatId: id,
+      messages: [{
+        id: generateUUID(),
+        chat_id: id,
+        role: userMessage.role as MessageRole,
+        content: userMessage.content,
+        created_at: new Date().toISOString(),
+      }],
+      attachment_url: userMessage.experimental_attachments?.[0]?.url || '',
+    });
 
     const chat = await getChatById(id);
     if (!chat) {
@@ -118,199 +144,256 @@ export async function POST(request: Request) {
       await saveChat({ id, userId: user.id, title });
     }
 
-    await saveMessages({
-      chatId: id,
-      messages: [
-        {
-          id: generateUUID(),
-          chat_id: id,
-          role: userMessage.role as MessageRole,
-          content: userMessage.content,
-          created_at: new Date().toISOString(),
-        },
-      ],
-    });
+    // Get context from RAG if there are spreadsheet/large files
+    let documentContext = '';
+    let fileRef = '';
+    if (userMessage.experimental_attachments?.length) {
+      const attachment = userMessage.experimental_attachments[0];
+      const isSpreadsheet = attachment.contentType?.includes('spreadsheet') || 
+                           attachment.contentType?.includes('csv') ||
+                           attachment.contentType?.includes('excel');
+      
+      if (attachment.contentType?.startsWith('image/')) {
+        const imageContent = `Here's an image: <image>${attachment.url}</image>\n${userMessage.content}`;
+        userMessage.content = imageContent;
+      } else if (isSpreadsheet) {
+        fileRef = attachment.url.split('/').pop() || '';
+        
+        // First get the file content
+        const response = await fetch(attachment.url);
+        const fileBuffer = await response.arrayBuffer();
+        
+        // Store and index the document in Pinecone first
+        await storeDocument(
+            fileBuffer,
+            fileRef,
+            attachment.contentType || '',
+            user.id,
+            fileRef
+        );
+        
+        documentContext = await getContext(userMessage.content, fileRef);
+        
+        userMessage.content = `${userMessage.content}\n\nFile contents:\n${documentContext}`;
+        userMessage.experimental_attachments = [];
+      }
+    }
+
+    const recentMessages = filteredMessages.map((msg: Message) => {
+      if (msg.id === userMessage.id) {
+        return {
+          ...msg,
+          content: documentContext ? 
+            `${msg.content}\n\nContext from attached files:\n${documentContext}` : 
+            msg.content,
+          experimental_attachments: userMessage.experimental_attachments
+        };
+      }
+      return msg;
+    }).slice(-5);
 
     return createDataStreamResponse({
       execute: (dataStream) => {
-
         const result = streamText({
           model: myProvider.languageModel(modelId),
-          messages: convertToCoreMessages(filteredMessages),
+          messages: convertToCoreMessages(recentMessages),
           maxSteps: 5,
           system: systemPrompt,
           tools: {
-            visualization: tool({
-              description: 'Create visualizations from CSV or Excel files. If no file is attached, uses sample data.',
+            execute_code: tool({
+              description: "Execute code",
               parameters: z.object({
-                type: z.enum(['histogram', 'boxplot', 'scatter', 'line', 'bar']),
-                columns: z.array(z.string()),
-                title: z.string().optional()
+                code: z.string().describe("The code to execute"),
+                language: z.enum(["python", "r", "julia"]).default("python").describe("Programming language to use")
               }),
-              execute: async ({ type, columns, title }) => {
-                console.log('creating visualization...');
-                const sandbox = await CodeInterpreter.create({
-                  apiKey: process.env.E2B_API_KEY,
-                });
+              execute: async ({ code, language }) => {
+                const sandbox = await Sandbox.create(process.env.SANDBOX_TEMPLATE_ID!);
 
-                const code = `
-                  import pandas as pd
-                  import matplotlib.pyplot as plt
-                  import seaborn as sns
+                try {
+                  const execution = await sandbox.runCode(code);
                   
-                  # Create or read data
-                  ${!experimental_attachments?.[0] ? `
-                  # Using sample data
-                  data = {
-                    'Month': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                    'Value': [10, 15, 13, 17, 21, 19],
-                    'Category': ['A', 'A', 'B', 'B', 'C', 'C'],
-                    'Count': [100, 150, 130, 170, 210, 190]
+                  if (execution.error) {
+                    return `Error executing code:\n${execution.error.toString()}`;
                   }
-                  df = pd.DataFrame(data)
-                  ` : `
-                  # Read the uploaded file
-                  df = pd.read_csv("${experimental_attachments[0].url}")
-                  `}
-                  
-                  # Create the plot
-                  plt.figure(figsize=(10, 6))
-                  ${type === 'histogram' ? `
-                    for col in ${JSON.stringify(columns)}:
-                        if col in df.columns:
-                            sns.histplot(data=df, x=col)
-                        else:
-                            print(f"Column {col} not found. Available columns: {list(df.columns)}")
-                  ` : type === 'boxplot' ? `
-                    if ${JSON.stringify(columns[0])} in df.columns:
-                        sns.boxplot(data=df, y=${JSON.stringify(columns[0])})
-                    else:
-                        print(f"Column {${JSON.stringify(columns[0])}} not found. Available columns: {list(df.columns)}")
-                  ` : type === 'scatter' ? `
-                    if all(col in df.columns for col in ${JSON.stringify(columns.slice(0, 2))}):
-                        sns.scatterplot(data=df, x=${JSON.stringify(columns[0])}, y=${JSON.stringify(columns[1])})
-                    else:
-                        print(f"One or more columns not found. Available columns: {list(df.columns)}")
-                  ` : type === 'line' ? `
-                    if all(col in df.columns for col in ${JSON.stringify(columns.slice(0, 2))}):
-                        sns.lineplot(data=df, x=${JSON.stringify(columns[0])}, y=${JSON.stringify(columns[1])})
-                    else:
-                        print(f"One or more columns not found. Available columns: {list(df.columns)}")
-                  ` : `
-                    if all(col in df.columns for col in ${JSON.stringify(columns.slice(0, 2))}):
-                        sns.barplot(data=df, x=${JSON.stringify(columns[0])}, y=${JSON.stringify(columns[1])})
-                    else:
-                        print(f"One or more columns not found. Available columns: {list(df.columns)}")
-                  `}
-                  
-                  plt.title(${JSON.stringify(title || 'Data Visualization')})
-                  plt.tight_layout()
-                  plt.savefig('plot.png')
-                  
-                  # Print available columns for reference
-                  print("\\nAvailable columns:", list(df.columns))
-                `;
 
-                const result = await sandbox.runCode(code);
+                  const output = execution.results
+                    .map(result => {
+                      if ('stdout' in result) return result.stdout;
+                      if ('stderr' in result) return `Error: ${result.stderr}`;
+                      if ('error' in result) return `Error: ${(result.error as Error).toString()}`;
+                      return '';
+                    })
+                    .filter(Boolean)
+                    .join('\n');
+
+                  return output || 'Code executed successfully with no output.';
+                } catch (error) {
+                  console.error('Error executing code:', error);
+                  return `Error executing code:\n${error instanceof Error ? error.message : JSON.stringify(error)}`;
+                }
+              }
+            }),
+
+            visualization: tool({
+              description: "Generate data visualizations using Python/R/Julia. Can create bar, line, scatter, pie, histogram, box, violin, bubble, heatmap, choropleth, treemap, funnel, waterfall, candlestick, and area charts.",
+              parameters: z.object({
+                code: z.string().optional().describe("The code to generate the visualization. If not provided, will generate code based on other parameters"),
+                language: z.enum(["python", "r", "julia"]).default("python"),
+                data: z.array(z.number()).describe("Array of numbers to chart"),
+                type: z.enum(["bar", "line", "scatter", "pie", "histogram", "box", "violin", "bubble", "heatmap", "choropleth", "treemap", "funnel", "waterfall", "candlestick", "area"]).default("bar"),
+                title: z.string().default("Chart")
+              }),
+              execute: async ({ code, language, data, type, title }) => {
+                const sandbox = await createSandbox(language);
                 
-                return {
-                  type: 'visualization',
-                  content: {
-                    text: result.text || '',
-                    image: result.results?.[0]?.data
-                  }
-                };
-              },
+                const finalCode = code || `
+import matplotlib.pyplot as plt
+import numpy as np
+import io
+import base64
+
+# Set up the data
+data = ${JSON.stringify(data)}
+data_matrix = np.array(data).reshape((int(np.sqrt(len(data))), -1))
+
+# Create the heatmap
+plt.figure(figsize=(10, 8))
+plt.imshow(data_matrix, cmap='viridis')
+plt.colorbar()
+plt.title("${title}")
+
+# Save the plot to a bytes buffer
+buf = io.BytesIO()
+plt.savefig(buf, format='png')
+buf.seek(0)
+img_str = base64.b64encode(buf.getvalue()).decode('utf-8')
+
+# Clear the current figure
+plt.close()
+
+# Return the image data in the expected format
+result = {
+    'chart': {
+        'type': 'heatmap',
+        'title': "${title}",
+        'image': f'data:image/png;base64,{img_str}'
+    }
+}
+print(result)
+`;
+
+                const charts = await runVisualizationCode(sandbox, finalCode, language);
+                return { charts };
+              }
             }),
             reports: tool({
-              description: 'Generate data analysis reports from CSV or Excel files. If no file is attached, uses sample data.',
+              description: 'Generate data analysis reports from CSV or Excel files using Python. Creates downloadable reports with statistical analysis, visualizations, and insights.',
               parameters: z.object({
+                code: z.string().describe("The code to generate the report. If not provided, will generate code based on other parameters"),
+                language: z.enum(["python", "r", "julia"]).default("python"),
                 type: z.enum(['summary', 'detailed']),
-                columns: z.array(z.string()).optional()
+                columns: z.array(z.string()).optional(),
+                format: z.enum(['text', 'markdown', 'html']).default('markdown')
               }),
-              execute: async ({ type, columns }) => {
-                console.log('generating report...');
-                const sandbox = await CodeInterpreter.create({
-                  apiKey: process.env.E2B_API_KEY,
-                });
+              execute: async ({ code, language, type, columns, format }) => {
+                const sandbox = await Sandbox.create(process.env.SANDBOX_TEMPLATE_ID!);
+                try {
+                  // if file exists, read in sandbox
+                  if (fileRef) {
+                    const content = fs.readFileSync(fileRef, 'utf-8');
+                    await sandbox.files.write(fileRef, content);
+                  }
 
-                const code = `
-                  import pandas as pd
-                  import numpy as np
-                  ${type === 'detailed' ? 'from scipy import stats' : ''}
-                  
-                  # Create or read data
-                  ${!experimental_attachments?.[0] ? `
-                  # Using sample data
-                  data = {
-                    'Month': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                    'Value': [10, 15, 13, 17, 21, 19],
-                    'Category': ['A', 'A', 'B', 'B', 'C', 'C'],
-                    'Count': [100, 150, 130, 170, 210, 190]
-                  }
-                  df = pd.DataFrame(data)
-                  print("Using sample data since no file was attached.\\n")
-                  ` : `
-                  # Read the uploaded file
-                  df = pd.read_csv("${experimental_attachments[0].url}")
-                  `}
-                  
-                  ${type === 'summary' ? `
-                  # Basic statistics
-                  summary = {
-                      'total_rows': len(df),
-                      'columns': list(df.columns),
-                      'numeric_stats': df.describe().to_dict(),
-                      'missing_values': df.isnull().sum().to_dict(),
-                  }
-                  
-                  # Column-specific analysis
-                  cols = ${columns ? JSON.stringify(columns) : 'df.columns'}
-                  for col in cols:
-                      if col in df.columns and df[col].dtype in ['int64', 'float64']:
-                          summary[f'{col}_outliers'] = len(df[df[col] > df[col].mean() + 2*df[col].std()])
-                      elif col not in df.columns:
-                          print(f"Column {col} not found in the data.")
-                  
-                  print(summary)
-                  ` : `
-                  cols = ${columns ? JSON.stringify(columns) : 'df.columns'}
-                  available_cols = [col for col in cols if col in df.columns]
-                  if not available_cols:
-                      print("None of the specified columns were found in the data.")
-                      print("Available columns:", list(df.columns))
-                  else:
-                      analysis = {
-                          'basic_stats': df[available_cols].describe().to_dict(),
-                          'correlations': df[available_cols].corr().to_dict(),
-                          'value_counts': {col: df[col].value_counts().to_dict() for col in available_cols},
-                          'distributions': {
-                              col: {
-                                  'skewness': float(stats.skew(df[col].dropna())) if df[col].dtype in ['int64', 'float64'] else None,
-                                  'kurtosis': float(stats.kurtosis(df[col].dropna())) if df[col].dtype in ['int64', 'float64'] else None
-                              } for col in available_cols
-                          }
-                      }
-                      print(analysis)
-                  `}
-                  
-                  # Print available columns for reference
-                  print("\\nAvailable columns:", list(df.columns))
-                `;
+                  // otherwise sample code to generate report
+                  const analysisCode = `
+                    import pandas as pd
+                    import numpy as np
+                    
+                    # Read the data
+                    df = pd.read_csv('${fileRef}' if '${fileRef}' else 'sample_data.csv')
+                    
+                    # Analysis based on type
+                    analysis = []
+                    
+                    if '${type}' == 'summary':
+                        # Basic statistics
+                        analysis.append("# Summary Statistics\\n")
+                        analysis.append(df.describe().to_string())
+                        
+                        # Missing values
+                        analysis.append("\\n\\n# Missing Values\\n")
+                        analysis.append(df.isnull().sum().to_string())
+                        
+                    else:  # detailed
+                        # Detailed analysis
+                        analysis.append("# Detailed Analysis Report\\n")
+                        
+                        # Basic statistics
+                        analysis.append("## Summary Statistics\\n")
+                        analysis.append(df.describe().to_string())
+                        
+                        # Missing values
+                        analysis.append("\\n\\n## Missing Values\\n")
+                        analysis.append(df.isnull().sum().to_string())
+                        
+                        # Correlation analysis
+                        analysis.append("\\n\\n## Correlation Analysis\\n")
+                        numeric_cols = df.select_dtypes(include=[np.number]).columns
+                        analysis.append(df[numeric_cols].corr().to_string())
+                        
+                        # Column-specific analysis
+                        analysis.append("\\n\\n## Column Analysis\\n")
+                        for col in df.columns:
+                            analysis.append(f"\\n### {col}\\n")
+                            if df[col].dtype in ['int64', 'float64']:
+                                analysis.append(f"Mean: {df[col].mean():.2f}")
+                                analysis.append(f"\\nMedian: {df[col].median():.2f}")
+                                analysis.append(f"\\nStd Dev: {df[col].std():.2f}")
+                            else:
+                                analysis.append(f"Unique Values: {df[col].nunique()}")
+                                analysis.append("\\nTop 5 Values:\\n")
+                                analysis.append(df[col].value_counts().head().to_string())
+                    
+                    # Save the report
+                    report = "\\n".join(analysis)
+                    with open('report.${format}', 'w') as f:
+                        f.write(report)
+                  `;
 
-                const result = await sandbox.runCode(code);
-                
-                return {
-                  type: 'report',
-                  content: {
-                    text: result.text || '',
-                    type
+                  // code is executed in the sandbox
+                  const execution = await sandbox.runCode(analysisCode);
+                  
+                  if (execution.error) {
+                    throw new Error(`Analysis failed: ${JSON.stringify(execution.error)}`);
                   }
-                };
-              },
+
+                  const output = execution.results
+                    .map(result => {
+                      if ('stdout' in result) return result.stdout;
+                      if ('stderr' in result) return `Error: ${result.stderr}`;
+                      return '';
+                    })
+                    .filter(Boolean)
+                    .join('\n');
+
+                  // Get the report file for download
+                  const reportContent = await sandbox.files.read('report.' + format);
+                  fs.writeFileSync('report.' + format, reportContent);
+                  
+                  return {
+                    type: 'report',
+                    content: {
+                      text: output, // Show analysis output in chat
+                      report: `report.${format}`, // File path for download
+                      format: format
+                    }
+                  };
+                } catch (error) {
+                  console.error('Error generating report:', error);
+                  throw new Error(`Failed to generate report: ${error instanceof Error ? error.message : String(error)}`);
+                }
+              }
             }),
-            createDocument: createDocument({session: user, dataStream, selectedModelId: modelId}),
-            updateDocument: updateDocument({session: user, dataStream, selectedModelId: modelId}),
           },
           experimental_transform: smoothStream({ chunking: 'word', delayInMs: 15 }),
           experimental_generateMessageId: generateUUID,

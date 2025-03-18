@@ -1,7 +1,6 @@
 import { generateUUID } from '@/lib/utils';
 import { DataStreamWriter, streamObject, tool } from 'ai';
 import { z } from 'zod';
-import { getSession } from '../cached/cached-queries';
 import {
   artifactKinds,
   documentHandlersByArtifactKind,
@@ -9,7 +8,7 @@ import {
 import { User } from "@supabase/supabase-js";
 import { saveDocument } from '@/lib/cached/mutations';
 import { myProvider } from '@/ai/models';
-import { sheetPrompt } from '@/ai/prompts';
+import { systemPrompt } from '@/ai/prompts';
 
 interface CreateDocumentProps {
   session: User,
@@ -48,7 +47,7 @@ export const createDocument = ({ session, dataStream, selectedModelId }: CreateD
 
         const { fullStream } = streamObject({
           model: myProvider.languageModel(selectedModelId),
-          system: sheetPrompt,
+          system: systemPrompt,
           prompt: title,
           schema: z.object({
             csv: z.string().describe('CSV data'),

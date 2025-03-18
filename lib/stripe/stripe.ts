@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import { getUserById } from './cached/cached-queries';
+import { getUserById } from '../cached/cached-queries';
 import createClient from '@/lib/supabase/server';
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
@@ -85,4 +85,43 @@ export async function getOrCreateCustomer(userId: string, email: string) {
         });
 
     return customer.id;
+}
+
+export async function checkSubscriptionFeatures(userId: string) {
+    const subscription = await getUserSubscription(userId);
+    return {
+        isSubscribed: subscription?.status === 'active',
+        features: {
+            maxProjects: subscription?.price_id?.includes('pro') ? 100 : 3,
+            allowTeamAccess: subscription?.price_id?.includes('team'),
+        }
+    };
+}
+
+// Add this function to check message limits
+export async function checkMessageLimit(userId: string) {
+  const subscription = await getUserSubscription(userId);
+  
+  // Pro users have unlimited messages
+  if (subscription?.status === 'active') {
+    return { canSendMessage: true, remainingMessages: Infinity };
+  }
+
+  // Check free tier message count
+  const supabase = await createClient();
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const { count } = await supabase
+    .from('messages')
+    .select('*', { count: 'exact' })
+    .eq('user_id', userId)
+    .gte('created_at', startOfMonth.toISOString());
+
+  const remainingMessages = 10 - (count || 0);
+  return {
+    canSendMessage: remainingMessages > 0,
+    remainingMessages
+  };
 }

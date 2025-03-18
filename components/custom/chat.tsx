@@ -14,11 +14,9 @@ import { useArtifactSelector } from '@/hooks/use-artifact';
 import { Artifact } from '../artifacts/artifact';
 import { Messages } from './messages';
 import { codeArtifact } from '@/artifacts/code/client';
-
-type PreviewData = {
-  headers: string[]
-  rows: (string[] | Record<string, unknown>)[]
-}
+import { sheetArtifact } from '@/artifacts/sheet/client';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ChartResult } from '@/lib/sandbox';
 
 type Vote = Database['public']['Tables']['votes']['Row'];
 
@@ -45,61 +43,91 @@ export function Chat({
     setInput,
     append,
     status,
-    isLoading,
     stop,
     reload,
     data
   } = useChat({
     body: { id, modelId: selectedModelId },
     initialMessages,
-    onToolCall: async ({ toolCall }) => {
-      if (toolCall.toolName === 'visualization') {
-        return {
-          type: 'visualization',
-          content: toolCall.args
-        };
-      }
-
+    experimental_throttle: 100,
+    onToolCall: async ({ toolCall }: { toolCall: { toolName: string; args: unknown } }) => {
       const runId = Math.random().toString(36).substring(7);
-      const metadata = {
-        outputs: [{
-          id: runId,
-          contents: [],
-          status: 'in_progress' as const
-        }]
-      };
+      
+      switch (toolCall.toolName) {
+        case 'visualization':
+          const args = toolCall.args as {
+            data: number[];
+            type?: 'bar' | 'line' | 'scatter' | 'pie';
+            title?: string;
+            x_label?: string;
+            y_label?: string;
+          };
+          
+          const { data, type = 'bar', title = 'Visualization' } = args;
+          
+          // Transform the data into the format ChartDisplay expects
+          const formattedChart: ChartResult = {
+            type: type as 'bar' | 'line' | 'scatter' | 'pie',
+            title,
+            elements: Array.isArray(data) ? data.map((value, index) => ({
+              label: `Item ${index + 1}`,
+              value: value
+            })) : data,
+          };
 
-      if (toolCall.toolName === 'reports') {
-        const result = await codeArtifact.actions[0].onClick({
-          content: JSON.stringify(toolCall.args),
-          metadata,
-          setMetadata: (updater) => {
-            const newMetadata = typeof updater === 'function' ? updater(metadata) : updater;
-            Object.assign(metadata, newMetadata);
-            return metadata;
-          },
-          handleVersionChange: () => {},
-          currentVersionIndex: 0,
-          isCurrentVersion: true,
-          mode: 'edit'
-        });
-        return result?.[0];
-      }
-      if (toolCall.toolName === 'createDocument' || toolCall.toolName === 'updateDocument') {
-        const result = await codeArtifact.actions[0].onClick({
-          content: JSON.stringify(toolCall.args),
-          metadata,
-          setMetadata: (updater) => {
-            const newMetadata = typeof updater === 'function' ? updater(metadata) : updater;
-            Object.assign(metadata, newMetadata);
-            return metadata;
-          },
-          handleVersionChange: () => {},
-          currentVersionIndex: 0,
-          isCurrentVersion: true,
-          mode: 'edit'
-        });
-        return result?.[0];
+          // For scatter plots, ensure x and y labels are included
+          if (type === 'scatter') {
+            formattedChart.x_label = args.x_label || 'X';
+            formattedChart.y_label = args.y_label || 'Y';
+          }
+
+          // Return both the tool call and its result in the message
+          return [
+            {
+              role: 'assistant',
+              content: [{
+                type: 'tool-call',
+                toolCallId: runId,
+                toolName: 'visualization',
+                args: args
+              }],
+              id: runId
+            },
+            {
+              role: 'tool',
+              content: JSON.stringify([{
+                toolCallId: runId,
+                result: {
+                  charts: [formattedChart]
+                }
+              }]),
+              id: `${runId}-result`
+            }
+          ];
+
+        case 'code':
+          return codeArtifact.actions[0].onClick({
+            content: JSON.stringify(toolCall.args),
+            metadata: {
+              outputs: [{
+                id: runId,
+                contents: [],
+                status: 'in_progress' as const
+              }]
+            },
+            setMetadata: (updater: any) => {
+              const newMetadata = typeof updater === 'function' ? updater({}) : updater;
+              return newMetadata;
+            },
+            handleVersionChange: () => {},
+            currentVersionIndex: 0,
+            isCurrentVersion: true,
+            mode: 'edit'
+          });
+
+        default:
+          console.warn(`Unknown tool called: ${toolCall.toolName}`);
+          return null;
       }
     },
     onFinish: () => {
@@ -249,10 +277,15 @@ export function Chat({
           chatId={id}
           selectedModelId={selectedModelId}
         />
-        
-        {isDragging && (
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm 
-                         flex items-center justify-center z-50 pointer-events-none">
+        <AnimatePresence>
+          {isDragging && (
+            <motion.div
+              className="absolute inset-0 bg-background/80 backdrop-blur-sm 
+                         flex items-center justify-center z-50 pointer-events-none"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
             <div className="p-8 rounded-xl border-2 border-dashed border-primary 
                           bg-background/50 shadow-lg">
               <div className="text-2xl font-medium text-primary text-center">
@@ -262,13 +295,12 @@ export function Chat({
                 Upload files to chat
               </p>
             </div>
-          </div>
+          </motion.div>
         )}
-
+        </AnimatePresence>
         <Messages
           chatId={id}
           status={status}
-          isLoading={isLoading}
           votes={votes}
           messages={messages}
           setMessages={setMessages}
@@ -295,22 +327,6 @@ export function Chat({
           )}
         </form>
       </div>
-
-      <Artifact
-        chatId={id}
-        input={input}
-        setInput={setInput}
-        handleSubmit={handleSubmit}
-        status={status}
-        stop={stop}
-        attachments={attachments}
-        setAttachments={setAttachments}
-        append={append}
-        messages={messages}
-        setMessages={setMessages}
-        reload={reload}
-        votes={votes}
-      />
     </>
   );
 }

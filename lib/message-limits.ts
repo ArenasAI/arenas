@@ -1,4 +1,4 @@
-import { getUserSubscription } from '@/lib/stripe';
+import { getUserSubscription } from '@/lib/stripe/stripe';
 import createClient from '@/lib/supabase/server';
 
 export async function checkMessageLimit(userId: string): Promise<{allowed: boolean, remaining: number}> {

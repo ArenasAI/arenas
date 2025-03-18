@@ -16,6 +16,7 @@ export interface Model {
   streaming?: boolean;
   tools?: string[];
   disabled?: boolean;
+  requiresPro?: boolean;
 }
 
 export const models: Array<Model> = [
@@ -24,20 +25,24 @@ export const models: Array<Model> = [
     label: 'Arenas (Coming soon)',
     apiIdentifier: 'arenas',
     streaming: true,
-    disabled: true
+    disabled: true,
+    requiresPro: true
   },
   {
       id: 'gpt-4o',
       label: 'GPT-4o',
+      requiresPro: true,
       apiIdentifier: 'gpt-4o',
-      streaming: true
+      streaming: true,
+      disabled: true
   },
   {
     id: 'claude-3-7-sonnet',
-    label: 'Claude 3.7 Sonnet',
     apiIdentifier: 'claude-3-7-sonnet-20250219',
     streaming: true,
-    disabled: true
+    disabled: true,
+    requiresPro: true,
+    label: 'Claude 3.7 Sonnet'
   },
   {
     id: 'gemini-2.0-flash',
@@ -47,10 +52,11 @@ export const models: Array<Model> = [
   },
   {
     id: 'gpt-4.5',
-    label: 'GPT-4.5',
     apiIdentifier: 'gpt-4.5-preview',
     streaming: true,
-    disabled: true
+    disabled: true,
+    requiresPro: true,
+    label: 'GPT-4.5'
   },
   {
     id: 'deepseek-reasoner',
