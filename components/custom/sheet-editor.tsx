@@ -3,7 +3,6 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
 import { DataGrid, textEditor } from 'react-data-grid';
 import { parse, unparse } from 'papaparse';
-import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 
 import 'react-data-grid/lib/styles.css';
@@ -31,7 +30,6 @@ const PureSpreadsheetEditor = ({
   // status,
   // isCurrentVersion,
 }: SheetEditorProps) => {
-  const { theme } = useTheme();
 
   const parseData = useMemo(() => {
     if (!content) return Array(MIN_ROWS).fill(Array(MIN_COLS).fill(''));
@@ -117,7 +115,6 @@ const PureSpreadsheetEditor = ({
 
   return (
     <DataGrid
-      className={theme === 'dark' ? 'rdg-dark' : 'rdg-light'}
       columns={columns}
       rows={localRows}
       enableVirtualization

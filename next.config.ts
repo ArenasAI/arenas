@@ -27,6 +27,8 @@ const nextConfig = {
     },
   },
   // reactStrictMode: true,
+  output: 'standalone',
+  productionBrowserSourceMaps: false,
   webpack: (config: WebpackConfig, { isServer }: { isServer: boolean }) => {
     // Optimize bundle size
     config.optimization = {
@@ -66,7 +68,24 @@ const nextConfig = {
     if (!isServer && process.env.NODE_ENV === 'production') {
       config.optimization.moduleIds = 'deterministic';
       config.optimization.runtimeChunk = 'single';
+      
+      // Add additional production optimizations
+      config.optimization.concatenateModules = true;
+      config.optimization.removeEmptyChunks = true;
+      config.optimization.mergeDuplicateChunks = true;
     }
+
+    // Add module optimization
+    config.module = {
+      ...config.module,
+      rules: [
+        ...(config.module?.rules || []),
+        {
+          test: /\.js$/,
+          sideEffects: false,
+        },
+      ],
+    };
 
     return config;
   },

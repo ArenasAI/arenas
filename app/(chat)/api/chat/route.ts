@@ -67,12 +67,15 @@ function formatMessageContent(message: CoreMessage): string {
             text: content.text,
           };
         }
-        return {
-          type: 'tool-call',
-          toolCallId: content.toolCallId,
-          toolName: content.toolName,
-          args: content.args,
-        };
+        if (content.type === 'tool-call') {
+          return {
+            type: 'tool-call',
+            toolCallId: content.toolCallId,
+            toolName: content.toolName,
+            args: content.args,
+          };
+        }
+        return content;
       })
     );
   }
