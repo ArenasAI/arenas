@@ -3,7 +3,6 @@ import type { Configuration as WebpackConfig } from 'webpack';
 
 const nextConfig = {
    /* config options here */
-  transpilePackages: ['@handsontable/react'],
   images: {
     remotePatterns: [
       {
@@ -21,6 +20,7 @@ const nextConfig = {
   },
   experimental: {
     turbo: {
+      runtime: 'edge',
       resolveAlias: {
         'react': 'react-dom',
       },

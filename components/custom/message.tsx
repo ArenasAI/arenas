@@ -21,7 +21,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { MessageEditor } from './message-editor';
 import { MessageReasoning } from './message-reasoning';
 import { ChartDisplay } from './chart-display';
-import { SpreadsheetEditor } from './spreadsheet-editor';
 
 interface PreviewData { 
   type: 'file' | 'image' | 'spreadsheet';
@@ -210,27 +209,6 @@ const PurePreviewMessage = ({
                               </div>
                             </div>
                           </div>
-                        ) : toolName === 'cleaning' ? (
-                          <div className="w-full">
-                            <div className="bg-muted p-4 rounded-lg mb-2">
-                              <h4 className="text-sm font-medium mb-2">Cleaned Data</h4>
-                              {result.cleaned_data ? (
-                                <div className="w-full">
-                                  <SpreadsheetEditor 
-                                    data={result.cleaned_data as Record<string, unknown>[]}
-                                    headers={Object.keys((result.cleaned_data as Record<string, unknown>[])[0] || {})}
-                                    onDataChange={(newData) => {
-                                      console.log('Data changed:', newData);
-                                    }}
-                                  />
-                                </div>
-                              ) : (
-                                <pre className="overflow-x-auto">
-                                  {JSON.stringify(result || {}, null, 2)}
-                                </pre>
-                              )}
-                            </div>
-                          </div>
                         ) : null}
                       </div>
                     );
@@ -248,17 +226,6 @@ const PurePreviewMessage = ({
                           <h4 className="text-sm font-medium mb-2">Generating Visualization</h4>
                           <div className="w-full max-w-3xl mx-auto">
                             <ChartDisplay charts={args?.charts || []} />
-                          </div>
-                        </div>
-                      ) : toolName === 'cleaning' ? (
-                        <div className="bg-muted p-4 rounded-lg mb-2">
-                          <h4 className="text-sm font-medium mb-2">Cleaning Data</h4>
-                          <div className="w-full">
-                            <SpreadsheetEditor 
-                              data={args?.data as Record<string, unknown>[] || []}
-                              headers={Object.keys((args?.data as Record<string, unknown>[])?.[0] || {})}
-                              onDataChange={() => {}}
-                            />
                           </div>
                         </div>
                       ) : null}
