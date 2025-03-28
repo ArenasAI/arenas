@@ -44,7 +44,7 @@ export function Login() {
       if (response?.error) {
         setErrorMessage(response.error);
       } else {
-        const supabase = await createClient();
+        const supabase = createClient();
         const { data: { session } } = await supabase.auth.getSession();
       
         if (session) {

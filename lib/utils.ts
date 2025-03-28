@@ -373,3 +373,8 @@ export function formatDate(date: Date): string {
     day: 'numeric'
   }).format(date);
 }
+
+export function extractCode(message: string): string | null {
+  const match = message.match(/```python([\s\S]*?)```/);
+  return match ? match[1] : null;
+}

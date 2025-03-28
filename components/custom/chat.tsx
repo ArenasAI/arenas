@@ -11,7 +11,6 @@ import { fetcher } from '@/lib/utils';
 import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChartResult } from '@/lib/sandbox';
 
 type Vote = Database['public']['Tables']['votes']['Row'];
 
@@ -41,66 +40,6 @@ export function Chat({
     body: { id, modelId: selectedModelId },
     initialMessages,
     experimental_throttle: 100,
-    onToolCall: async ({ toolCall }: { toolCall: { toolName: string; args: unknown } }) => {
-      const runId = Math.random().toString(36).substring(7);
-      
-      switch (toolCall.toolName) {
-        case 'visualization':
-          const args = toolCall.args as {
-            data: number[];
-            type?: 'bar' | 'line' | 'scatter' | 'pie';
-            title?: string;
-            x_label?: string;
-            y_label?: string;
-          };
-          
-          const { data, type = 'bar', title = 'Visualization' } = args;
-          
-          // Transform the data into the format ChartDisplay expects
-          const formattedChart: ChartResult = {
-            type: type as 'bar' | 'line' | 'scatter' | 'pie',
-            title,
-            elements: Array.isArray(data) ? data.map((value, index) => ({
-              label: `Item ${index + 1}`,
-              value: value
-            })) : data,
-          };
-
-          // For scatter plots, ensure x and y labels are included
-          if (type === 'scatter') {
-            formattedChart.x_label = args.x_label || 'X';
-            formattedChart.y_label = args.y_label || 'Y';
-          }
-
-          // Return both the tool call and its result in the message
-          return [
-            {
-              role: 'assistant',
-              content: [{
-                type: 'tool-call',
-                toolCallId: runId,
-                toolName: 'visualization',
-                args: args
-              }],
-              id: runId
-            },
-            {
-              role: 'tool',
-              content: JSON.stringify([{
-                toolCallId: runId,
-                result: {
-                  charts: [formattedChart]
-                }
-              }]),
-              id: `${runId}-result`
-            }
-          ];
-
-        default:
-          console.warn(`Unknown tool called: ${toolCall.toolName}`);
-          return null;
-      }
-    },
     onFinish: () => {
       mutate('/api/history');
     },

@@ -70,27 +70,24 @@ export async function deleteChatById(chatId: string, userId: string) {
 export async function saveMessages({
   chatId,
   messages,
-  attachment_url,
 }: {
   chatId: string;
   messages: Array<Message>;
-  attachment_url?: string;
 }) {
   await mutateQuery(
-    async (client, { chatId, messages, attachment_url }) => {
+    async (client, { chatId, messages }) => {
       const { error } = await client.from('messages').insert(
         messages.map(msg => ({
           chat_id: chatId,
           id: msg.id,
           role: msg.role,
           content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
-          attachment_url: attachment_url,
           created_at: new Date().toISOString()
         }))
       );
       if (error) throw error;
     },
-    [{ chatId, messages, attachment_url }],
+    [{ chatId, messages }],
     [`chat_${chatId}_messages`, `chat_${chatId}`]
   );
 }

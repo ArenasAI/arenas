@@ -1,12 +1,22 @@
 import { NextResponse } from 'next/server';
 import { upload } from '@/lib/cached/storage';
 import  createClient from '@/lib/supabase/server';
-import { storeDocument } from '@/lib/rag/pinecone';
 import { generateUUID } from '@/lib/utils';
 
 function sanitizeFileName(fileName: string): string {
   return fileName.replace(/[^a-zA-Z0-9.-]/g, '_').toLowerCase();
 }
+
+const ALLOWED_MIME_TYPES = [
+  'image/*', 
+  'application/pdf', 
+  'text/plain',
+  'application/vnd.ms-excel', 
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/csv',                                                       
+  'application/csv',                                                
+  'application/json'
+];
 
 export async function POST(req: Request) {
   try {
@@ -15,12 +25,11 @@ export async function POST(req: Request) {
     const chatId = formData.get('chatId') as string;
     const isSpreadsheet = file.type.includes('spreadsheet') || 
                           file.type.includes('csv') ||
-                         file.name.endsWith('.xlsx') ||
-                         file.name.endsWith('.xls') ||
-                         file.name.endsWith('.csv') ||
-                         file.name.endsWith('.json') ||
-                         file.name.endsWith('.pdf');
-                         
+                          file.name.endsWith('.xlsx') ||
+                          file.name.endsWith('.xls') ||
+                          file.name.endsWith('.json') ||
+                          file.name.endsWith('.pdf') || 
+                          file.name.endsWith('.txt');
 
     const bucketId = isSpreadsheet ? 'data-files' : 'chat_attachments';
 
@@ -29,11 +38,20 @@ export async function POST(req: Request) {
       fileType: file?.type,
       fileSize: file?.size,
       chatId,
-      isSpreadsheet
+      isSpreadsheet,
+      bucketId
     });
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+    }
+
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      return NextResponse.json({ 
+        error: 'Invalid file type. Please upload a different format.',
+        allowedTypes: ALLOWED_MIME_TYPES,
+        receivedType: file.type
+      }, { status: 400 });
     }
 
     if (!chatId) {
@@ -56,65 +74,48 @@ export async function POST(req: Request) {
     }
 
     try {
+      const fileId = generateUUID();
       const sanitizedFileName = sanitizeFileName(file.name);
       const filePath = [user.id, chatId, sanitizedFileName];
-      const fileId = generateUUID(); // Generate a unique ID for the file
 
       console.log('Sanitized file details:', {
         originalName: file.name,
         sanitizedName: sanitizedFileName,
         path: filePath.join('/'),
         userId: user.id,
-        fileId
+        fileId,
+        bucketId
       });
 
       const { data: buckets, error: bucketError } =
         await supabase.storage.listBuckets();
+      
+      if (bucketError) {
+        console.error('Error listing buckets:', bucketError);
+        throw bucketError;
+      }
+
       console.log('Storage buckets:', {
         availableBuckets: buckets?.map((b) => ({
           id: b.id,
           name: b.name,
           public: b.public,
         })),
-        error: bucketError,
       });
 
-
-      if (!buckets?.some((b) => b.id === 'chat_attachments')) {
-        console.log('Creating bucket...');
+      // Ensure required bucket exists
+      if (!buckets?.some((b) => b.id === bucketId)) {
+        console.log(`Creating ${bucketId} bucket...`);
         const { error: createError } = await supabase.storage.createBucket(
-          'chat_attachments',
+          bucketId,
           {
             public: true,
             fileSizeLimit: 52428800,
-            allowedMimeTypes: ['image/*', 'application/pdf', 'csv', '.xlsx', '.xls', '.json'],
+            allowedMimeTypes: ALLOWED_MIME_TYPES,
           }
         );
         if (createError) {
-          console.error('Bucket creation error:', createError);
-        }
-      }
-
-      if (isSpreadsheet && !buckets?.some((b) => b.id === 'data-files')) {
-        console.log('Creating data-files bucket...');
-        const { error: createError } = await supabase.storage.createBucket(
-          'data-files',
-          {
-            public: true,
-            fileSizeLimit: 52428800,
-            allowedMimeTypes: [
-              'application/vnd.ms-excel', 
-              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-              'text/csv',                                                       
-              'application/csv',                                                
-              'text/plain',
-              'application/json',
-              'application/pdf'
-            ],
-          }
-        );
-        if (createError) {
-          console.error('Bucket creation error:', createError);
+          console.error(`Error creating ${bucketId} bucket:`, createError);
           throw createError;
         }
       }
@@ -123,6 +124,7 @@ export async function POST(req: Request) {
         bucketId,
         fileType: file.type,
         isSpreadsheet,
+        filePath: filePath.join('/')
       });
 
       const publicUrl = await upload(supabase, {
@@ -157,23 +159,6 @@ export async function POST(req: Request) {
         });
       }
 
-      let pineconeResult = null;
-      const parsedData = null;
-
-      if (isSpreadsheet) {
-        console.log('Processing spreadsheet for Pinecone indexing');
-        
-        pineconeResult = await storeDocument(
-          await file.arrayBuffer(),
-          sanitizedFileName,
-          file.type,
-          user.id,
-          fileId
-        );
-        
-        console.log('Pinecone indexing result:', pineconeResult);
-      }
-
       const { error: dbError } = await supabase.from('file_uploads').insert({
         user_id: user.id,
         chat_id: chatId,
@@ -184,8 +169,20 @@ export async function POST(req: Request) {
         content_type: file.type,
         size: file.size,
         url: publicUrl,
-        version: 1, 
-        is_spreadsheet: isSpreadsheet
+        version: 1,
+        is_spreadsheet: isSpreadsheet,
+        preview_data: {
+          type: isSpreadsheet ? 'spreadsheet' : file.type.startsWith('image/') ? 'image' : 'file',
+          name: file.name,
+          size: file.size,
+          contentType: file.type,
+          lastModified: new Date().toISOString(), 
+          dimensions: isSpreadsheet ? null : null, 
+          thumbnail: file.type.startsWith('image/') ? publicUrl : null,
+          icon: !file.type.startsWith('image/') ? 
+            (isSpreadsheet ? 'FileSpreadsheet' : 'FileText') : 
+            null
+        }
       });
 
       if (dbError) {
@@ -204,8 +201,19 @@ export async function POST(req: Request) {
         url: publicUrl,
         path: filePath.join('/'),
         isSpreadsheet,
-        tableData: parsedData,
-        pineconeDocumentId: isSpreadsheet ? fileId : null,
+        fileId,
+        preview: {
+          type: isSpreadsheet ? 'spreadsheet' : file.type.startsWith('image/') ? 'image' : 'file',
+          name: file.name,
+          size: file.size,
+          contentType: file.type,
+          lastModified: new Date().toISOString(),
+          dimensions: isSpreadsheet ? null : null,
+          thumbnail: file.type.startsWith('image/') ? publicUrl : null,
+          icon: !file.type.startsWith('image/') ? 
+            (isSpreadsheet ? 'FileSpreadsheet' : 'FileText') : 
+            null
+        }
       });
     } catch (uploadError: unknown) {
       console.error('Upload error details:', {

@@ -3,29 +3,50 @@ import { X, FileText, FileSpreadsheet, Eye } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
+import { memo } from 'react';
+
+interface PreviewData {
+  type: 'file' | 'image' | 'spreadsheet';
+  name: string;
+  size: number;
+  contentType: string;
+  lastModified: string;
+  dimensions?: { width: number; height: number };
+  thumbnail?: string;
+  icon?: 'FileText' | 'FileSpreadsheet';
+}
 
 interface PreviewAttachmentProps {
-  attachment: Attachment;
+  attachment: Attachment & {
+    preview?: PreviewData;
+  };
   isUploading?: boolean;
   onRemove?: () => void;
   onPreview?: () => void;
 }
 
-export function PreviewAttachment({ 
+const getDefaultPreview = (attachment: Attachment): PreviewData => ({
+  type: attachment.contentType?.startsWith('image/') ? 'image' : 
+        attachment.contentType?.includes('spreadsheet') || attachment.name?.includes('.csv') || 
+        attachment.name?.includes('.xlsx') || attachment.name?.includes('.xls') ? 'spreadsheet' : 'file',
+  name: attachment.name || 'File',
+  size: 0,
+  contentType: attachment.contentType || '',
+  lastModified: new Date().toISOString(),
+  thumbnail: attachment.url,
+  icon: attachment.contentType?.startsWith('image/') ? undefined :
+        attachment.contentType?.includes('spreadsheet') || attachment.name?.includes('.csv') || 
+        attachment.name?.includes('.xlsx') || attachment.name?.includes('.xls') ? 'FileSpreadsheet' : 'FileText'
+});
+
+export const PreviewAttachment = memo(function PreviewAttachment({ 
   attachment, 
   isUploading = false, 
   onRemove,
   onPreview
 }: PreviewAttachmentProps) {
-  const isImage = attachment.contentType?.startsWith('image/');
-  const isSpreadsheet = 
-    attachment.contentType?.includes('spreadsheet') || 
-    attachment.name?.includes('.csv') || 
-    attachment.name?.includes('.xlsx') || 
-    attachment.name?.includes('.xls')
-    // !!attachment.tableData;
-  
-  const filename = attachment.name?.split('/').pop() || 'File';
+  const preview = attachment.preview || getDefaultPreview(attachment);
+  const filename = preview.name.split('/').pop() || 'File';
 
   return (
     <div className={cn(
@@ -63,12 +84,22 @@ export function PreviewAttachment({
       </div>
       
       <div className="flex items-center justify-center h-10 w-10 mb-2">
-        {isImage ? (
-          <Image src={attachment.url} alt={filename} width={24} height={24} />
-        ) : isSpreadsheet ? (
-          <FileSpreadsheet size={24} />
+        {preview.type === 'image' ? (
+          <div className="relative w-full h-full">
+            <Image
+              src={preview.thumbnail || attachment.url}
+              alt={filename}
+              fill
+              className="object-cover rounded-md"
+              sizes="(max-width: 150px) 100vw, 150px"
+            />
+          </div>
         ) : (
-          <FileText size={24} />
+          preview.icon === 'FileSpreadsheet' ? (
+            <FileSpreadsheet className="h-8 w-8 text-blue-500" />
+          ) : (
+            <FileText className="h-8 w-8 text-gray-500" />
+          )
         )}
       </div>
       
@@ -83,4 +114,4 @@ export function PreviewAttachment({
       )}
     </div>
   );
-}
+});

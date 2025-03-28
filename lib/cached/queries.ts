@@ -383,3 +383,8 @@ export async function checkUserSubscription(client: Client, { id }: { id: string
   return subscription;
 }
 
+export async function getFilesQuery(client: Client, { id }: { id: string }) {
+  const { data: files, error } = await client.from('file_uploads').select().eq('user_id', id);
+  if (error) throw error;
+  return files;
+}

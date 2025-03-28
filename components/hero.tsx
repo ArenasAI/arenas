@@ -1,12 +1,26 @@
 "use client"
 
 import { Newsletter } from '@/components/newsletter'
-import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Footer from '@/components/footer'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
 
 export default function Hero() {
+  const supabase = createClient()
+  const router = useRouter()
+
+  const handleTryNow = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      router.push('/login')
+    } else {
+      router.push('/chat')
+    }
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
@@ -17,31 +31,44 @@ export default function Hero() {
           className="container max-w-2xl mx-auto text-center space-y-12"
         >
           <div className="space-y-6">
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-            data science just got easier.
-          </h1>
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
+              data science just got easier.
+            </h1>
             <h2 className="text-3xl md:text-5xl font-bold tracking-tight">
-            Introducing,{" "}
-            <span className="text-blue-600 dark:text-blue-400">ArenasAI</span>
+              Introducing,{" "}
+              <span className="text-blue-600 dark:text-blue-400">ArenasAI</span>
             </h2>
             <h2 className="text-3xl md:text-5xl font-bold tracking-tight">
-            AI-Powered Data Scientist
+              AI-Powered Data Scientist
             </h2>
           </div>
           
           <div className="pt-8">
-            <Link
-              href="/chat"
+            <button
+              onClick={handleTryNow}
               className="inline-flex items-center gap-2 bg-black dark:bg-white text-white dark:text-black px-8 py-4 rounded-full text-lg font-medium transition-all hover:opacity-90"
             >
               try it now
               <ArrowRight className="w-5 h-5" />
-            </Link>
+            </button>
           </div>
         </motion.div>
-    </section>
+      </section>
 
-      {/* Newsletter Section */}
+      <section className="py-24">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl md:text-5xl font-bold tracking-tight">
+            How it works
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="bg-blue-500 p-8 rounded-lg">
+              <h3 className="text-xl font-bold">Step 1</h3>
+              <p>Upload your data</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="py-24">
         <div className="container mx-auto px-4">
           <Newsletter />

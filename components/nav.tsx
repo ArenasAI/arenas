@@ -69,6 +69,23 @@ export function Navbar() {
             >
                 pricing
             </Link>
+            <DropdownMenu>
+                <DropdownMenuTrigger className="text-sm text-foreground/80 hover:text-foreground transition-colors">
+                    resources
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                    <DropdownMenuItem>
+                        <Link href="/changelog" className={`w-full ${dela.className}`}>
+                            changelog
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                        <Link href="/blog" className={`w-full ${dela.className}`}>
+                            blog
+                        </Link>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
             <Link 
                 href="/docs" 
                 className="text-sm text-foreground/80 hover:text-foreground transition-colors"
@@ -84,6 +101,15 @@ export function Navbar() {
                 onClick={() => setIsOpen(false)}
             >
                 discord
+            </a>
+            <a
+                target='_blank'
+                href='https://x.com/witharenas' 
+                rel='noreferrer noopener' 
+                className="text-sm text-foreground/80 hover:text-foreground transition-colors"
+                onClick={() => setIsOpen(false)}
+            >
+                x
             </a>
         </>
     )

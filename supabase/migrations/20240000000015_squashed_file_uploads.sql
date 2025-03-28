@@ -17,6 +17,7 @@ CREATE TABLE public.file_uploads (
     size INTEGER NOT NULL,
     url TEXT NOT NULL,
     version INTEGER NOT NULL DEFAULT 1,
+    preview_data JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
 
     -- Composite unique constraints

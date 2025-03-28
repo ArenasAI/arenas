@@ -1,6 +1,7 @@
 'use client';
 
 import type { ChatRequestOptions, Message } from 'ai';
+import type { Attachment } from 'ai';
 import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 import { memo, useState } from 'react';
@@ -8,7 +9,7 @@ import { memo, useState } from 'react';
 import type { Vote } from '@/lib/supabase/types';
 import {
   PencilEditIcon,
-  SparklesIcon,
+  ArenasIcon,
 } from './icons';
 import { Markdown } from './markdown';
 import { MessageActions } from './message-actions';
@@ -20,6 +21,53 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { MessageEditor } from './message-editor';
 import { MessageReasoning } from './message-reasoning';
 import { ChartDisplay } from './chart-display';
+import { SpreadsheetEditor } from './spreadsheet-editor';
+
+interface PreviewData { 
+  type: 'file' | 'image' | 'spreadsheet';
+  name: string;
+  size: number;
+  contentType: string;
+  lastModified: string;
+  dimensions?: { width: number; height: number };
+  thumbnail?: string;
+  icon?: 'FileText' | 'FileSpreadsheet';
+}
+
+interface AttachmentWithPreview extends Attachment {
+  preview?: PreviewData;
+  url: string;
+  name: string;
+  contentType: string;
+}
+
+type ChartType = 'line' | 'bar' | 'scatter' | 'pie' | 'heatmap';
+
+interface Chart {
+  type: ChartType;
+  title: string;
+  image?: string;
+  elements?: Array<{
+    label: string;
+    value: number;
+  }>;
+  x_label?: string;
+  y_label?: string;
+}
+
+interface ToolInvocation {
+  toolCallId: string;
+  toolName: string;
+  state: 'call' | 'result';
+  args?: {
+    charts?: Chart[];
+    [key: string]: unknown;
+  };
+  result?: {
+    charts?: Chart[];
+    [key: string]: unknown;
+  };
+}
 
 const PurePreviewMessage = ({
   chatId,
@@ -62,7 +110,7 @@ const PurePreviewMessage = ({
           {message.role === 'assistant' && (
             <div className="size-8 flex items-center rounded-full justify-center ring-1 shrink-0 ring-border bg-background">
               <div className="translate-y-px">
-                <SparklesIcon size={14} />
+                <ArenasIcon size={40}/>
               </div>
             </div>
           )}
@@ -70,10 +118,25 @@ const PurePreviewMessage = ({
           <div className="flex flex-col gap-4 w-full">
             {message.experimental_attachments && (
               <div className="flex flex-row justify-end gap-2">
-                {message.experimental_attachments.map((attachment) => (
+                {(message.experimental_attachments as AttachmentWithPreview[]).map((attachment) => (
                   <PreviewAttachment
                     key={attachment.url}
-                    attachment={attachment}
+                    attachment={{
+                      ...attachment,
+                      preview: attachment.preview || {
+                        type: attachment.contentType?.startsWith('image/') ? 'image' : 
+                              attachment.contentType?.includes('spreadsheet') || attachment.name?.includes('.csv') || 
+                              attachment.name?.includes('.xlsx') || attachment.name?.includes('.xls') ? 'spreadsheet' : 'file',
+                        name: attachment.name || 'File',
+                        size: 0,
+                        contentType: attachment.contentType || '',
+                        lastModified: new Date().toISOString(),
+                        thumbnail: attachment.url,
+                        icon: attachment.contentType?.startsWith('image/') ? undefined :
+                              attachment.contentType?.includes('spreadsheet') || attachment.name?.includes('.csv') || 
+                              attachment.name?.includes('.xlsx') || attachment.name?.includes('.xls') ? 'FileSpreadsheet' : 'FileText'
+                      }
+                    }}
                   />
                 ))}
               </div>
@@ -90,7 +153,7 @@ const PurePreviewMessage = ({
               <div className="flex flex-row gap-2 items-start">
                 {message.role === 'user' && (
                   <Tooltip>
-                    <TooltipTrigger asChild>
+                    <TooltipTrigger asChild> 
                       <Button
                         variant="ghost"
                         className="px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
@@ -132,19 +195,43 @@ const PurePreviewMessage = ({
 
             {message.toolInvocations && message.toolInvocations.length > 0 && (
               <div className="flex flex-col gap-4">
-                {message.toolInvocations.map((toolInvocation) => {
-                  const { toolName, toolCallId, state, args } = toolInvocation;
+                {(message.toolInvocations as ToolInvocation[]).map((toolInvocation) => {
+                  const { toolName, toolCallId, state, args, result } = toolInvocation;
 
-                  if (state === 'result') {
-                    const { result } = toolInvocation;
-
+                  if (state === 'result' && result) {
                     return (
-                      <div key={`result-${toolCallId}`}>
+                      <div key={`result-${toolCallId}`} className="w-full">
                         {toolName === 'visualization' ? (
-                          <ChartDisplay charts={result.charts || []} />
-                        ) : (
-                          <pre>{JSON.stringify(result, null, 2)}</pre>
-                        )}
+                          <div className="w-full">
+                            <div className="bg-muted p-4 rounded-lg mb-2">
+                              <h4 className="text-sm font-medium mb-2">Visualization</h4>
+                              <div className="w-full max-w-3xl mx-auto">
+                                <ChartDisplay charts={result.charts || []} />
+                              </div>
+                            </div>
+                          </div>
+                        ) : toolName === 'cleaning' ? (
+                          <div className="w-full">
+                            <div className="bg-muted p-4 rounded-lg mb-2">
+                              <h4 className="text-sm font-medium mb-2">Cleaned Data</h4>
+                              {result.cleaned_data ? (
+                                <div className="w-full">
+                                  <SpreadsheetEditor 
+                                    data={result.cleaned_data as Record<string, unknown>[]}
+                                    headers={Object.keys((result.cleaned_data as Record<string, unknown>[])[0] || {})}
+                                    onDataChange={(newData) => {
+                                      console.log('Data changed:', newData);
+                                    }}
+                                  />
+                                </div>
+                              ) : (
+                                <pre className="overflow-x-auto">
+                                  {JSON.stringify(result || {}, null, 2)}
+                                </pre>
+                              )}
+                            </div>
+                          </div>
+                        ) : null}
                       </div>
                     );
                   }
@@ -152,14 +239,28 @@ const PurePreviewMessage = ({
                   return (
                     <div
                       key={`call-${toolCallId}`}
-                      className={cx({
-                        skeleton: ['visualization'].includes(toolName),
+                      className={cx("w-full", {
+                        'animate-pulse': ['visualization', 'cleaning'].includes(toolName),
                       })}
                     >
                       {toolName === 'visualization' ? (
-                        <ChartDisplay charts={args.charts || []} />
-                      ) : toolName === 'clean' ? (
-                        <pre>{JSON.stringify(args, null, 2)}</pre>
+                        <div className="bg-muted p-4 rounded-lg mb-2">
+                          <h4 className="text-sm font-medium mb-2">Generating Visualization</h4>
+                          <div className="w-full max-w-3xl mx-auto">
+                            <ChartDisplay charts={args?.charts || []} />
+                          </div>
+                        </div>
+                      ) : toolName === 'cleaning' ? (
+                        <div className="bg-muted p-4 rounded-lg mb-2">
+                          <h4 className="text-sm font-medium mb-2">Cleaning Data</h4>
+                          <div className="w-full">
+                            <SpreadsheetEditor 
+                              data={args?.data as Record<string, unknown>[] || []}
+                              headers={Object.keys((args?.data as Record<string, unknown>[])?.[0] || {})}
+                              onDataChange={() => {}}
+                            />
+                          </div>
+                        </div>
                       ) : null}
                     </div>
                   );
@@ -221,7 +322,7 @@ export const ThinkingMessage = () => {
         )}
       >
         <div className="size-8 flex items-center rounded-full justify-center ring-1 shrink-0 ring-border">
-          <SparklesIcon size={14} />
+          <ArenasIcon size={14} />
         </div>
 
         <div className="flex flex-col gap-2 w-full">

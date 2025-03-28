@@ -890,6 +890,9 @@ export function handleDatabaseError(error: PostgrestError | null) {
     case '23503': // Foreign key violation
       throw new Error('Referenced record does not exist');
     case '42501': // RLS violation
+      // if(error.message.includes('')) {
+      //   throw new Error('Message limit reached. Please upgrade to continue chatting.');
+      // }
       throw new Error('Unauthorized access');
     case 'PGRST116': // Not found
       return null;

@@ -16,20 +16,6 @@ export interface ChartResult {
   image?: string;    // For heatmaps and other image-based plots
 }
 
-export async function createSandbox(language: 'python' | 'r' | 'julia') {
-    if (!process.env.E2B_API_KEY) {
-        throw new Error('E2B_API_KEY is not set');
-    }
-
-    const template = language === 'python' ? 'Python' : 
-                    language === 'r' ? 'R' : 'Julia';
-                    
-    const sandbox = await Sandbox.create(template, {
-        apiKey: process.env.E2B_API_KEY
-    });
-    return sandbox;
-}
-
 export async function runVisualizationCode(
   sandbox: Sandbox,
   code: string,

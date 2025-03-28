@@ -5,14 +5,14 @@ export async function getMatchesFromEmbeddings(embeddings: number[], fileRef: st
     const pinecone = await createPineconeClient();
     const index = pinecone.Index('default-index');
     try {
-        const namespace = fileRef.split('/').pop()!;
+        const fileId = fileRef.split('/').pop()!;
         const results = await index.query({
             topK: 5,
             vector: embeddings,
             includeValues: true,
             includeMetadata: true,
             filter: {
-                namespace,
+                fileId,
             }
         });
         return results.matches || [];
@@ -23,16 +23,16 @@ export async function getMatchesFromEmbeddings(embeddings: number[], fileRef: st
 }
 
 async function getEmbeddings(text: string): Promise<number[]> {
-  try {
-    const embeddings = new OpenAIEmbeddings({
-      openAIApiKey: process.env.OPENAI_API_KEY,
-    });
-    const result = await embeddings.embedQuery(text);
-    return result;
-  } catch (error) {
-    console.error("Error generating embeddings:", error);
-    throw new Error("Failed to generate embeddings");
-  }
+    try {
+        const embeddings = new OpenAIEmbeddings({
+            openAIApiKey: process.env.OPENAI_API_KEY,
+        });
+        const result = await embeddings.embedQuery(text);
+        return result;
+    } catch (error) {
+        console.error("Error generating embeddings:", error);
+        throw new Error("Failed to generate embeddings");
+    }
 }
 
 export async function getContext(query: string, fileRef: string): Promise<string> {
@@ -48,8 +48,28 @@ export async function getContext(query: string, fileRef: string): Promise<string
         
         // Extract and join text from metadata
         const context = docsToUse
-            .map((match) => match.metadata?.text)
-            .filter(Boolean) // Remove any undefined/null values
+            .map((match) => {
+                if (!match.metadata?.text) return '';
+                
+                // Add metadata context if available
+                const metadataContext = [];
+                if (match.metadata.documentType) {
+                    metadataContext.push(`Type: ${match.metadata.documentType}`);
+                }
+                if (match.metadata.headers && Array.isArray(match.metadata.headers)) {
+                    metadataContext.push(`Columns: ${match.metadata.headers.join(', ')}`);
+                }
+                if (match.metadata.rowCount) {
+                    metadataContext.push(`Total Rows: ${match.metadata.rowCount}`);
+                }
+                
+                const metadataStr = metadataContext.length > 0 
+                    ? `\nMetadata: ${metadataContext.join(' | ')}\n`
+                    : '';
+                
+                return `${metadataStr}${match.metadata.text}`;
+            })
+            .filter(Boolean) // Remove any empty strings
             .join('\n\n');
             
         return context;

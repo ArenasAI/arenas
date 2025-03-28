@@ -26,7 +26,7 @@ export default function Footer() {
                         <h3 className="font-semibold mb-4">Company</h3>
                         <ul className="space-y-2 text-sm text-muted-foreground">
                             <li><a href="/about">About</a></li>
-                            <li><a href="/contact">Contact</a></li>
+                            <li><a href="https://discord.gg/spZ5yucbnn">Discord</a></li>
                         </ul>
                     </div>
                     <div>

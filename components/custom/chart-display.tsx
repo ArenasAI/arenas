@@ -25,17 +25,20 @@ export function ChartDisplay({ charts }: ChartDisplayProps) {
   return (
     <div className="space-y-8">
       {charts.map((chart, index) => (
-        <div key={index} className="w-full h-[400px]">
+        <div key={index} className="w-full min-h-[300px] max-h-[600px]">
           <ResponsiveContainer width="100%" height="100%">
-            <div>
-              {chart.type === 'heatmap' && chart.image ? (
-                <Image 
-                  src={chart.image} 
-                  alt={chart.title} 
-                  width={1000}
-                  height={1000}
-                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                />
+            <div className="w-full h-full flex items-center justify-center">
+              {chart.image ? (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Image 
+                    src={chart.image} 
+                    alt={chart.title} 
+                    width={800}
+                    height={600}
+                    className="max-w-full max-h-full object-contain"
+                    priority
+                  />
+                </div>
               ) : chart.type === 'bar' ? (
                 <RechartsBarChart data={chart.elements}>
                   <CartesianGrid strokeDasharray="3 3" />

@@ -1,9 +1,9 @@
 import { Message } from "@/lib/supabase/types";
 import { generateUUID } from '@/lib/utils';
 import { saveChat } from '@/lib/cached/mutations';
-import { Attachment } from 'ai';
+import { Attachment as BaseAttachment } from 'ai';
 
-export interface FileAttachment extends Attachment {
+export interface Attachment extends BaseAttachment {
   id: string;
   url: string;
   name: string;
@@ -11,10 +11,12 @@ export interface FileAttachment extends Attachment {
   mimeType: string;
   metadata?: Record<string, unknown>;
   previewData?: Array<Array<string | number>>;
-};
+  fileId?: string;
+  content?: string;
+}
 
 export type ChatMessage = Message & {
-  attachments?: FileAttachment[];
+  attachments?: Attachment[];
 };
 
 export async function createAndSaveChat(userId: string, title: string) {

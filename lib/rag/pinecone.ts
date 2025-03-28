@@ -100,26 +100,63 @@ export async function storeDocument(
 ) {
     try {
         let content: string;
+        const metadata: Record<string, string | string[] | number | boolean> = {
+            fileType,
+            fileName,
+            userId,
+            fileId,
+            processedAt: new Date().toISOString()
+        };
 
         if (fileType.includes('image')) {
             content = await extractTextFromImage(fileBuffer, modelId);
+            metadata.imageModel = modelId;
         } else if (fileType.includes('pdf') || fileName.endsWith('.pdf')) {
             content = await extractTextFromPDF(fileBuffer);
+            metadata.documentType = 'pdf';
         } else if (fileType.includes('csv') || fileName.endsWith('.csv')) {
             const text = new TextDecoder('utf-8').decode(fileBuffer);
-            const result = Papa.parse(text, { header: true });
-            content = JSON.stringify(result.data);
+            const result = Papa.parse(text, { 
+                header: true,
+                skipEmptyLines: true,
+                transformHeader: (header) => header.trim(),
+                transform: (value) => value.trim()
+            });
+            
+            // Convert to a more readable format
+            const headers = result.meta.fields || [];
+            const rows = result.data as Record<string, string>[];
+            
+            // Create a structured representation
+            content = rows.map(row => {
+                return headers.map(header => `${header}: ${row[header]}`).join('\n');
+            }).join('\n\n');
+            
+            metadata.documentType = 'csv';
+            metadata.headers = headers;
+            metadata.rowCount = rows.length;
         } else if (fileType.includes('spreadsheet') || 
                  fileName.endsWith('.xlsx') || 
                  fileName.endsWith('.xls')) {
             const workbook = XLSX.read(fileBuffer, { type: 'array' });
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
-            const data = XLSX.utils.sheet_to_json(worksheet);
-            content = JSON.stringify(data);
+            const data = XLSX.utils.sheet_to_json(worksheet) as Record<string, string>[];
+            
+            // Convert to a more readable format
+            const headers = Object.keys(data[0] || {});
+            content = data.map(row => {
+                return headers.map(header => `${header}: ${row[header]}`).join('\n');
+            }).join('\n\n');
+            
+            metadata.documentType = 'excel';
+            metadata.headers = headers;
+            metadata.rowCount = data.length;
+            metadata.sheetName = firstSheetName;
         } else {
             try {
                 content = new TextDecoder('utf-8').decode(fileBuffer);
+                metadata.documentType = 'text';
             } catch (e) {
                 console.error('Error decoding file buffer:', e);
                 throw new Error('Unsupported file type');
@@ -145,14 +182,9 @@ export async function storeDocument(
                     id: `${fileId}-chunk-${i}`,
                     values: embedding,
                     metadata: {
-                        userId,
-                        fileId,
-                        fileName,
-                        documentId: fileId,
+                        ...metadata,
                         chunkIndex: i,
                         text: doc.pageContent,
-                        fileType: fileType,
-                        timestamp: new Date().toISOString(),
                         charCount: doc.pageContent.length,
                     },
                 };

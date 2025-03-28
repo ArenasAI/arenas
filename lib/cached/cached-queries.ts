@@ -17,6 +17,7 @@ import {
   getSessionQuery,
   getUserByIdQuery,
   getChatWithMessagesQuery,
+  getFilesQuery,
 } from './queries';
 
 const getSupabase = cache(() => createClient());
@@ -63,6 +64,21 @@ export const getUser = async (email: string) => {
     {
       tags: [`user_${email}`],
       revalidate: 3600, // Cache for 1 hour
+    }
+  )();
+};
+
+export const getFiles = async (id: string) => {
+  const supabase = await getSupabase();
+
+  return unstable_cache(
+    async () => {
+      return getFilesQuery(supabase, { id: id });
+    },
+    ['files', id],
+    {
+      tags: [`files_${id}`],
+      revalidate: 10, // Cache for 10 seconds
     }
   )();
 };

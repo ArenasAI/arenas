@@ -248,7 +248,7 @@ function PureMultimodalInput({
 
 
   return (
-    <div className="relative w-full flex flex-col gap-4">
+    <div className="relative w-[calc(100%-2rem)] max-w-3xl mx-auto py-10 flex flex-col gap-4">
       <input
         type="file"
         className="fixed -top-4 -left-4 size-0.5 opacity-0 pointer-events-none"
@@ -274,79 +274,81 @@ function PureMultimodalInput({
         </div>
       )}
 
-      {(attachments.length > 0 || files) && (
-        <div className={cn(
-          "flex flex-row gap-2 overflow-x-scroll items-end",
-          isDragging && "opacity-50"
-        )}>
-          {attachments.map((attachment) => (
-            <PreviewAttachment 
-              key={attachment.url} 
-              attachment={attachment} 
-              onRemove={() => removeAttachment(attachment)}
-            />
-          ))}
+      <div className="relative">
+        {(attachments.length > 0 || files) && (
+          <div className={cn(
+            "flex flex-row gap-2 overflow-x-scroll items-end mb-2",
+            isDragging && "opacity-50"
+          )}>
+            {attachments.map((attachment) => (
+              <PreviewAttachment 
+                key={attachment.url} 
+                attachment={attachment} 
+                onRemove={() => removeAttachment(attachment)}
+              />
+            ))}
 
-          {files && Array.from(files).map((file) => (
-            <PreviewAttachment
-              key={file.name}
-              attachment={{
-                url: '',
-                name: file.name,
-                contentType: file.type,
-              }}
-              isUploading={true}
-            />
-          ))}
-        </div>
-      )}
-
-      {typeof remainingMessages === 'number' && remainingMessages < Infinity && (
-        <div className="absolute top-2 right-2 text-xs text-muted-foreground">
-          {remainingMessages} messages remaining
-        </div>
-      )}
-
-      <Textarea
-        ref={textareaRef}
-        placeholder="Say somethin..."
-        value={input}
-        onChange={handleInput}
-        onPaste={handlePaste}
-        className={cx(
-          'min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-2xl !text-base bg-muted pb-10 dark:border-zinc-700',
-          isDragging && 'scale-102 border-primary',
-          className,
+            {files && Array.from(files).map((file) => (
+              <PreviewAttachment
+                key={file.name}
+                attachment={{
+                  url: '',
+                  name: file.name,
+                  contentType: file.type,
+                }}
+                isUploading={true}
+              />
+            ))}
+          </div>
         )}
-        rows={2}
-        autoFocus
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault();
 
-            if (status !== 'ready') {
-              toast.error('Please wait for the model to finish its response!');
-            } else {
-              submitForm();
+        {typeof remainingMessages === 'number' && remainingMessages < Infinity && (
+          <div className="absolute top-2 right-2 text-xs text-muted-foreground">
+            {remainingMessages} messages remaining
+          </div>
+        )}
+
+        <Textarea
+          ref={textareaRef}
+          placeholder="Say somethin..."
+          value={input}
+          onChange={handleInput}
+          onPaste={handlePaste}
+          className={cx(
+            'min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-2xl !text-base pb-10 border-zinc-200 dark:border-zinc-400',
+            isDragging && 'scale-102 border-primary',
+            className,
+          )}
+          rows={2}
+          autoFocus
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault();
+
+              if (status !== 'ready') {
+                toast.error('Please wait for the model to finish its response!');
+              } else {
+                submitForm();
+              }
             }
-          }
-        }}
-      />
+          }}
+        />
 
-      <div className="absolute bottom-0 p-2 w-fit flex flex-row justify-start">
+        <div className="absolute bottom-2 left-2">
           <AttachmentsButton fileInputRef={fileInputRef} status={status} />
-      </div>
+        </div>
 
-      <div className="absolute bottom-0 right-0 p-2 w-fit flex flex-row justify-end">
-        {status === 'submitted' ? (
-          <StopButton stop={stop} setMessages={setMessages} />
-        ) : (
-          <SendButton
-            input={input}
-            submitForm={submitForm}
-            uploadQueue={fileUploads.map(upload => upload.id)}
-          />
-        )}
+        <div className="absolute bottom-2 right-2">
+          {status === 'submitted' ? (
+            <StopButton stop={stop} setMessages={setMessages} />
+          ) : (
+            <SendButton
+              input={input}
+              submitForm={submitForm}
+              uploadQueue={fileUploads.map(upload => upload.id)}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ export interface PricingTier {
     features: string[];
     buttonText?: string;
     priceId?: string;
+    link?: string;
     user: User | null;
     index: number;
 }

@@ -3,8 +3,8 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import { CONTACT_EMAIL, PRICING_TIERS } from "@/utils/constants"
-import { Check, X, Sparkles, Zap, BarChart, Mail } from "lucide-react"
+import { PRICING_TIERS } from "@/utils/constants"
+import { Check, Mail } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { motion } from "framer-motion"
@@ -18,47 +18,33 @@ export default function PricingPage() {
     setBillingCycle(prev => prev === 'monthly' ? 'annual' : 'monthly')
   }
 
-  // Custom icons for each tier to add visual interest
-  const tierIcons = [
-    <BarChart className="h-12 w-12 text-blue-500" key="chart" />,
-    <Zap className="h-12 w-12 text-amber-500" key="zap" />,
-    <Sparkles className="h-12 w-12 text-purple-500" key="sparkles" />
-  ]
-
   const handleSubscribe = async (tier: string, index: number) => {
     try {
       setLoading(index)
       
-      // Map tier titles to price IDs - use actual price IDs from Stripe
-      const priceIdMap: Record<string, string> = {
-        'Student': process.env.NEXT_PUBLIC_STRIPE_STUDENT_PRICE_ID || '',
-        'Pro': process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID || '',
-      }
-      
-      const priceId = priceIdMap[tier]
-      if (!priceId) {
+      // Get the selected tier's price ID
+      const selectedTier = PRICING_TIERS[billingCycle].find(t => t.title === tier)
+      if (!selectedTier?.priceId) {
         throw new Error(`No price ID found for tier: ${tier}`)
       }
 
-      console.log('Submitting with:', { priceId, plan: tier.toLowerCase() }) // Debug log
+      console.log('Using price ID:', selectedTier.priceId) // Debug log
 
-      const response = await fetch('/api/create-checkout-session', {
+      const response = await fetch('/api/stripe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ 
-          priceId,
-          plan: tier.toLowerCase()
-        }),
+        body: JSON.stringify({ priceId: selectedTier.priceId }),
       })
       
       if (!response.ok) {
         const error = await response.json()
+        console.error('Stripe API error:', error) // Debug log
         throw new Error(error.error || 'Failed to create checkout session')
       }
       
-      const { sessionId } = await response.json()
-      window.location.href = `/checkout?session_id=${sessionId}`
+      const { url } = await response.json()
+      window.location.href = url
       
     } catch (error) {
       console.error('Error:', error)
@@ -78,14 +64,6 @@ export default function PricingPage() {
       <div className="absolute -bottom-24 right-1/3 w-80 h-80" />
       
       <div className="max-w-4xl mx-auto text-center pt-20 px-4">
-        <motion.h1 
-          className="text-2xl md:text-6xl font-bold mb-6 leading-tight bg-clip-text"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          ditch boring excel sheets, leave it to us
-        </motion.h1>
         
         {/* Billing toggle with animation */}
         <motion.div 
@@ -112,8 +90,8 @@ export default function PricingPage() {
       </div>
 
       {/* Pricing Cards */}
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 px-4 pb-20">
-        {PRICING_TIERS[billingCycle].map((tier, index) => (
+      <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 px-4 pb-20">
+        {PRICING_TIERS[billingCycle].slice(0, 2).map((tier, index) => (
           <motion.div
             key={index}
             initial={{ opacity: 0, y: 20 }}
@@ -127,65 +105,37 @@ export default function PricingPage() {
                   : 'border-muted shadow-md hover:shadow-lg transition-shadow'
               }`}
             >
-              
-              <CardHeader className="py-8 text-center">
-                <div className="mx-auto mb-4">
-                  {tierIcons[index]}
-                </div>
+              <CardHeader className="py-6 text-center">
                 <h3 className="text-2xl font-bold">{tier.title}</h3>
-                <p className="text-sm text-muted-foreground mt-2 min-h-[40px]">{tier.description}</p>
+                <p className="text-sm text-muted-foreground mt-1">{tier.description}</p>
               </CardHeader>
               
-              <CardContent className="pt-6 pb-4 flex-grow flex flex-col">
-                <div className="text-center mb-6">
-                  <span className="text-5xl font-bold">${tier.price}</span>
-                  <span className="text-muted-foreground">/{billingCycle === 'monthly' ? 'mo' : 'mo'}</span>
-                  
-                  {billingCycle === 'annual' && (
-                    <div className="text-sm text-primary mt-2">
-                      {`Save $${parseInt(tier.price) * 12 * 0.15} per year`}
-                    </div>
-                  )}
+              <CardContent className="pt-4 pb-3 flex-grow flex flex-col">
+                <div className="text-center mb-4">
+                  <span className="text-4xl font-bold">${tier.price}</span>
                 </div>
                 
-                <div className="space-y-4 flex-grow min-h-[200px]">
-                  {tier.features.map((feature, i) => (
+                <div className="space-y-3 flex-grow">
+                  {tier.features.slice(0, 5).map((feature, i) => (
                     <div key={i} className="flex items-start">
                       <Check className="h-5 w-5 text-primary shrink-0 mr-2" />
                       <span className="text-sm">{feature}</span>
                     </div>
                   ))}
-                  
-                  {index === 0 && (
-                    <div className="flex items-start text-muted-foreground">
-                      <X className="h-5 w-5 shrink-0 mr-2" />
-                      <span className="text-sm">No access to latest models</span>
-                    </div>
-                  )}
                 </div>
               </CardContent>
               
-              <CardFooter className="pt-2 pb-8">
+              <CardFooter className="pt-2 pb-6">
                 <Button 
-                  className={`w-full rounded-xl py-6 text-lg font-bold ${
+                  className={`w-full rounded-xl py-5 text-lg font-bold ${
                     index === 1 ? 'bg-primary hover:bg-primary/90' : ''
                   }`}
                   variant={index === 1 ? "default" : "outline"}
                   size="lg"
-                  onClick={() => tier.title === 'Team' 
-                    ? window.location.href = `mailto:${CONTACT_EMAIL}`
-                    : handleSubscribe(tier.title, index)
-                  }
+                  onClick={() => handleSubscribe(tier.title, index)}
                   disabled={loading === index}
                 >
-                  {loading === index 
-                    ? 'Loading...' 
-                    : tier.title === 'Team' 
-                      ? 'Contact Sales' 
-                      : index === 1 
-                        ? 'Get Started' 
-                        : 'Subscribe'
-                  }
+                  {loading === index ? 'Loading...' : index === 1 ? 'Get Started' : 'Subscribe'}
                 </Button>
               </CardFooter>
             </Card>
@@ -200,10 +150,10 @@ export default function PricingPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.8 }}
       >
-        <div className="bg-card border rounded-3xl p-8 shadow-lg">
-          <h2 className="text-2xl font-semibold mb-4">Need a custom plan for your team?</h2>
-          <p className="text-muted-foreground mb-6">
-            Contact us for enterprise solutions and custom pricing tailored to your organization&apos;s needs.
+        <div className="bg-card border rounded-3xl p-6 shadow-lg">
+          <h2 className="text-2xl font-semibold mb-3">Need a custom plan?</h2>
+          <p className="text-muted-foreground mb-4">
+            Contact us for enterprise solutions and custom pricing.
           </p>
           <Button variant="outline" size="lg" className="hover:bg-primary hover:text-white transition-colors">
             <Mail className="h-5 w-5 mr-2"/>

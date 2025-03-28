@@ -1,3 +1,4 @@
+import Footer from "@/components/footer"
 import { Navbar } from "@/components/nav"
 import PricingPage from "@/components/pricing"
 import { constructMetadata } from "@/lib/utils"
@@ -15,6 +16,7 @@ export default async function Page() {
         <div className="justify-items-center py-20">
             <Navbar/>
             <PricingPage />
+            <Footer />
         </div>
         </>
     )
