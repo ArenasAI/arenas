@@ -1,18 +1,14 @@
 import { Stripe } from 'stripe';
 import createClient from '@/lib/supabase/server';
 
-let stripeClient: Stripe | null = null;
-
 export function getStripeClient() {
     if (!process.env.STRIPE_SECRET_KEY) {
         throw new Error('STRIPE_SECRET_KEY is not set');
     }
-    if (!stripeClient) {
-        stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
-            apiVersion: '2025-02-24.acacia'
-        });
-    }
-    return stripeClient;
+    // Create a new client each time to ensure we use the latest env var
+    return new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: '2025-02-24.acacia'
+    });
 }
 
 export async function createCheckoutSession(priceId: string, userId: string, email: string) {

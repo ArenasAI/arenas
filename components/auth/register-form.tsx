@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-// import { login, signInWithOAuth } from '@/app/(auth)/actions'
 import { Button } from "@/components/ui/button"
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AdminUserAttributes, Provider } from "@supabase/supabase-js";
@@ -237,12 +236,12 @@ export function Register() {
             </Form>
 
             <div className="mt-6 text-center text-gray-600">
-              Don&apos;t have an account?{" "}
+              Already have an account?{" "}
               <Link
-                href="/register"
+                href="/login"
                 className="text-gray-800 transition duration-150 ease-in-out hover:text-primary-800"
               >
-                Register
+                Login
               </Link>
             </div>
           </div>

@@ -16,4 +16,4 @@ export interface PricingPageProps {
     user: User | null;
 }
 
-export type PricingTierData = Omit<PricingTier, "user">;    
+export type PricingTierData = Omit<PricingTier, "user">;

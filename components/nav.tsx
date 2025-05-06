@@ -23,8 +23,22 @@ const supabase = createClient()
 
 export function Navbar() {
     const [isOpen, setIsOpen] = useState(false)
-    const [isLoading] = useState(false)
+    const [isLoading, setIsLoading] = useState(false)
     const [user, setUser] = useState<User | null>(null)
+
+    const handleSignOut = async () => {
+        try {
+            setIsLoading(true);
+            const result = await signOut();
+            if (result.error) {
+                console.error(result.error);
+            }
+        } catch (error) {
+            console.error("Sign out failed:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }
 
     const mobileNavVariants = {
         hidden: {
@@ -149,7 +163,7 @@ export function Navbar() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
-                    onClick={signOut} 
+                    onClick={handleSignOut} 
                     className="text-red-600"
                     disabled={isLoading}
                 >
@@ -163,7 +177,7 @@ export function Navbar() {
     return (
         <>
             <div className="md:hidden">
-                <div className={`${dela.className} fixed top-0 left-0 right-0 flex items-center justify-between bg-background/95 dark:bg-background/95 border-b border-border px-4 h-16 z-50`}>
+                <div className={`${dela.className} fixed top-0 left-0 right-0 flex items-center justify-between bg-[#CD4630] border-b border-border px-4 h-16 z-50`}>
                     <Link href="/" className="text-xl font-semibold">
                         Arenas
                     </Link>
@@ -214,7 +228,7 @@ export function Navbar() {
 
             <div className="hidden md:block">
                 <div
-                    className={`${dela.className} fixed top-8 left-1/2 -translate-x-1/2 flex items-center bg-background/95 dark:bg-background/95 rounded-full border border-border h-12 p-2 z-50`}
+                    className={`${dela.className} fixed top-8 left-1/2 -translate-x-1/2 flex items-center bg-[#CD4630] rounded-full border border-border h-12 p-2 z-50`}
                 >
                     <div className="flex items-center w-full px-4">
                         <Link href="/">

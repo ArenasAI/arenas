@@ -26,7 +26,6 @@ import { PreviewAttachment } from './preview-attachment';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import equal from 'fast-deep-equal';
-import { UploadStatus } from './upload-status';
 import { UseChatHelpers } from 'ai/react';
 
 interface MultimodalInputProps {
@@ -42,7 +41,6 @@ interface MultimodalInputProps {
   append: UseChatHelpers['append'];
   handleSubmit: UseChatHelpers['handleSubmit'];
   className?: string;
-  isDragging: boolean;
   remainingMessages?: number;
 }
 
@@ -57,7 +55,6 @@ function PureMultimodalInput({
   setMessages,
   handleSubmit,
   className,
-  isDragging,
   remainingMessages,
 }: MultimodalInputProps) {
 
@@ -258,27 +255,10 @@ function PureMultimodalInput({
         tabIndex={-1}
       />
 
-      {/* Add the file upload status indicators */}
-      {fileUploads.length > 0 && (
-        <div className="w-full space-y-2 mb-2">
-          {fileUploads.map((upload) => (
-            <UploadStatus
-              key={upload.id}
-              fileName={upload.fileName}
-              progress={upload.progress}
-              status={upload.status}
-              error={upload.error}
-              onDismiss={() => removeFileUpload(upload.id)}
-            />
-          ))}
-        </div>
-      )}
-
       <div className="relative">
         {(attachments.length > 0 || files) && (
           <div className={cn(
-            "flex flex-row gap-2 overflow-x-scroll items-end mb-2",
-            isDragging && "opacity-50"
+            "flex flex-row gap-2 overflow-x-scroll items-end mb-2"
           )}>
             {attachments.map((attachment) => (
               <PreviewAttachment 
@@ -316,7 +296,6 @@ function PureMultimodalInput({
           onPaste={handlePaste}
           className={cx(
             'min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-2xl !text-base pb-10 border-zinc-200 dark:border-zinc-400',
-            isDragging && 'scale-102 border-primary',
             className,
           )}
           rows={2}

@@ -56,7 +56,7 @@ const fetcher = async (): Promise<chats[]> => {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      console.error('Auth error:', userError);
+      console.error(`Auth error: ${JSON.stringify(userError)}`);
       return [];
     }
 
@@ -67,13 +67,13 @@ const fetcher = async (): Promise<chats[]> => {
       .order('created_at', { ascending: false });
 
     if (chatsError) {
-      console.error('Chats fetch error:', chatsError);
+      console.error(`Chats fetch error: ${JSON.stringify(chatsError)}`);
       return [];
     }
 
     return chats || [];
   } catch (error) {
-    console.error('Fetcher error:', error);
+    console.error(`Fetcher error: ${error instanceof Error ? error.message : String(error)}`);
     return [];
   }
 };

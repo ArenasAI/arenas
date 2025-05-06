@@ -33,7 +33,12 @@ export async function updateSession(request: NextRequest) {
 
   // IMPORTANT: DO NOT REMOVE auth.getUser()
 
-   await supabase.auth.getUser()
+  // Attempt to get the current user session; catch errors to avoid breaking middleware
+  try {
+    await supabase.auth.getUser()
+  } catch (error) {
+    console.warn('Supabase middleware auth error:', error)
+  }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.
   // If you're creating a new response object with NextResponse.next() make sure to:
