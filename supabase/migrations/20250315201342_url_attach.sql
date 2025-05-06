@@ -1,1 +1,0 @@
-alter table messages add column attachment_url text;

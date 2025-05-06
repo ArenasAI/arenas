@@ -11,13 +11,13 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS Policies
 
--- CREATE POLICY "Users can view own profile" ON public.users
---     FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can view own profile" ON public.users
+    FOR SELECT USING (auth.uid() = id);
 
--- CREATE POLICY "Users can update own profile" ON public.users
---     FOR UPDATE USING (auth.uid() = id); 
+CREATE POLICY "Users can update own profile" ON public.users
+    FOR UPDATE USING (auth.uid() = id); 
 
-    -- Create a trigger to automatically create user records
+-- Create a trigger to automatically create user records
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -56,4 +56,4 @@ FROM auth.users
 ON CONFLICT (id) DO UPDATE
 SET
   email = EXCLUDED.email,
-  updated_at = now(); 
+  updated_at = now();

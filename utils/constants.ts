@@ -1,5 +1,4 @@
 import { GitHubLogo, LinkedInLogo, DiscordLogo, TwitterLogo } from "@/components/ui/icons";
-import { PricingTierData } from "@/lib/pricing";
 import { InstagramLogoIcon } from "@radix-ui/react-icons";
 
 export const CONTACT_EMAIL = "witharenas@gmail.com";

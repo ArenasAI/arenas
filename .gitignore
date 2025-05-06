@@ -40,3 +40,5 @@ yarn-error.log*
 .env.production
 arenas-server/
 .aider*
+
+.venv/

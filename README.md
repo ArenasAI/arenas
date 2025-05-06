@@ -47,7 +47,19 @@ To get a local copy up and running follow these simple steps.
 
 3. Install dependencies
 ```sh
-    bun dev
+bun install    # or npm install / yarn install
+```
+
+### Environment Variables
+This project relies on external services (Supabase, Stripe, Beehiiv, PostHog, E2B sandbox, and the Arenas AI backend). Copy the example file and configure your credentials:
+```sh
+cp .env.example .env.local
+# Edit .env.local to add your keys and URLs
+```
+
+### Run the Development Server
+```sh
+bun dev        # or npm run dev / yarn dev
 ```
 
 

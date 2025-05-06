@@ -10,8 +10,6 @@ CREATE TABLE IF NOT EXISTS public.chats (
 -- Enable RLS
 ALTER TABLE public.chats ENABLE ROW LEVEL SECURITY;
 
-
-Create RLS Policies
 CREATE POLICY "Users can view own chats" ON public.chats
     FOR SELECT USING (auth.uid() = user_id);
 
@@ -23,4 +21,3 @@ CREATE POLICY "Users can update own chats" ON public.chats
 
 CREATE POLICY "Users can delete own chats" ON public.chats
     FOR DELETE USING (auth.uid() = user_id);
-
