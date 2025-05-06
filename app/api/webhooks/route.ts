@@ -51,7 +51,7 @@ export async function POST(req: Request) {
         const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
         
         await Promise.all([
-          supabase.from('user_subscriptions').upsert({
+          supabase.from('subscriptions').upsert({
             user_id: session.metadata.userId,
             stripe_customer_id: session.customer,
             stripe_subscription_id: subscription.id,
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
         
-        await supabase.from('user_subscriptions').upsert({
+        await supabase.from('subscriptions').upsert({
           stripe_subscription_id: subscription.id,
           status: subscription.status,
           cancel_at_period_end: subscription.cancel_at_period_end,

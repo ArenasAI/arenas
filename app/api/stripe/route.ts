@@ -3,7 +3,6 @@ import { getSession } from '@/lib/cached/cached-queries';
 import createClient from '@/lib/supabase/server';
 import { createCheckoutSession, updateSubscription } from '@/lib/stripe/client';
 
-// Create checkout session
 export async function POST(req: NextRequest) {
     try {
         // Get user and price ID
@@ -20,7 +19,7 @@ export async function POST(req: NextRequest) {
         // Check for existing subscription
         const supabase = await createClient();
         const { data: existingSubscription } = await supabase
-            .from('user_subscriptions')
+            .from('subscriptions')
             .select('*')
             .eq('user_id', user.id)
             .eq('status', 'active')
@@ -51,7 +50,7 @@ export async function DELETE() {
 
         const supabase = await createClient();
         const { data: subscription, error } = await supabase
-            .from('user_subscriptions')
+            .from('subscriptions')
             .select('stripe_subscription_id')
             .eq('user_id', user.id)
             .eq('status', 'active')
@@ -90,7 +89,7 @@ export async function PATCH(req: NextRequest) {
 
         const supabase = await createClient();
         const { data: subscription, error } = await supabase
-            .from('user_subscriptions')
+            .from('subscriptions')
             .select('stripe_subscription_id')
             .eq('user_id', user.id)
             .eq('status', 'active')
