@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { getDateRange } from '@/lib/dates'
 import { dela } from './ui/fonts'
+import { DiscordLogo } from './ui/icons'
 
 const footerCopyright = `© ${getDateRange()} Arenas, All rights reserved.`;
 
@@ -121,9 +122,18 @@ export default function Footer() {
                             target="_blank" 
                             rel="noopener noreferrer" 
                             className={`${dela.className} text-muted-foreground hover:text-foreground transition-colors`}
-                            aria-label="LinkedIn"
+                            aria-label="linkedIn"
                         >
                             <LinkedInIcon />
+                        </a>
+                        <a 
+                            href="https://discord.gg/spZ5yucbnn"
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className={`${dela.className} text-muted-foreground hover:text-foreground transition-colors`}
+                            aria-label="discord"
+                        >
+                            <DiscordLogo />
                         </a>
                     </div>
                 </div>

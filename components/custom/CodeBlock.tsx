@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import { Check, Copy } from 'lucide-react';
 
 interface CodeBlockProps {
@@ -76,7 +75,6 @@ export function CodeBlock({ language, value }: CodeBlockProps) {
       </div>
       <SyntaxHighlighter
         language={normalizeLanguage(language)}
-        style={vscDarkPlus}
         customStyle={{
           margin: 0,
           borderRadius: '0 0 0.375rem 0.375rem',

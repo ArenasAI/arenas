@@ -20,7 +20,6 @@ import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { MessageEditor } from './message-editor';
 import { MessageReasoning } from './message-reasoning';
-import { ChartDisplay } from './chart-display';
 
 interface PreviewData { 
   type: 'file' | 'image' | 'spreadsheet';
@@ -195,7 +194,7 @@ const PurePreviewMessage = ({
             {message.toolInvocations && message.toolInvocations.length > 0 && (
               <div className="flex flex-col gap-4">
                 {(message.toolInvocations as ToolInvocation[]).map((toolInvocation) => {
-                  const { toolName, toolCallId, state, args, result } = toolInvocation;
+                  const { toolName, toolCallId, state, result } = toolInvocation;
 
                   if (state === 'result' && result) {
                     return (
@@ -205,7 +204,6 @@ const PurePreviewMessage = ({
                             <div className="bg-muted p-4 rounded-lg mb-2">
                               <h4 className="text-sm font-medium mb-2">Visualization</h4>
                               <div className="w-full max-w-3xl mx-auto">
-                                <ChartDisplay charts={result.charts || []} />
                               </div>
                             </div>
                           </div>
@@ -225,7 +223,6 @@ const PurePreviewMessage = ({
                         <div className="bg-muted p-4 rounded-lg mb-2">
                           <h4 className="text-sm font-medium mb-2">Generating Visualization</h4>
                           <div className="w-full max-w-3xl mx-auto">
-                            <ChartDisplay charts={args?.charts || []} />
                           </div>
                         </div>
                       ) : null}

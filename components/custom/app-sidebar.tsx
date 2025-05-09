@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/sidebar';
 import { BetterTooltip } from '@/components/ui/tooltip';
 import { useState } from 'react';
-
+import { createClient } from '@/lib/supabase/client';
 
 export function AppSidebar({ user }: { user: User | null }) {
   const router = useRouter();
@@ -26,25 +26,34 @@ export function AppSidebar({ user }: { user: User | null }) {
   const [isCreating, setIsCreating] = useState(false);
 
   const handleNewChat = async () => {
-    if (isCreating || !user) return;
+    const supabase = createClient();
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (isCreating || error || !session?.access_token) {
+      console.warn('User not authenticated.', error);
+      return;
+    }
   
     try {
       setIsCreating(true);
-      const response = await fetch('/api/chat/create', {
+      const apiUrl = process.env.ARENAS_SERVER || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/new-chat`, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId: user.id, title: 'New Chat' }),
+        body: JSON.stringify({ title: 'New Chat' }),
       });
   
       if (!response.ok) {
-        throw new Error('Failed to create chat');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Server response:', response.status, errorData);
+        throw new Error(`Failed to create chat: ${response.status}`);
       }
   
-      const { newChatId } = await response.json();
+      const { chatId } = await response.json();
       setOpenMobile(false);
-      router.push(`/chat/${newChatId}`);
+      router.push(`/chat/${chatId}`);
       router.refresh();
     } catch (error) {
       console.error('Error creating new chat:', error);
