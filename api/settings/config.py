@@ -43,25 +43,30 @@ def initialize_model_configs() -> Dict[str, Dict[str, Any]]:
     Returns a dictionary mapping model IDs to their configurations.
     """
     return {
-        "gpt4o": {
+        "gpt-4o": {
             "provider": "openai",
             "model": "gpt-4o",
             "api_key": os.getenv("OPENAI_API_KEY"),
         },
-        "claude": {
+        "claude-3-7-sonnet": {
             "provider": "anthropic",
-            "model": "claude-3-opus-20240229",
+            "model": "claude-3-7-sonnet-20250219",
             "api_key": os.getenv("ANTHROPIC_API_KEY"),
         },
-        "deepseek": {
+        "deepseek-reasoner": {
             "provider": "deepseek",
             "model": "deepseek-chat",  
             "api_key": os.getenv("DEEPSEEK_API_KEY"),
         },
-        "hugging_face": {
-            "provider": "huggingface",
-            "model": "mistralai/Mixtral-8x7B-Instruct-v0.1",
-            "api_key": os.getenv("HUGGING_FACE_API_KEY"),
+        "gemini-2.5-pro": {
+            "provider": "google",
+            "model": "gemini-2.5-pro",
+            "api_key": os.getenv("GOOGLE_API_KEY"),
+        },
+        "gpt-4.5": {
+            "provider": "openai",
+            "model": "gpt-4.5-preview",
+            "api_key": os.getenv("OPENAI_API_KEY"),
         }
     }
 

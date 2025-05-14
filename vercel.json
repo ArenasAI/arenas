@@ -1,0 +1,11 @@
+{
+    "rewrites": [
+      { "source": "/api/chat", "destination": "http://localhost:8000/api/chat" },
+      { "source": "/docs/:path*", "destination": "http://production.com/:path*"}
+    ],
+    "functions": {
+      "api/**": {
+        "excludeFiles": "{.next,.git,node_modules}/**"
+      }
+    }
+}
