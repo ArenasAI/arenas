@@ -79,7 +79,7 @@ export default function Footer() {
                         <ul className="space-y-3 text-sm text-muted-foreground">
                             <li>
                                 <Link href="/about" className={`${dela.className} hover:text-foreground transition-colors`}>
-                                    About
+                                    about
                                 </Link>
                             </li>
                             <li>
@@ -89,17 +89,17 @@ export default function Footer() {
                                     rel="noopener noreferrer" 
                                     className={`${dela.className} hover:text-foreground transition-colors`}
                                 >
-                                    Discord
+                                    discord
                                 </a>
                             </li>
                             <li>
                                 <Link href="/privacy" className={`${dela.className} hover:text-foreground transition-colors`}>
-                                    Privacy
+                                    privacy
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/terms" className={`${dela.className} hover:text-foreground transition-colors`}>
-                                    Terms
+                                <Link href="/terms-of-service" className={`${dela.className} hover:text-foreground transition-colors`}>
+                                    terms of service
                                 </Link>
                             </li>
                         </ul>

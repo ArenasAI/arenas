@@ -35,17 +35,27 @@ export function Chat({
     stop,
     reload,
   } = useChat({
-    body: { id, modelId: selectedModelId },
+    body: {
+      chatId: id, 
+      modelId: selectedModelId,
+      messages: initialMessages,
+    },
+    maxSteps: 5,
+    api: '/api/chat',
     initialMessages,
     streamProtocol: 'data',
     experimental_throttle: 100,
     onFinish: () => {
-      mutate('/api/history');
+      mutate(`/history`);
     },
     onError: (error) => {
-      console.error('Chat error:', error);
-      toast.error("An error occurred! Please try again later.")
-    }
+      console.error("Chat error:", error);
+      if (error.message.includes("Too many requests")) {
+        toast.error("Too many requests, please try again later!")
+      } else {
+        toast.error("An error occurred. Please try again.")
+      }
+    },
   });
 
   const { data: votes } = useSWR<Array<Vote>>(

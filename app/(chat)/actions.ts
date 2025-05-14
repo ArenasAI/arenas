@@ -11,12 +11,14 @@ export async function saveModelId(model: string) {
 
 export async function generateTitleFromUserMessage({
   message,
+  modelId,
 }: {
   message: Message;
+  modelId: string;
 }) {
   try {
   const { text: title } = await generateText({
-    model: myProvider.languageModel('gpt-4o'),
+    model: myProvider.languageModel(modelId),
     system: `\n
     - you will generate a short title based on the first message a user begins a conversation with
     - ensure it is not more than 80 characters long

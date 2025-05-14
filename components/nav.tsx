@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { signOut } from '@/app/(auth)/actions'
 import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
+import { ThemeToggle } from './theme-toggle'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -200,6 +201,10 @@ export function Navbar() {
                         >
                             <div className="flex flex-col p-4 space-y-4">
                                 {commonLinks}
+                                <div className="flex items-center">
+                                    <ThemeToggle />
+                                    <span className="ml-2 text-sm text-foreground/80">Toggle theme</span>
+                                </div>
                                 {user ? (
                                     userMenu
                                 ) : (
@@ -238,6 +243,7 @@ export function Navbar() {
                         </Link>
                         <div className="flex items-center gap-6 ml-4">
                             {commonLinks}
+                            <ThemeToggle />
                             {user ? (
                                 userMenu
                             ) : (

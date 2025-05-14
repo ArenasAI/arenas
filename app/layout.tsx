@@ -26,7 +26,7 @@ export default function RootLayout({
         >
             <div className="flex min-h-screen flex-col overflow-auto">
               {children}
-              <Toaster position="bottom-right" richColors />
+              <Toaster position="top-center" richColors />
               <Analytics />
               <SpeedInsights />
             </div>
